@@ -6,10 +6,11 @@ https://doc.rust-lang.org/book/
 Source code for the book
 https://github.com/rust-lang/book
 
+## 1. Getting Started
 
 ## 1.2. Hello, World!
 
-2 steps to running a program written in Rust: 
+2 steps to running a program written in Rust:
 
 1. compiling the source code.
 2. running the resulting executable file.
@@ -28,6 +29,7 @@ That will compile (starting at `src/main.rs`) into `target/debug/<name>`,
 where `<name>` is whatever is in the `name` field of `cargo.toml`.
 
 Running the file takes 2 step
+
 - Building an executable: `cargo build`
 - Running the executable: `./target/debug/<name>`
 
@@ -43,6 +45,8 @@ Cargo will put the resulting executable in `target/release` instead of `target/d
 
 `cargo check` to run the checks the compiler would, while not producing an executable.
 This is much faster.
+
+## 3. Common Programming Concepts
 
 ## 3.1. Variables and Mutability
 
@@ -124,6 +128,7 @@ https://doc.rust-lang.org/stable/std/primitive.str.html#method.parse
 This parses the string into another type, in this case, a number. More specifically, a `u32`.
 
 The docs say:
+
 > Because parse is so general, it can cause problems with type inference. As such, parse is one of the few times you'll see the syntax affectionately known as the 'turbofish': ::<>. This helps the inference algorithm understand specifically which type you're trying to parse into.
 
 I don't understand half of that at this point so this is my takeaway:
@@ -137,6 +142,7 @@ What I do know is I can find the right documentation for the `.expect()` functio
 
 https://doc.rust-lang.org/stable/std/result/enum.Result.html#method.expect
 The docs say:
+
 > Returns the contained Ok value, consuming the self value.
 
 That "self value", while I don't know exactly.
@@ -148,6 +154,7 @@ Time to look at what that `Result` is first.
 
 https://doc.rust-lang.org/stable/std/result/enum.Result.html
 The docs say:
+
 > Result is a type that represents either success (Ok) or failure (Err).
 
 So if there are no errors, `Ok` contains the resulting value.
@@ -168,6 +175,7 @@ Rust panicks when an unexpected error happens, when nothing handles that error.
 Rust immediately exits and shows an error message.
 
 To recap:
+
 ```rust
 let guess: u32 = "42".parse().expect("Not a number!");
 ```
@@ -195,14 +203,14 @@ There are 2 types of integers, signed ones and unsigned ones.
 Signed ones can be negative (they include a sign, hence, signed).
 Unsigned ones don't include a sign and are assumed to be positive.
 
-| Length | Signed | Unsigned |
-| ---- | ---- | ---- |
-|8-bit|i8|u8|
-|16-bit|i16|u16|
-|32-bit|i32|u32|
-|64-bit|i64|u64|
-|128-bit|i128|u128|
-|arch|isize|usize|
+| Length  | Signed | Unsigned |
+| ------- | ------ | -------- |
+| 8-bit   | i8     | u8       |
+| 16-bit  | i16    | u16      |
+| 32-bit  | i32    | u32      |
+| 64-bit  | i64    | u64      |
+| 128-bit | i128   | u128     |
+| arch    | isize  | usize    |
 
 The numbers are how many bits are used to store the number and directly affect how large the stored numbers can be.
 For example: a u8 can store numbers from 0 to 255 (in decimal notation).
@@ -211,13 +219,13 @@ Under the hood. The signed numbers are stored using [two's complements](https://
 `isize` and `usize` are whoever many bytes correspond to your type of computer.
 64 for 64bit architecture or 32 for 32bit architecture.
 
-|Number literals|Example|
-| ---- | ---- | ---- |
-|Decimal|98_222|
-|Hex|0xff|
-|Octal|0o77|
-|Binary|0b1111_0000|
-|Byte(u8 only)|b'A'|
+| Number literals | Example     |
+| --------------- | ----------- |
+| Decimal         | 98_222      |
+| Hex             | 0xff        |
+| Octal           | 0o77        |
+| Binary          | 0b1111_0000 |
+| Byte(u8 only)   | b'A'        |
 
 Repeating from earlier: numbers can have a `_` in them to improve readability.
 Decimal numbers are not prefixed.
@@ -242,13 +250,13 @@ The default is `f64`.
 
 The usual suspects exist for math operators in Rust, and they behave as expected.
 
-| Operator | Operation |
-| --- | --- |
-| `+` | addition |
-| `-` | subtraction |
-| `*` | multiplication |
-| `/` | division |
-| `%` | remainder |
+| Operator | Operation      |
+| -------- | -------------- |
+| `+`      | addition       |
+| `-`      | subtraction    |
+| `*`      | multiplication |
+| `/`      | division       |
+| `%`      | remainder      |
 
 #### Boolean Type
 
@@ -418,4 +426,5 @@ fn main() {
     println!("The value of element is: {}", element);
 }
 ```
+
 ## 3.3. Functions
