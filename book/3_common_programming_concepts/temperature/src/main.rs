@@ -1,25 +1,26 @@
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let num: f64 = args[1].parse().expect("First argument must be a number");
+    if args.len() != 3 {
+        println!("Please pass in 2 arguments: \n 1. A number. \n 2. C or F for Celcius or Fahrenheit respectively.");
+        // Panic early if the length of the args is wrong and display a helpful message.
+        panic!("Invalid amount of command line arguments.");
+    }
+    let num: f64 = args[1].parse().expect("First argument must be a number.");
     let scale: String = args[2].parse().expect("Second argument must be a string.");
-    let is_c: Option<bool> = if scale == "C" {
-        Some(true)
+    let is_c: bool = if scale == "C" {
+        true
     } else if scale == "F" {
-        Some(false)
+        false
     } else {
         panic!("Second arg must be C for Celsius, or F for Fahrenheit.");
     };
-    let result = if is_c.unwrap() {
-        c_to_f(num)
-    } else {
-        f_to_c(num)
-    };
+    let result = if is_c { c_to_f(num) } else { f_to_c(num) };
     println!(
-        "{}°{} is {}°{}",
+        "{}°{} is {}°{}.",
         num,
-        if is_c.unwrap() { "C" } else { "F" },
+        if is_c { "C" } else { "F" },
         result,
-        if is_c.unwrap() { "F" } else { "C" },
+        if is_c { "F" } else { "C" },
     );
 }
 
