@@ -428,3 +428,418 @@ fn main() {
 ```
 
 ## 3.3. Functions
+
+syntax: `fn name(parameter, list) {}`
+Keyword: `fn`, followed by a name, in snake_case by convention.
+A set of parenthesis after the function name `()`.
+ithin them possible parameters in a comma seperated list.
+Followed by an opening curly brace `{` that marks the start of the function body.
+Ends with an ending curly brace `}` to mark the end of the function body.
+No semicolon after a function declaration.
+
+The `main` function is special and serves as entry-point of programs.
+
+A function can be declared after it's used in sourcecode order.
+As long as it's declared, it can be used.
+
+You _must_ declare the type of each paramater.
+
+### Function Bodies Contain Statements and Expressions
+
+Statements are instructions that _do_ something, they don't return a value.
+Expressions evaluate to a value, they _return_ that value.
+
+Statements: return the empty tuple `()`. Rust's way of saying: "nothing".
+Expressions: return a value.
+
+Function bodies are a bunch of statements.
+A body can end in an expression.
+
+Expressions can be part of a statement.
+
+A variable declaration is a statement.
+A function definition is a statement.
+
+Because statements do not return values, you can't use the result of a statement and assign it to a variable.
+
+```rust
+// does not compile
+fn main() {
+    let x = (let y = 6);
+}
+```
+
+`let y = 6` does not return anything, so there is nothing for the `x` variable to contain.
+
+While a function _declaration_ is a statement, thus, returns nothing.
+A function _invocation_ is an expression, thus, returns something.
+
+Calling a macro is an expression.
+(macros are the things with exclamation points `!`, like `println!`.)
+
+A block that creates a new scope (`{}`) is an expression.
+
+```rust
+fn main() {
+    let x = 5;
+
+    let y = {
+        let x = 3;
+        x + 1
+    };
+
+    println!("The value of y is: {}", y);
+}
+```
+
+the:
+
+```rust
+{
+    let x = 3;
+    x + 1
+};
+```
+
+Is an expression, it evaluates to a single value that is returned.
+
+> Expressions do not include ending semicolons.
+> If you add a semicolon to the end of an expression, you turn it into a statement, which will then not return a value
+
+The last line in that block does not end in a semicolon.
+The last line in that block is an expression, it gets returned as value for the block.
+
+So the codeblock is equivalent to:
+
+```rust
+fn main() {
+    let x = 5;
+
+    let y = 4;
+
+    println!("The value of y is: {}", y);
+}
+```
+
+#### Functions with Return Values
+
+Functions can return values to the code that calls them.
+That makes sense, calling a function is an expression, it returns a value.
+
+Syntax to declare the type of the returned value in a function: `->`
+
+The value of the last expression in a codeblock is the return value (implicit return).
+
+You can return from a function early/explicitly by using the `return` keyword followed by a value.
+
+That means these 2 snippets are equivalent
+
+```rust
+fn five() -> i32 {
+    5
+}
+```
+
+```rust
+fn five() -> i32 {
+    return 5;
+}
+```
+
+To recap, consider this snippet
+
+```rust
+// this will not compile
+fn main() {
+    let x = plus_one(5);
+
+    println!("The value of x is: {}", x);
+}
+
+fn plus_one(x: i32) -> i32 {
+    x + 1;
+}
+```
+
+In working code, the call to `plus_one(5)` will return a value.
+That value is then assigned to the variable `x`.
+
+The `plus_one` function says it will return an `i32` ( `-> i32`).
+But in this codesnippet the `plus_one` function doesn't return anything.
+That's because the `x + 1;` line ends in a semicolon, making it a statement.
+A statement returns nothing, expressed in Rust by the empty tuple `()`, causing an error.
+
+```err
+error[E0308]: mismatched types
+ --> src/main.rs:7:24
+  |
+7 | fn plus_one(x: i32) -> i32 {
+  |    --------            ^^^ expected `i32`, found `()`
+  |    |
+  |    implicitly returns `()` as its body has no tail or `return` expression
+8 |     x + 1;
+  |          - help: consider removing this semicolon
+```
+
+The error tells us exactly what to do.
+Removing that semicolon turns the statement into an expression.
+That expression is the last one in the function and returns a value.
+That value is an integer and fulfills the type declared in the function definition `i32`.
+
+## 3.4. Comments
+
+syntax:
+
+- single line comments: `//`
+- block comment start: `/*`
+- block comment end: `*/`
+
+A line comment starts at the `//`, and continues until the end of the line.
+They can be placed inline.
+By convention, they have their own lines, often directly above the relevant line of code.
+
+So, technically, I could do this:
+
+```rust
+fn main() {
+    let num = /* ooh, I bet this is a number,
+    exciting,
+    let's see */ 42;
+}
+```
+
+I solemnly swear I won't do that (probably).
+
+## 3.5. Control Flow
+
+### if Expressions
+
+`if` is an expression.
+That means it returns a value.
+
+An `if` allows you to branch code based on a condition.
+If it's met, run this block of code, if it's not, don't.
+
+syntax: `if` keyword followed by a condition, optionally surrounded by parentheses, generally not.
+Followed by a block of code, marked by curly braces `{}`.
+
+There can be multiple codeblocks.
+Because there can be an `else` block, and `else if` blocks.
+Blocks associated with an `if` are called _arms_.
+
+> If you don’t provide an `else` expression and the condition is false, the program will just skip the `if` block and move on to the next bit of code.
+
+A condition _must_ be a boolean.
+
+### Handling Multiple Conditions with else if
+
+```rust
+fn main() {
+    let number = 6;
+
+    if number % 4 == 0 {
+        println!("number is divisible by 4");
+    } else if number % 3 == 0 {
+        println!("number is divisible by 3");
+    } else if number % 2 == 0 {
+        println!("number is divisible by 2");
+    } else {
+        println!("number is not divisible by 4, 3, or 2");
+    }
+}
+```
+
+This snippet checks each `if` (or `else if`) individually and only executes the first branch that satisfies its condidion.
+Eventhough `6` is divisible by `2`, the line `"number is divisible by 2"` will never be printed.
+Only the first branch that satisfies its condition (`else if number % 3 == 0`) will,
+so we see `"number is divisible by 3"`.
+
+> That’s because Rust only executes the block for the first true condition, and once it finds one, it doesn’t even check the rest.
+
+If there are a bunch of `else if` branches, it might be cleaner to use a different construct called `match`.
+From what I can gather right now, that'll be like a JavaScript `switch` statement.
+
+### Using if in a let Statement
+
+Because `if` is an expression, it returns a value.
+We can use it to assign a value to a variable by using it as the right side of a `let` statement.
+
+The value of the entire `if` depends on which block of code executes.
+That means the returned result from each arm of the `if` expression must be of the same type.
+
+```rust
+// this code will not compile
+fn main() {
+    let condition = true;
+
+    let number = if condition { 5 } else { "six" };
+
+    println!("The value of number is: {}", number);
+}
+```
+
+The types of `5` and `"six"` don't match.
+
+> This won’t work because variables must have a single type.
+
+That means the code doesn't compile and displays an error.
+
+```err
+error[E0308]: if and else have incompatible types
+ --> src/main.rs:4:44
+  |
+4 |     let number = if condition { 5 } else { "six" };
+  |                                 -          ^^^^^ expected integer, found `&str`
+  |                                 |
+  |                                 expected because of this
+```
+
+The reason the type of a variable has to be known at compile time:
+It allows the compiler to do a bunch of checks and keeps the complexity of the compiler down.
+
+### Repetition with Loops
+
+A loop executes the code inside its body more than once.
+(At least, it typically does, else, why use a loop amirite?)
+
+> Rust has three kinds of loops: `loop`, `while`, and `for`.
+
+#### Repeating Code with loop
+
+Syntax: the `loop` keyword followed by a codeblock.
+
+The codeblock will execute over and over until you explicitly tell it to stop.
+In other words: `loop` creates an infinite loop.
+
+The stopping is done with the `break` keyword.
+You `break` out of the `loop`.
+
+You can use the `continue` keyword to skip the rest of the iteration and start a new one.
+
+#### Returning Values from Loops
+
+To return a value from a loop, put the expression you want to return after the `break` keyword.
+
+```rust
+fn main() {
+    let mut counter = 0;
+
+    let result = loop {
+        counter += 1;
+
+        if counter == 10 {
+            break counter * 2;
+        }
+    };
+
+    println!("The result is {}", result);
+}
+```
+
+The body of the loop will continue to execute as long as it is not broken out of with `break`.
+When `counter` has the value of `10`, the `if` block is entered.
+Inside that block, the loop is broken with `break`.
+Because it has `counter * 2` after it. The value that expression evaluates to will be returned from the `loop`.
+That evaluates to `20`, which is then assigned to the variable `result`.
+Note the loop body ends with a semicolon.
+That is the semicolon to end the variable assignment statement.
+
+#### Conditional Loops with while
+
+A `while` loop has a condition.
+The loop body will execute if that condition evaluates to `true`.
+When the end of the body is reached, it will evaluate that condition again.
+If it passes again, the cycle continues.
+
+> When the condition ceases to be true, the program calls break, stopping the loop.
+
+This line in the book is kinda misleading, I tested if making the condition true in the middle of the `while` body breaks the loop.
+It does not, so I'm sticking with my explanation above.
+
+```rust
+fn main() {
+    let mut number = 3;
+
+    while number != 0 {
+        println!("{}!", number);
+
+        number -= 1;
+
+         println!("number at end of loop: {}", number);
+    }
+
+    println!("LIFTOFF!!!");
+}
+```
+
+Prints
+
+```
+3!
+number at end of loop: 2
+2!
+number at end of loop: 1
+1!
+number at end of loop: 0
+LIFTOFF!!!
+```
+
+Since the `number at end of loop: 0` got printed, that means the loop didn't immediately `break` as soon as the condition became `true`.
+The loop executed to the end of the body first.
+
+> While a condition holds true, the code runs; otherwise, it exits the loop.
+
+#### Looping Through a Collection with for
+
+While you can (hehe, while) loop over the elements of a collection with `while`, often `for` loops are preferred.
+
+```rust
+fn main() {
+    let a = [10, 20, 30, 40, 50];
+    let mut index = 0;
+
+    while index < 5 {
+        println!("the value is: {}", a[index]);
+
+        index += 1;
+    }
+}
+```
+
+Is errorprone, because of the check with the magic number. What if the length ever changes?
+(I'd check with `a.len()` instead, but 🤷‍♂️)
+Is slow, because the check has to be evaluated at every step in the loop.
+
+with a `for` loop.
+
+```rust
+fn main() {
+    let a = [10, 20, 30, 40, 50];
+
+    for element in a.iter() {
+        println!("the value is: {}", element);
+    }
+}
+```
+
+`for` is the most used loop.
+
+`for in` can be used to iterate through an `Iterator`.
+
+Like in python, you can iterate over a range (which is an iterator).
+The Rust standard library provides a `Range` type for that.
+
+```rust
+fn main() {
+    for number in (1..4).rev() {
+        println!("{}!", number);
+    }
+    println!("LIFTOFF!!!");
+}
+```
+
+`1..4` is a `Range` that goes from `1` to `3` in steps of one.
+The first number in the range is inclusive, the last number is exclusive.
+If you want the last number to be included, add the `=`.
+So `1..4` would be the same as `1..=3`.
+`rev` is a method to reverse it, so the loop goes from `3` to `1`.
