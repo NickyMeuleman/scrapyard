@@ -1082,3 +1082,172 @@ let guess: u32 = match guess.trim().parse() {
 - If `parse` returns the `Err` variant of `Result`, exit this iteration of the loop and start a new one with `continue`. (starts from top of `loop`)
 
 > The underscore, `_`, is a catchall value; in this example, we’re saying we want to match all `Err` values, no matter what information they have inside them.
+
+## 4. Understanding Ownership
+
+Ownership enables Rust to make guarantees about memory safety etc.
+It's the reason the language doesn't have a garbage collector and also doesn't require you to manually manage memory.
+
+## 4.1. What is Ownership?
+
+Ownership is a central feature of Rust and has deep implications.
+It's the way Rust manages the memory it uses.
+It does not have a garbage collector.
+It does not require you to allocate and free memory explicitly.
+
+Rust manages memory through the system of ownership and checks if code adheres to a set of ownership rules at compile time.
+
+### The Stack and the Heap
+
+The stack and the heap are 2 places in memory where Rust stores information.
+A [stack](<https://en.wikipedia.org/wiki/Stack_(abstract_data_type)>) is a LIFO (last in, first out) data structure.
+
+- _push_ to the stack. You add things by "putting them on top" of the stack.
+- _pop_ off the stack. You remove things by "taking them from the top" of the stack.
+
+**Every piece of data stored on the stack must have a known, fixed size.**
+Data with unknown size at compile time, or a size that can change, must be stored on the heap.
+
+The heap is less organized.
+When you put data on the heap, you request some space from the memory allocator (piece of logic that manages data stored in the heap).
+The allocator then marks a part of the heap as in use and returns a pointer to that location in the heap (the address).
+This process is called allocating on the heap, or allocating for short.
+
+So: pushing values onto the stack is not allocating!
+
+The pointer has a known, fixed size and is then pushed to the stack.
+For things on the heap: the data is located on the heap, a pointer to that location in the heap is stored on the stack.
+
+- Pushing to the stack is faster than allocating on the heap.
+- Accessing data on the heap is slower than accessing data on the stack (you have to follow a pointer to get to the right address in the heap).
+
+> When your code calls a function, the values passed into the function (including, potentially, pointers to data on the heap)
+> and the function’s local variables get pushed onto the stack.
+> When the function is over, those values get popped off the stack.
+
+Ownership addresses many of the problems that come with managing memory.
+Like keeping duplication low, removing unused data, ...
+
+### Ownership rules
+
+- Each value in Rust has a variable that’s called its _owner_.
+- There can only be one owner at a time.
+- When the owner goes out of scope, the value will be dropped.
+
+### Variable Scope
+
+> A scope is the range within a program for which an item is valid
+
+A variable is valid from the point it's declared until the end of the scope it's declared in. (a scope is often barriered by curcly braces `{}`)
+
+### The String Type
+
+The data types described before (in chapter 3) store data on the stack and were popped off when their scope is over.
+To illustrate ownership rules, we'll use a type that's stored on the heap, a `String`.
+
+You can create a `String` from a string literal (the string in double quotes).
+
+```rust
+let s = String::from("hello");
+```
+
+The double colon `::` indicates the `from` is namespaced under the `String` type. Aka: We're using the `from` that's specific to `String`.
+
+### Memory and Allocation
+
+A string literal is fixed/known at compile time so the text is stored hardcoded in the final executable.
+A `String` can be unknown at compile time and change during execution.
+
+> This means:
+>
+> - The memory must be requested from the memory allocator at runtime.
+> - We need a way of returning this memory to the allocator when we’re done with our String.
+
+The requesting part, we do, by calling `String::from`.
+The returning of that memory is handled by Rust's ownership system: the allocator frees the memory when the owner goes out of scope.
+
+```rust
+{
+    let s = String::from("hello"); // s is valid from this point forward
+
+    // do stuff with s
+}                                  // this scope is now over, and s is no
+                                    // longer valid
+```
+
+While these rules will hold up, it's straightforward to understand now, but things get more complicated when we want to have multiple variables access the data we've allocated on the heap.
+
+### Ways Variables and Data Interact: Move
+
+An example with data that is pushed onto the _stack_.
+
+```rust
+let x = 5;
+let y = x;
+```
+
+`x` gets set to `5`.
+A copy of the value stored in `x` is made and that gets stored in `y`.
+Both variables are accessible and are set to `5` (these two `5`s are pushed onto the stack).
+
+An example with data that is allocated on the _heap_.
+
+```rust
+let s1 = String::from("hello");
+let s2 = s1;
+```
+
+This does not work the same way!
+
+Under the hood, a `String` has 2 parts.
+One part is stored on the stack and one part is stored in the heap.
+
+The part on the stack contains 3 pieces of information:
+
+1. A pointer to the location of the data in the heap
+2. A length
+3. A capacity
+
+> The length is how much memory, in bytes, the contents of the String is currently using.
+> The capacity is the total amount of memory, in bytes, that the String has received from the allocator.
+> The difference between length and capacity matters, but not in this context, so for now, it’s fine to ignore the capacity.
+
+![](trpl04-01.svg)
+
+When we assign `s1` to `s2`, the data on the stack is copied, while the data on the heap is not.
+So: We copy the pointer, the length, and the capacity. Not the data on the heap.
+
+If Rust copied the data on the heap too, that assignment could become very computationally expensive if the data stored on the heap was large.
+
+The image shows two pointers that point to the same location on the heap. This is a problem.
+Any one of those variables going out of scope would cause Rust to try and free that location (by calling `drop`).
+They will try to free the same memory, this is known as a double free error.
+
+To prevent this and ensure memory safety, Rust considers `s1` to no longer be valid.
+Therefore, Rust doesn't need to free anything when `s1` goes out of scope.
+Trying to use `s1` after `s2` is created will throw an error.
+Rust prevents you from using the invalidated reference.
+
+![](trpl04-04.svg)
+
+That's why the data stored on the stack in `s1` in the image is grayed-out.
+When `s2` was assigned, `s1` got invalidated.
+This is called _moving_. In this example, we _moved_ `s1` into `s2`.
+
+Only `s2` going out of scope will free the memory.
+
+As a result of this pattern: any automatic data copying done can be assumed to be fast.
+
+### Ways Variables and Data Interact: Clone
+
+If we do want to copy the data stored on the heap, we can use a common method: `clone`.
+
+```rust
+    let s1 = String::from("hello");
+    let s2 = s1.clone();
+    println!("s1 = {}, s2 = {}", s1, s2);
+```
+
+Because `s1` was not _moved_ into `s2`, rather the data on the heap was copied, `s1` stays valid after the declaration of `s2` and can still be used later.
+
+### Stack-Only Data: Copy
