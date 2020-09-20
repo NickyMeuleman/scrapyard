@@ -843,3 +843,242 @@ The first number in the range is inclusive, the last number is exclusive.
 If you want the last number to be included, add the `=`.
 So `1..4` would be the same as `1..=3`.
 `rev` is a method to reverse it, so the loop goes from `3` to `1`.
+
+## 2. Programming a Guessing Game
+
+Doing the chapter 2 exercise after reading chapter 3 that introduces a bunch of concepts.
+
+> We’ll implement a classic beginner programming problem: a guessing game.
+> Here’s how it works: the program will generate a random integer between 1 and 100.
+> It will then prompt the player to enter a guess. After a guess is entered,
+> the program will indicate whether the guess is too low or too high.
+> If the guess is correct,
+> the game will print a congratulatory message and exit.
+
+### Setting Up a New Project
+
+```
+cargo new guessing_game
+```
+
+Cargo takes a bunch of defaults.
+https://github.com/rust-lang/cargo/blob/0.27.0/src/cargo/ops/cargo_new.rs#L587-L633
+For example: my email is taken from the one set in `git`.
+
+### Processing a Guess
+
+To take user input, use the `io` library on the standard library.
+
+```rust
+use std::io;
+```
+
+While it is in the standard library, it's not imported by default.
+Only a few things are included in the [prelude](https://doc.rust-lang.org/std/prelude/index.html).
+
+### Storing Values with Variables
+
+```rust
+let mut guess = String::new();
+```
+
+`new` is an associated function of the `String` type.
+It returns a `String` of whatever is the argument of `new`.
+Here, nothing is given as argument, so `guess` becomes an empty `String`.
+
+```rust
+io::stdin()
+    .read_line(&mut guess)
+```
+
+This stops execution and lets the user enter something in the terminal (to stdin).
+When they press enter, the resulting string (including the newline, `\n`!) is appended to the variable passed as argument to `read_line`.
+
+(more on that `&` in chapter 3)
+
+### Handling Potential Failure with the Result Type
+
+That line of code can fail. It return a `Result` type. (more specifically [`std::io::Result`](https://doc.rust-lang.org/std/io/type.Result.html)).
+The `Result` type is an [enumeration](https://doc.rust-lang.org/book/ch06-00-enums.html) that contains 2 variants, it can be one of these 2.
+
+1. `Ok` - indicates success
+2. `Err` - indicates error
+
+Quite straightforward.
+The cool thing is, those variants _contain values_.
+
+- The `Ok` variant will contain the result if the operation that returned a `Result` was successful.
+- The `Err` variant will contain the error if the operation that returned a `Result` failed.
+
+```rust
+io::stdin()
+    .read_line(&mut guess)
+    .expect("Failed to read line");
+```
+
+We chain [`.expect`](https://doc.rust-lang.org/std/result/enum.Result.html#method.expect) to the operation that returned a `Result`.
+That will either return the value contained in the `Ok` _or_ panick (stop the program) with the provided message if it finds an `Err`.
+
+### Printing Values with println! Placeholders
+
+```rust
+println!("You guessed: {}", guess);
+```
+
+> The set of curly brackets, {}, is a placeholder: think of {} as little crab pincers that hold a value in place.
+
+You can use multiple placeholders. The values passed to the `println` macro populate them in order.
+You can name the placeholders.
+
+```rust
+println!("{subject} {verb} {object}",
+             object="the lazy dog",
+             subject="the quick brown fox",
+             verb="jumps over");
+```
+
+### Generating a Secret Number
+
+To generate a random number (between 1 and 100 for the exercise), use a Rust package, called a crate.
+More specifically, the [`rand` crate](https://crates.io/crates/rand).
+
+### Using a Crate to Get More Functionality
+
+2 types of crates:
+
+1. binary crate - is an executable
+2. library crate - contains code to be used in other programs
+
+The `rand` crate is a library crate.
+Add it to the dependencies in `cargo.toml`.
+
+```toml
+[dependencies]
+rand = "0.5.5"
+```
+
+The `"0.5.5"` is the version.
+Rust follows [SemVer](http://semver.org/).
+
+Building the code with `cargo build` now will first download and compile the code of the crates in dependencies.
+
+It also creates a `cargo.lock` file, similar to the `package-lock.json` or `yarn.lock` in JavaScript.
+The package registry, or crate registry, is [crates.io/](https://crates.io/). Similar to npm in JavaScript.
+
+### Generating a Random Number
+
+They first import a trait.
+What a trait is, I don't know yet, but they say it'll be covered in chapter 10.
+That trait has a method attached to it we'll use in the program.
+
+> The Rng trait defines methods that random number generators implement,
+> and this trait must be in scope for us to use those methods. Chapter 10 will cover traits in detail.
+
+```rust
+use rand::Rng;
+```
+
+The random number is stored in the `secret_number` variable.
+
+```rust
+let secret_number = rand::thread_rng().gen_range(1, 101);
+```
+
+`thread_rng` returns a thread-local random number generator.
+`gen_range(1, 101)` uses that random number generator to return a number between 1 (inclusive) and 101 (exclusive). So between 1 and 100.
+`gen_range` is a method defined by the `Rng` trait.
+
+### Comparing the Guess to the Secret Number
+
+To compare the guess to the random number, we'll use `cmp`.
+`cmp` is a method that returns an `Ordering` enum (like `Result` is an enum).
+
+So `Ordering` needs to be imported.
+
+```rust
+use std::cmp::Ordering;
+```
+
+The `Ordering` enum has 3 variants.
+
+1. `Less` - a compared value is less than another.
+2. `Equal` - a compared value is equal to another.
+3. `Greater` - a compared value is greater than another.
+
+We use a `match` expression to execute a codeblock based on what variant we get back.
+
+```rust
+match guess.cmp(&secret_number) {
+    Ordering::Less => println!("Too small!"),
+    Ordering::Greater => println!("Too big!"),
+    Ordering::Equal => println!("You win!"),
+}
+```
+
+`match` is exhaustive and the compiler will force you to cover every possible case.
+In this example, all 3 of the possible variants for `Ordering`.
+As soon as Rust find a matching, it will execute the associated arm.
+It won't check other arms after that, the `match` ends after one arm is executed.
+
+However, this code won't compile yet, because `guess` and `secret_number` are of different types.
+The `guess` comes in as input from the terminal, and is a `String`. `secret_number` is an integer.
+Let's convert `guess` to also be an integer.
+
+This is done by calling this line after the user input is received:
+
+```rust
+let guess: u32 = guess.trim().parse().expect("Please type a number!");
+```
+
+From chapter 3, the `guess` variable is shadowed.
+A new variable is declared that just so happens to have the same name as the existing `guess` variable.
+This lets us change the type of the thing stored in `guess`. Here, from `String` to `u32`.
+
+`trim` is called on the old `guess`, eliminating any whitespace.
+Remember the newline (`\n`) was stored when the user entered the input, that's gone now.
+Then `parse` gets called on the result, parsing it into a new type (the one we declared, `u32`).
+This return a `Result`, so we call `except` on it to either return the successfully parsed integer, or panic.
+
+### Allowing Multiple Guesses with Looping
+
+The program exists after one guess now.
+We'll move all the code after generating the secret number inside a `loop`.
+
+### Quitting After a Correct Guess
+
+Next, handle the case where the user guesses correctly and exit the program.
+Modify the `match` arm for the `Equal` case and break the loop, allowing the program to come to an end.
+
+```rust
+match guess.cmp(&secret_number) {
+    Ordering::Less => println!("Too small!"),
+    Ordering::Greater => println!("Too big!"),
+    Ordering::Equal => {
+        println!("You win!");
+        break;
+    }
+}
+```
+
+That case is now longer than one line, so we're putting curly braces around the arms.
+Use the `break` keyword to break out of the `loop`.
+
+### Handling Invalid Input
+
+Right now, the program panics if the user supplies an invalid guess (thanks to the `except` after the `parse`).
+
+`match` is an expression, it returns a value.
+
+Change the line to handle a possible `Err` returned from the `Result` that `parse` returns instead of panicing with `except`.
+
+```rust
+let guess: u32 = match guess.trim().parse() {
+    Ok(num) => num,
+    Err(_) => continue,
+};
+```
+
+- If `parse` returns the `Ok` variant of `Result`, return the number it holds and store it in `guess`.
+- If `parse` returns the `Err` variant of `Result`, exit this iteration of the loop and start a new one with `continue`. (starts from top of `loop`)
+
+> The underscore, `_`, is a catchall value; in this example, we’re saying we want to match all `Err` values, no matter what information they have inside them.
