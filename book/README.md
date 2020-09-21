@@ -1362,3 +1362,231 @@ fn calculate_length(s: String) -> (String, usize) {
 ```
 
 Rust has a feature for this, called _references_.
+
+## 4.2. References and Borrowing
+
+```rust
+// this code does not compile
+fn main() {
+    let s1 = String::from("hello");
+    let s2 = hello(s1);
+    println!("{}", s1);
+}
+
+fn hello(s: String) -> String {
+    println!("Inside hello: {}", s);
+    s
+}
+```
+
+Let's follow what happens here.
+A `String` is created and stored in the variable `s1`.
+The `hello` function is called with `s1` as argument, and the body of the function takes ownership. At this point `s1` is invalidated. We _move_ the `String`.
+The `hello` function returns a `String` which is stored in the `s2` variable.
+
+After that we try to access what's in `s1` again by printing it, but `s1` is no longer the owner of the data stored on the heap, `s1` is invalidated.
+Rust will show a compilation error.
+That error: `value borrowed after move`
+
+A workaround was not trying to print `s1`, but `s2` at the end, since that now has the ownership of the `String`.
+This works, but is inconvenient.
+
+Another method is to clone the data as we pass `s1` to `hello`, duplicating the data stored on the heap.
+This works, but is possibly very expensive and causes data duplication.
+
+What we want to do, is pass `s1` to that function, without the function taking ownership.
+That way, we can use `s1` again later.
+
+We can do that by passing a _reference_ to `s1` into the function.
+Syntax: `&s1`
+
+> These ampersands are references, and they allow you to refer to some value without taking ownership of it.
+
+The code below passes a reference of `s1` to `hello` and compiles (without passing ownership back, or cloning the value).
+
+```rust
+fn main() {
+    let s1 = String::from("hello");
+    hello(&s1);
+    println!("{}", s1);
+}
+
+fn hello(s: &String) {
+    println!("Inside hello: {}", s);
+}
+```
+
+We pass `&s1`, a reference to `s1` into the function.
+That means the function signature must now expects a `&String` to be passed as argument,
+a reference to a `String`.
+
+Under the hood, it works like this:
+
+![](trpl04-05.svg)
+
+`s` is a reference to `s1`.
+`s` has a fixed size and is stored on the stack.
+It contains a pointer to `s1`. (More specifically, to the part of `s1` that's stored on the stack.)
+
+The `s1` it points to is the value for `s1` that is stored on the stack.
+Remember from the previous chapter, it contains a pointer to the location in the heap, a size, and a capacity.
+
+As a result, when `s` goes out of scope (ergo: the function ends), it is simply popped off the stack.
+The allocated memory on the heap is not freed yet, it will only be freed when the owner `s1` goes out of its scope.
+
+https://www.youtube.com/watch?v=wZv62ShoStY
+
+To get to the underlying data while in the function:
+Mr C The Slide Man would say: "2 hops this time"
+
+1. `s` points to `s1`.
+2. `s1` points to the data on the heap.
+
+> We call having references as function parameters borrowing.
+
+### Mutable References
+
+Remember how variables are immutable by default?
+References are too.
+
+In the following example, we mutate the underlying `String`, by appending `, world` to it inside the `hello` function.
+
+If we want a reference to be mutable, we have to explicitly declare it: `&mut s1`.
+
+```rust
+fn main() {
+    let mut s1 = String::from("hello");
+    hello(&mut s1);
+    println!("{}", s1);
+}
+
+fn hello(s: &mut String) {
+    println!("Inside hello: {}", s);
+    s.push_str(", world");
+}
+```
+
+Notice adding `mut` to the reference passed into `hello` was not enough.
+
+- We had to first declare `s1` to be mutable by changing the declaration to `let mut s1`.
+- Then we passed a mutable reference to `hello`: `hello(&mut s1)`.
+- We also had to change the function type signature to accept a mutable reference to a string: `s: &mut String`.
+
+> But mutable references have one big restriction: you can have only one mutable reference to a particular piece of data in a particular scope.
+
+This restriction prevents data races at compile time.
+If we only have one writer at a time, then we can not have a concurrency problem.
+Multiple writers at the same time (without synchronization between those 2) can cause data races.
+
+We can only have 1 mutable reference in a scope at a the same time.
+OR
+We can have unlimited immutable references in a scope at the same time.
+
+```rust
+// does not compile
+fn main() {
+    let mut s = String::from("hello");
+
+    let r1 = &mut s;
+    let r2 = &mut s;
+
+    println!("{}, {}", r1, r2);
+}
+```
+
+Creating a new scope, and having one of those mutable references there will let the code compile.
+Because the scope ends, the mutable reference inside that scope is popped off the stack.
+As a result, there is only one mutable reference per scope, this is allowed.
+
+> we can use curly brackets to create a new scope, allowing for multiple mutable references, just not simultaneous ones
+
+```rust
+fn main() {
+    let mut s = String::from("hello");
+    {
+        let r1 = &mut s;
+        println!("{}", r1);
+    }
+    let r2 = &mut s;
+    println!("{}", r2);
+}
+```
+
+Multiple immutable references at the same time are fine, because no one can change the data.
+But we can't add a mutable reference into the mix, it might change the data the immutable references point to, which is unexpected.
+
+> Users of an immutable reference don’t expect the values to suddenly change out from under them!
+
+> Note that a reference’s scope starts from where it is introduced and continues through the last time that reference is used.
+
+That means our broken code from before will work with a small change: we access te value in `r1` before we create `r2`.
+
+```rust
+fn main() {
+    let mut s = String::from("hello");
+
+    let r1 = &mut s;
+    println!("{}", r1);
+    // r1 is no longer used after this point
+
+    let r2 = &mut s;
+    println!("{}", r2);
+}
+```
+
+The scopes don't overlap.
+We can add multiple immutable references to our example to illustrate the point further.
+
+```rust
+fn main() {
+    let mut s = String::from("hello");
+
+    let r1 = &mut s;
+    println!("{}", r1);
+    // r1 is no longer used after this point
+
+    let r2 = &s;
+    let r3 = &s;
+    println!("{} and {}", r2, r3);
+    // r2 and r3 are no longer used after this point
+
+    let r4 = &mut s;
+    println!("{}", r4);
+}
+```
+
+The scopes of references end after the last time they are used. (that means they end within the same codeblock!)
+In that example there is either 1 mutable reference OR there are multiple immutable references at the same time.
+
+### Dangling References
+
+tl;dr: Rust doesn't allow dangling references.
+
+Dangling references are when a reference points to a place in the heap which has been freed, thus the reference no longer points to the data, the data is gone.
+The compiler guarantees that references will never be dangling references.
+The owner of the data can not go out of scope before a reference to that data.
+
+To illustrate, this code will not compile:
+
+```rust
+fn main() {
+    let reference_to_nothing = dangle();
+}
+
+fn dangle() -> &String { // dangle returns a reference to a String
+
+    let s = String::from("hello"); // s is a new String
+
+    &s // we return a reference to the String, s
+} // Here, s goes out of scope, and is dropped. Its memory goes away.
+  // Danger!
+```
+
+When `s` goes out of scope, the data on the heap it points to will be deallocated.
+The reference to `s` that's returned from the function and stored in `reference_to_nothing` would point to that deallocated position in the heap.
+That's a bug, so Rust doesn't even compile.
+
+### The Rules of References
+
+> - At any given time, you can have either one mutable reference or any number of immutable references.
+> - References must always be valid.
