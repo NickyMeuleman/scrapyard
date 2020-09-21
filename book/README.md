@@ -1590,3 +1590,174 @@ That's a bug, so Rust doesn't even compile.
 
 > - At any given time, you can have either one mutable reference or any number of immutable references.
 > - References must always be valid.
+
+## 4.3. The Slice Type
+
+> Another data type that does not have ownership is the slice.
+> Slices let you reference a contiguous sequence of elements in a collection rather than the whole collection.
+
+Slices are references to a part of another value.
+
+If we created a method to find the first word of a `string` and called it `first_word`.
+It could return an integer, that integer would then be the index of the first space in the `String`.
+
+But that's an awkward solution, when the original `String` goes out of scope and the integer doesn't, that integer loses its meaning.
+When that original string changes, the integer can lose its meaning too. (for example, setting the string to `""`.)
+Sure, the integer still exists, but _what does it mean?_
+
+Worrying about the integer and the string going out of sync is tedious and error prone.
+Rust has a solution for this problem: string slices.
+
+### String Slices
+
+> A string slice is a reference to part of a `String`
+
+```rust
+let s = String::from("hello world");
+
+let hello = &s[0..5];
+let world = &s[6..11];
+```
+
+String slices look similar to regular references, with the addition of the `[starting_index..ending_index]` part.
+
+Like with ranges, `starting_index` is inclusive. And `0` is equivalent to not specifying it at all.
+`ending_index` is exclusive. And the index of last byte + 1 in the string (`len()`) is equivalent to not specifying it at all.
+
+Under the hood, the slice data structure stores the starting position and the length of the slice, which corresponds to `ending_index` minus `starting_index`.
+
+![](trpl04-06.svg)
+
+In this example, both instances of `slice1` are identical.
+Both instances of `slice2` are identical.
+Both instances of `slice3` are identical.
+
+```rust
+let s = String::from("hello");
+let len = s.len();
+
+let slice1 = &s[0..2];
+let slice1 = &s[..2];
+
+let slice2 = &s[3..len];
+let slice2 = &s[3..];
+
+let slice3 = &s[0..len];
+let slice3 = &s[..];
+```
+
+With that information in mind, it's more logical for `first_word` to return a string slice instead of an integer.
+
+```rust
+fn first_word(s: &String) -> &str {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+
+    &s[..]
+}
+```
+
+We return a string slice of the start, up to (not including) the first space in the string parameter.
+If no space is found, we return a string slice of the entire string parameter.
+
+Now, when `first_word` returns a value, it is tied to the underlying data.
+
+> The value is made up of a reference to the starting point of the slice and the number of elements in the slice.
+
+Remember, the compiler guarantees references will be valid.
+So string slices pointing to a part of a `String` will be valid, if you try to use a string slice whe it's not valid, the compiler will prevent that.
+
+```rust
+// this does not compile
+fn main() {
+    let mut s = String::from("hello world");
+
+    let word = first_word(&s);
+
+    s.clear(); // error!
+
+    println!("the first word is: {}", word);
+}
+```
+
+```error
+error[E0502]: cannot borrow `s` as mutable because it is also borrowed as immutable
+  --> src/main.rs:18:5
+   |
+16 |     let word = first_word(&s);
+   |                           -- immutable borrow occurs here
+17 |
+18 |     s.clear(); // error!
+   |     ^^^^^^^^^ mutable borrow occurs here
+19 |
+20 |     println!("the first word is: {}", word);
+   |                                       ---- immutable borrow later used here
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0502`.
+error: could not compile `ownership`.
+
+To learn more, run the command again with --verbose.
+```
+
+We had a mutable reference and an immutable reference in scope at the same time, that's an error!
+(the mutable reference occured when we tried to call `clear`)
+The compiler keeps track of this for us an lets us know.
+
+### String Literals Are Slices
+
+That's it. That's the tweet.
+It would be funny if the book said that wouldn't it?
+
+The book previously stated that string literals are stored in the binary, we can now understand why.
+String literals are of type `&str`.
+String literals are slices pointing to a specific point in the binary.
+
+### String Slices as Parameters
+
+We can tweak the `first_word` function from taking a reference to a string as parameter `&String`,
+to taking a string slice as parameter `&str`.
+
+This makes it more general without losing functionality.
+
+1. If we have a string slice, we can pass it directly.
+2. If we have a `String`, we can pass a slice of the entire string.
+
+Because string literals _are_ string slices, the `&variable_name[..]` syntax is not needed.
+
+```rust
+fn main() {
+    let my_string = String::from("hello world");
+
+    // first_word works on slices of `String`s
+    let word = first_word(&my_string[..]);
+
+    let my_string_literal = "hello world";
+
+    // first_word works on slices of string literals
+    let word = first_word(&my_string_literal[..]);
+
+    // Because string literals *are* string slices already,
+    // this works too, without the slice syntax!
+    let word = first_word(my_string_literal);
+}
+```
+
+### Other Slices
+
+String slices are not the only type of slices.
+For instance, there are also slices of arrays.
+
+> It works the same way as string slices do, by storing a reference to the first element and a length
+
+### Summary
+
+> The concepts of ownership, borrowing, and slices ensure memory safety in Rust programs at compile time.
+
+They make memory management fast, without the bugs that are associated with manual memory management.
