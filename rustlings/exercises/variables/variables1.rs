@@ -6,9 +6,9 @@
 // even after you already figured it out. If you got everything working and
 // feel ready for the next exercise, remove the `I AM NOT DONE` comment below.
 
-// I AM NOT DONE
-
 fn main() {
-    x = 5;
+    // Things stored on the heap can't be a constant
+    // https://github.com/rust-lang/const-eval/issues/20
+    let x: String = String::from("test");
     println!("x has the value {}", x);
 }
