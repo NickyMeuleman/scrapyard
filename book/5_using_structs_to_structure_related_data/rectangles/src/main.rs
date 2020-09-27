@@ -28,6 +28,9 @@ fn main() {
         height: 45,
     };
 
+    println!("The area of rect1: {}", rect1.area());
+    println!("The area of rect2: {}", rect2.area());
+    println!("The area of rect3: {}", rect3.area());
     println!("Can rect1 hold rect2? {}", rect1.can_hold(&rect2));
     println!("Can rect1 hold rect3? {}", rect1.can_hold(&rect3));
 }
