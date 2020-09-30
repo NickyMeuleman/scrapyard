@@ -2050,3 +2050,129 @@ Example: `Rectangle::square(50)`
 ### Multiple impl Blocks
 
 A struct can have multiple `impl` blocks, with different methods and associated functions living in each one.
+
+## 6. Enums and Pattern Matching
+
+Enumerations (_enums_) have possible _variants_.
+Rust's enums are not made up of a bunch of variants that are flat values, a variant can hold some data too.
+
+## 6.1. Defining an Enum
+
+Consider an IP address. It's either v4 of v6, those are the possible _enumerations_.
+Syntax: the `enum` keyword, followed by the enum name (PascalCase). Open brackets and list the variants (PascalCase) seperated by a comma.
+
+```rust
+enum IpAddrKind {
+    V4,
+    V6,
+}
+```
+
+### Enum Values
+
+We can create instances of an enum variant by first going into the namespace of the enum (syntax `EnumName::`) and then naming the variant.
+
+```rust
+let four = IpAddrKind::V4;
+let six = IpAddrKind::V6;
+```
+
+Variants of an enum have the same type. (the enum name).
+
+We can change the enum variants so they hold data inside.
+
+```rust
+enum IpAddr {
+    V4(String),
+    V6(String),
+}
+
+let home = IpAddr::V4(String::from("127.0.0.1"));
+let loopback = IpAddr::V6(String::from("::1"));
+```
+
+The types of data it holds can vary per variant.
+
+```rust
+enum IpAddr {
+    V4(u8, u8, u8, u8),
+    V6(String),
+}
+
+let home = IpAddr::V4(127, 0, 0, 1);
+let loopback = IpAddr::V6(String::from("::1"));
+```
+
+> you can put any kind of data inside an enum variant: strings, numeric types, or structs, for example.
+> You can even include another enum!
+
+example:
+
+```rust
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(i32, i32, i32),
+}
+```
+
+> - Quit has no data associated with it at all.
+> - Move includes an anonymous struct inside it.
+> - Write includes a single String.
+> - ChangeColor includes three i32 values.
+
+Enums can have methods.
+Similar to structs, put those inside an `impl` block.
+
+```rust
+impl Message {
+    fn call(&self) {
+        // method body would be defined here
+    }
+}
+
+let m = Message::Write(String::from("hello"));
+m.call();
+```
+
+### The Option Enum and Its Advantages Over Null Values
+
+An enum in the standard library, and is so good it's in the prelude, thus included in every Rust file is `Option`.
+That means you don't have to access variant under the namespace `Option::`, but you can refer to them by name directly.
+
+> The `Option` type is used in many places because it encodes the very common scenario in which a value could be something or it could be nothing.
+
+That's why Rust doesn't include the `null` value.
+Null leads to so many bugs, especially when you incorrectly assume something is there but it's not, it's `null`.
+
+The same concept of something not being there is with the `None` variant of the `Option` enum.
+
+```rust
+enum Option<T> {
+    Some(T),
+    None,
+}
+```
+
+An `Option` either holds some data, inside the `Some` variant, or it hold nothing, expressed by the `None` variant.
+The `T` is a placeholder for a type, that means an `Option<i32>` can have either a `Some` that holds an `i32`, or a `None`.
+
+```rust
+let some_number = Some(5);
+let some_string = Some("a string");
+
+let absent_number: Option<i32> = None;
+```
+
+Notice the type annotations, the compiler knows the types for both `some_number` and `some_string` because of the values they hold.
+For `absent_number`, we have to tell it, since the value it holds is the `None` variant of a certain `Option` enum.
+
+The compiler will not let us use `Option<T>` as if it's a `T` value.
+We have to specifically handle the case where the variant might be `None`, preventing loads of bugs.
+As a result, when we are dealing with a value that's not an `Option`, we don't have to check for null like in many other languages.
+
+We have to turn the `Option<T>` into a `T` before we can do operations on that `T`.
+
+The `Option` enum has [many ways to work with it](https://doc.rust-lang.org/std/option/enum.Option.html).
+
