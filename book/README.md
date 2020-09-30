@@ -1831,6 +1831,7 @@ fn build_user(email: String, username: String) -> User {
 When creating an instance of a struct, you can use another instance to "fill in the gaps".
 
 If you wrote it out manually
+
 ```rust
 let user2 = User {
     email: String::from("another@example.com"),
@@ -2006,10 +2007,10 @@ Oh, it's a C thing.
 > Rust has a feature called automatic referencing and dereferencing.
 > Calling methods is one of the few places in Rust that has this behavior.
 
-> Here’s how it works: when you call a method with object.something(), 
-> Rust automatically adds in &, &mut, or * so object matches the signature of the method.
+> Here’s how it works: when you call a method with object.something(),
+> Rust automatically adds in &, &mut, or \* so object matches the signature of the method.
 
-This explains why we could do `rect1.area()` and didn't have to do `(&rect1).area()` 
+This explains why we could do `rect1.area()` and didn't have to do `(&rect1).area()`
 while the `area` method required a borrowed `self`.
 
 ### Methods with More Parameters
@@ -2018,7 +2019,7 @@ We'll add another method to the `Rectangle` struct, one that takes an argument.
 That means our method will have 2 parameters since the first is always `self`.
 
 The method `can_hold` will take an immutable borrow of a `Rectangle` and return a boolean.
-If the instance the method is called on can hold the instance passed as argument 
+If the instance the method is called on can hold the instance passed as argument
 the method will return `true`, else `false`.
 
 ### Associated Functions
@@ -2042,7 +2043,7 @@ impl Rectangle {
 }
 ```
 
-To call an associated function, type the name of the struct, go into that namespace (`::`), 
+To call an associated function, type the name of the struct, go into that namespace (`::`),
 and call the name of the associated function.
 
 Example: `Rectangle::square(50)`
@@ -2176,3 +2177,203 @@ We have to turn the `Option<T>` into a `T` before we can do operations on that `
 
 The `Option` enum has [many ways to work with it](https://doc.rust-lang.org/std/option/enum.Option.html).
 
+### 6.2. The match Control Flow Operator
+
+The `match` control flow operator allows you to compare a value against some patterns and execute code based on which pattern matches first.
+
+`match` requires the patterns that are listed to match on to cover every possible case for the value you are matching on.
+The compiler enforces this exhaustiveness.
+
+While a bunch of values can be `matched`ed on, the most popular value is going to be a variant of an enum.
+
+```rust
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter,
+}
+
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => {
+            println!("Lucky penny!");
+            1
+        }
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter => 25,
+    }
+}
+```
+
+`coin` is one of the possible variants of the `Coin` enum.
+The compiler enforces all possible values for `coin` to be handled.
+
+The first pattern that matches the value being `matched` on get to execute its code.
+Nothing else, even if there are more matching patterns below that one.
+The checking for a matching pattern goes from top to bottom.
+
+syntax: `match` keyword followed by a value, then open curly braces `{}`.
+Next are _arms_, each one has a pattern the value is checked against.
+the arrow `=>` points to the code that will be executed if it's the first matching pattern.
+If that code is small, it typically doesn't have curly braces and ends in a comma.
+If that code has multiple lines, wrap it in curly braces and omit the comma `=> { // code }`.
+
+A `match` is an expression.
+It evaluates to the value of the codeblock that was executed for the matching case.
+
+### Patterns that Bind to Values
+
+You can refer to parts of a pattern with a name.
+For example if the `Quarter` variant held some information, you could match on a pattern that matched every `Quarter` and named the value it held inside.
+If the `match` matched the pattern (eg. `Quarter(state)`), the associated codeblock can then refer to that value you named in the pattern (eg. `state`).
+
+```rust
+enum UsState {
+    Alabama,
+    Alaska,
+    // --snip--
+}
+
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter(UsState),
+}
+
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter(state) => {
+            println!("State quarter from {:?}!", state);
+            25
+        }
+    }
+}
+```
+
+> If we were to call `value_in_cents(Coin::Quarter(UsState::Alaska))`, `coin` would be `Coin::Quarter(UsState::Alaska)`.
+> When we compare that value with each of the match arms, none of them match until we reach `Coin::Quarter(state)`.
+> At that point, the binding for `state` will be the value `UsState::Alaska`.
+
+### Matching with Option<T>
+
+Using `match` with the `Option` enum to either do something if there is a `T`, or nothing.
+
+```rust
+fn plus_one(x: Option<i32>) -> Option<i32> {
+    match x {
+        None => None,
+        Some(i) => Some(i + 1),
+    }
+}
+
+let five = Some(5);
+let six = plus_one(five);
+let none = plus_one(None);
+```
+
+The first call to `plus_one` is with a `Some(5)` value.
+It enters the `match`, doesn't match the `None` case so it goes to the next one.
+It matched the `Some(i)` case and the `5` is bound to the name `i`.
+That name can be used inside the executed block.
+The executed block returns a `Some` again, inside is `i+1`, making it return `Some(6)`.
+The returned value is the returned value for the `match` and since that's the last expression in the function, also the returned value of the function.
+That means `let six = plus_one(five)` is equivalent to `let six = Some(6)`.
+
+The second call to `plus_one` is with a `None` value.
+It enters the `match`, matches the `None` case so it executes the associated codeblock.
+The executed block returns a `None` value and the function returns `None`.
+That means `let none = plus_one(None)` is equivalent to `let none = None`.
+
+### Matches Are Exhaustive
+
+This time I'll quote myself instead of the book
+
+> `match` requires the patterns that are listed to match on to cover every possible case for the value you are matching on.
+> The compiler enforces this exhaustiveness.
+
+That means when matching on an enum variant, all possible variants of that enum have to be handled.
+If you are matching on something that is an `Option<T>`, you will have to deal with both the `None` and the `Some` variant of that enum.
+
+### The \_ Placeholder
+
+The underscore is the placeholder for "a value here", it can be used to cover every other possible value as a patterns itself, or as part of a pattern.
+
+This `match` has cases for 1,3,5, and 7 where a printline macro is called.
+That doesn't cover every possibility, it's not exhaustive!
+the `_` pattern matches everything, if a value being `match`ed on didn't already match one of the patterns listed above, it will match this one.
+
+```rust
+let some_u8_value = 0u8;
+match some_u8_value {
+    1 => println!("one"),
+    3 => println!("three"),
+    5 => println!("five"),
+    7 => println!("seven"),
+    _ => (),
+}
+```
+
+The `()` is the unit value, the thing that means "nothing" in Rust, it's the same value statements have.
+(not to be confused with `None`, that is a variant of the `Option` type and absolutely is a value)
+
+## 6.3. Concise Control Flow with if let
+
+`if let` is a less verbose way to handle pattern matching,
+if you only care about one pattern being matched, ignoring the rest of the patterns a `match` would have.
+
+Conside this `match` where we only do something if the value being matched on matches the `Some(3)` pattern.
+
+```rust
+let some_u8_value = Some(0u8);
+match some_u8_value {
+    Some(3) => println!("three"),
+    _ => (),
+}
+```
+
+Oldschool Robin would say: holy boilerplates, Batman!
+
+An equivalent to the `match`, this time written as `if let`:
+
+```rust
+let some_u8_value = Some(0u8);
+if let Some(3) = some_u8_value {
+    println!("three");
+}
+```
+
+It works the same way as a `match`.
+It looks if the expression that is given (here: `some_u8_value`) matches the pattern (here: `Some(3)`).
+If it matches the pattern, the codeblock (`{}`) is executed.
+
+That's less typing, however, **you lose the exhaustive checking from `match`**.
+
+`if let` can also have an `else` arm.
+It is equivalent to the `_` patterns in a `match` that only checks 2 patterns.
+
+Example with `match` and 2 patterns: `Coin::Quarter(state)` and everything else `_`:
+
+```rust
+let mut count = 0;
+match coin {
+    Coin::Quarter(state) => println!("State quarter from {:?}!", state),
+    _ => count += 1,
+}
+```
+
+Equivalent code written as `if let` with an `else`:
+
+```rust
+let mut count = 0;
+if let Coin::Quarter(state) = coin {
+    println!("State quarter from {:?}!", state);
+} else {
+    count += 1;
+}
+```
