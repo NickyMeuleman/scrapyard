@@ -2641,3 +2641,140 @@ pub fn eat_at_restaurant() {
 ```
 
 ## 7.4. Bringing Paths Into Scope with the use Keyword
+
+Always writing out an entire path to use something in it is [whack](https://www.youtube.com/watch?v=ApjG_5o9BFw).
+We can bring a path into the scope of the current module with the `use` keyword.
+
+By adding `use crate::front_of_house::hosting;` to `src/lib.rs`, we bring the `hosting` module into scope and can call it as if it's local.
+Making the call to `add_to_waitlist` now `hosting::add_to_waitlist()`.
+
+Paths after the `use` keyword can also be absolute paths. eg. `use crate::front_of_house::hosting`
+
+`self` is a keyword you can use in paths to refer to the current module. (make it very clear you are using a relative path)
+
+### Creating Idiomatic use Paths
+
+The idomatic way to bring something (like functions) into scope with `use` is to bring the parent of whatever you want to use into scope.
+That way, you still have to namespace usages of that thing under the parent eg. `parent::thing`.
+
+On the other hand, for structs, enums, and other items. It's ideomatic to bring the full path in.
+Note to self: define what "other items" are here. Seems kinda "eh, we did it this way, no real reason why"
+
+> There’s no strong reason behind this idiom: it’s just the convention that has emerged, and folks have gotten used to reading and writing Rust code this way.
+
+### Providing New Names with the as Keyword
+
+You can rename things you bring in with `use` by using the `as` keyword.
+
+```rust
+use std::fmt::Result;
+use std::io::Result as IoResult;
+```
+
+Will bring in 2 `Result` types.
+2 identical names aren't allowed, so one is renamed to `IoResult`.
+
+### Re-exporting Names with pub use
+
+To let other code refer to something you brought into scope with `use` as if it were inside that code's scope, mark the `use` as public with `pub`.
+
+> This technique is called re-exporting because we’re bringing an item into scope but also making that item available for others to bring into their scope.
+
+example: `pub use crate::front_of_house::hosting;`
+
+Reexporting lets your internal structure of code be different from the structure you have to use in (absolute and relative) paths.
+
+### Using External Packages
+
+Use external packages in your code by adding them to `[dependencies]` in `cargo.toml`.
+
+```toml
+[dependencies]
+rand = "0.5.5"
+```
+
+> Adding rand as a dependency in Cargo.toml tells Cargo to download the rand package and any dependencies from crates.io and make rand available to our project.
+
+Then, to bring parts of `rand` into scope, we add a `use` statement starting with the name of the crate, `rand`.
+
+A special case is the standard library, `std`. It's already shipped with Rust and doesn't need to be listed inside `[dependencies]`.
+Things in it _do_ need to be brought into scope before you can use them.
+
+### Using Nested Paths to Clean Up Large use Lists
+
+Using multiple items from the same crate can take up a lot of lines.
+
+```rust
+// --snip--
+use std::cmp::Ordering;
+use std::io;
+// --snip--
+```
+
+By using nested paths, we don't have to duplicate identical parts of each path.
+
+We do this by specifying the common part of the path, followed by two colons, and curly braces hold the parts that differ.
+Those parts are separated from eachother with a comma.
+
+```rust
+// --snip--
+use std::{cmp::Ordering, io};
+// --snip--
+```
+
+What if the common part of the path is the entire path?
+
+```rust
+use std::io;
+use std::io::Write;
+```
+
+The `self` keyword can be used in a nested path in that case.
+
+```rust
+use std::io::{self, Write};
+```
+
+### The Glob Operator
+
+> If we want to bring all public items defined in a path into scope, we can specify that path followed by `*,` the glob operator:
+
+```rust
+use std::collections::*;
+```
+
+This brings all public items in `std::collections` into scope.
+Be careful, since you don't name them there, it might be strange/frustrating to figure out where things are coming from when you use them!
+
+The glob operator is often used while writing tests.
+
+## 7.5. Separating Modules into Different Files
+
+We can separate modules into different files.
+
+By declaring a module in a file with `mod` and not opening curly braces `{}`, but ending with a semicolon `;` instead.
+We tell Rust to load the contents of the module from another file with the same name.
+
+in `src/lib.rs` we move the `front_of_house` module to its own file in `src/front_of_house.rs` and refer to that module.
+
+```rust
+mod front_of_house;
+
+pub use crate::front_of_house::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+    hosting::add_to_waitlist();
+}
+```
+
+To continue, we can extract the `hosting` module to its own file too.
+To do so, declare the module inside `src/front_of_house.rs` via `pub mod hosting;` (instead of the version with curly braces).
+And create an identically names file inside the `src/front_of_house` folder.
+ie. `src/front_of_house/hosting.rs`.
+
+To the compiler, nothing changed.
+To use, we declare a module, and instead of opening a body `{}`, we put a semicolon `;` and place what would have been inside that body in another file.
+Those files have identical names to the name of the module.
+If those modules live inside another module, they live inside a folder with an identical name to that module.
