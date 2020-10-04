@@ -2377,3 +2377,267 @@ if let Coin::Quarter(state) = coin {
     count += 1;
 }
 ```
+
+## 7. Managing Growing Projects with Packages, Crates, and Modules
+
+Breaking a huge single file into multiple smaller files is done via modules.
+
+> A package can contain multiple binary crates and optionally one library crate.
+
+What does that quote mean? No idea of the difference between a binary crate and a library crate.
+Also, is a crate like an npm package, or is it different?
+
+You have to mark pieces of code as "public" for other pieces of code to be able to use them,
+this hides implementation details.
+
+> - Packages: A Cargo feature that lets you build, test, and share crates
+> - Crates: A tree of modules that produces a library or executable
+> - Modules and use: Let you control the organization, scope, and privacy of paths
+> - Paths: A way of naming an item, such as a struct, function, or module
+
+Note to self: so crates aren't like npm packages after all, Rust has packages too?
+
+## 7.1. Packages and Crates
+
+A crate is a binary or a library.
+The "crate root" is the file the compiler starts from.
+It is also the root module of that crate.
+Comparing to JavaScript, it's the entrypoint.
+
+A package is one or more crates.
+A package has a `cargo.toml` file.
+
+> A package must contain zero or one library crates, and no more.
+> It can contain as many binary crates as you’d like, but it must contain at least one crate (either library or binary).
+
+When you run `cargo new my-project` you create a new binary package.
+It's in a folder called `my-project` that has a `cargo.toml`.
+The entrypoint is in `src/main.rs`.
+There is no mention of that in the `cargo.toml` file because it's a convention that file will be the crate root of a binary crate with the same name as the package.
+
+If there is a `src/lib.rs`, cargo knows the package contains a library with the same name as the package and that file is treated as the crate root.
+
+If a package contains both files (`src/main.rs` and `src/lib.rs`), cargo knows it's dealing with a package that has 2 crates with the same name as the package.
+
+- One is a library crate (the one with `src/lib.rs` as crate root).
+- One is a binary crate (the one with `src/main.rs` as crate root).
+
+A package can have more than one binary crate.
+This is done by placing files in the `src/bin/` folder.
+Each file will be the crate root of a seperate binary crate.
+
+By default, everything in a crate is namespaced under that crate's name in your code.
+For example, if you use the `rand` crate, the trait it has named `Rng` will be available via `rand::Rng`.
+That way it doesn't clash with the name `Rng` if that's a name that already exists in your own code.
+
+## 7.2. Defining Modules to Control Scope and Privacy
+
+Modules let you organize code within a crate.
+Modules control privacy (if external code can access pieces of code from that module).
+
+create a new library crate with `cargo new --lib restaurant`.
+The package is named `restaurant` and has a library crate of the same name, with it's root at `src/lib.rs`.
+
+add to that file:
+
+```rust
+mod front_of_house {
+    mod hosting {
+        fn add_to_waitlist() {}
+
+        fn seat_at_table() {}
+    }
+
+    mod serving {
+        fn take_order() {}
+
+        fn serve_order() {}
+
+        fn take_payment() {}
+    }
+}
+
+fn main() {}
+```
+
+That defined a module called `front_of_house`.
+
+Syntax for defining modules: The `mod` keyword, followed by the name of the module and curly braces for it's body.
+
+The `front_of_house` module contains 2 other modules, `hosting`, and `serving`.
+Each with some functions.
+
+The crate roots (`src/main.rs` for binary crates, and `src/lib.rs` for library crates) are a module.
+That module is named `crate`.
+
+The module tree for the `restaurant` crate:
+
+```
+crate
+ └── front_of_house
+     ├── hosting
+     │   ├── add_to_waitlist
+     │   └── seat_at_table
+     └── serving
+         ├── take_order
+         ├── serve_order
+         └── take_payment
+```
+
+## 7.3. Paths for Referring to an Item in the Module Tree
+
+If we want to use something in a module tree, we have to refer to it by it's _path_.
+2 options to write down a path: absolute or relative.
+
+- _absolute_ paths start from the crate root.
+- _relative_ paths start from the current module.
+
+Both options use the double colon `::` to separate parts of the path (like the slash in filepaths).
+
+A small change to `src/lib.rs` of our `restaurant` package.
+
+Add a function called `eat_at_restaurant` to it.
+It'll be part of the public API of this library, so mark it as public by prefixing it with the `pub` keyword.
+
+```rust
+// this will not compile
+mod front_of_house {
+    mod hosting {
+        fn add_to_waitlist() {}
+    }
+    //
+}
+
+pub fn eat_at_restaurant() {
+    // Absolute path
+    crate::front_of_house::hosting::add_to_waitlist();
+
+    // Relative path
+    front_of_house::hosting::add_to_waitlist();
+}
+```
+
+Inside `eat_at_restaurant`, refer to the `add_to_waitlist` function twice, once with an absolute path and once with a relative path.
+The absolute path starts from the crate root and uses the keyword `crate` to indicate it does.
+The relative path starts from our current module, since we're in the crate root, the rest of the path is identical for both paths.
+
+> Starting with a name means that the path is relative.
+
+The reason this didn't compile is because we tried to access a module that isn't available to us.
+The error message reads: `` module `hosting` is private ``
+
+(`hosting` is a child and isn't accessible. Why not `front_of_house`? That's on the same level as the module we tried to access from and is a sibling, thus, accessible.)
+Modules can see private parts in their ancestor modules, but not their children modules. (levels above, or below in that module tree)
+
+> Modules aren’t useful only for organizing your code. They also define Rust’s privacy boundary:
+> the line that encapsulates the implementation details external code isn’t allowed to know about, call, or rely on.
+> So, if you want to make an item like a function or struct private, you put it in a module.
+
+### Exposing Paths with the pub Keyword
+
+We tried to access a child module. It's private by default, but we can make it public (accessible to ancestor modules) by marking it with the `pub` keyword.
+
+`pub hosting { // ... }`
+
+Now ancestor modules of `hosting` can see it.
+We called a function within that module, that's private by default too.
+The contents of a module are private by default.
+Marking the module as public doesn't mark the contents as public.
+
+> The `pub` keyword on a module only lets code in its ancestor modules refer to it.
+
+The error changed to `` function `add_to_waitlist` is private ``
+
+Mark the function as public by adding the `pub` keyword in front of the function declaration.
+`pub fn eat_at_restaurant() { // ... }`
+
+Now the code will compile.
+The place that calls the `eat_at_restaurant` function is allowed to access every part that's used in the relative, and in the absolute path that was used to call the function.
+
+### Starting Relative Paths with super
+
+Like `crate` is a keyword used in absolute paths to refer to the crate root.
+`super` is a keyword used in relative paths to refer to the parent module.
+
+`super` is used at the beginning of a path.
+It goes up one level (similar to a filepath that starts with `..`).
+
+Adding to our example:
+
+```rust
+fn serve_order() {}
+
+mod back_of_house {
+    fn fix_incorrect_order() {
+        cook_order();
+        super::serve_order();
+    }
+
+    fn cook_order() {}
+}
+```
+
+We refer to the `serve_order` function, by going up one level in the module tree (up to the crate root) with `super`.
+
+### Making Structs and Enums Public
+
+When we mark a struct as public, the struct itself is, but the fields will still be private.
+We can make each field public on a case by case basis.
+
+Adding to our example:
+
+```rust
+mod back_of_house {
+    pub struct Breakfast {
+        pub toast: String,
+        seasonal_fruit: String,
+    }
+
+    impl Breakfast {
+        pub fn summer(toast: &str) -> Breakfast {
+            Breakfast {
+                toast: String::from(toast),
+                seasonal_fruit: String::from("peaches"),
+            }
+        }
+    }
+}
+
+pub fn eat_at_restaurant() {
+    // Order a breakfast in the summer with Rye toast
+    let mut meal = back_of_house::Breakfast::summer("Rye");
+    // Change our mind about what bread we'd like
+    meal.toast = String::from("Wheat");
+    println!("I'd like {} toast please", meal.toast);
+
+    // The next line won't compile if we uncomment it; we're not allowed
+    // to see or modify the seasonal fruit that comes with the meal
+    // meal.seasonal_fruit = String::from("blueberries");
+}
+```
+
+The `toast` field of the `Breakfast` struct is public.
+We can read it, and write to it in our instance of `Breakfast` in the `eat_at_restaurant` function.
+
+The `seasonal_fruit` field is private and we're not allowed to access it.
+
+This means we can't create an instance of `Breakfast`!
+Because a field is private, the struct must provide a publically accessible associated function to create an instance: `pub fn summer`.
+
+In contrast, a public enum means all the variants of that enum are also public.
+
+```rust
+mod back_of_house {
+    pub enum Appetizer {
+        Soup,
+        Salad,
+    }
+}
+
+pub fn eat_at_restaurant() {
+    let order1 = back_of_house::Appetizer::Soup;
+    let order2 = back_of_house::Appetizer::Salad;
+}
+```
+
+## 7.4. Bringing Paths Into Scope with the use Keyword
