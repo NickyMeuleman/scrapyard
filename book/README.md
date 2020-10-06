@@ -2778,3 +2778,352 @@ To the compiler, nothing changed.
 To use, we declare a module, and instead of opening a body `{}`, we put a semicolon `;` and place what would have been inside that body in another file.
 Those files have identical names to the name of the module.
 If those modules live inside another module, they live inside a folder with an identical name to that module.
+
+## 8. Common Collections
+
+The standard library provides types that are built upon other types.
+This chapter talk about collections of values that are stored on the heap, these collections can change size at runtime.
+
+- a vector is like an array with a variable length
+- a string is a vector under the hood (well, `String` is.)
+- a hash map allows association of keys with values, it's an implementation of the general data structure called _map_
+
+## 8.1. Storing Lists of Values with Vectors
+
+Type: `Vec<T>`
+Store more than one variable of a single type.
+Can change in length.
+
+To create an empty new one:
+
+```rust
+let v: Vec<i32> = Vec::new();
+```
+
+Annotate the type for the compiler to know what type the values in the vector will be.
+
+There is a macro that will create a new vector.
+If you give it an array, the compiler will know the type of the vector
+
+```rust
+let v = vec![1, 2, 3];
+```
+
+### Updating a Vector
+
+Adding elements via the `push` method
+
+```rust
+let mut v = Vec::new();
+
+v.push(5);
+v.push(6);
+v.push(7);
+v.push(8);
+```
+
+`mut` because pushing changes the variable, it mutates it.
+No type annotation during creation, the compiler infers the type by the value that is first pushed into the vector.
+
+Similarly: removing elements via the `pop` method.
+
+### Dropping a Vector Drops Its Elements
+
+Like a struct, a vector is freed when it goes out of scope.
+That means the elements it contains are freed when the vector is.
+This gets tricky when you start referring to elements inside that vector.
+
+### Reading Elements of Vectors
+
+Either with an index directly, or with the `get` method.
+Indexes start at 0, because _computers_.
+`get` takes an index and returns an `Option`
+
+```rust
+let v = vec![1, 2, 3, 4, 5];
+
+let third: &i32 = &v[2];
+println!("The third element is {}", third);
+
+match v.get(2) {
+    Some(third) => println!("The third element is {}", third),
+    None => println!("There is no third element."),
+}
+```
+
+Note the `&` when reading an element via index directly.
+We get a reference to that element.
+The `Some` that `.get` can return also returns a reference, the owner is the vector itself.
+
+When trying to get an index that is out of bounds: the direct method with `&[5]` will panic.
+The `get(5)` will return a `None`.
+
+Remember the borrowing rule of: many immutable references OR one mutable reference.
+
+This won't compile, as it tries to access the immutable reference `first`, after a mutable borrow when using `push`.
+
+```rust
+// does not compile
+let mut v = vec![1, 2, 3, 4, 5];
+
+let first = &v[0]; // immutable borrow
+
+v.push(6); // mutable borrow
+
+println!("The first element is: {}", first); // error: tried to use immutable borrow
+```
+
+> might look like it should work: why should a reference to the first element care about what changes at the end of the vector?
+> This error is due to the way vectors work:
+> adding a new element onto the end of the vector might require allocating new memory and copying the old elements to the new space,
+> if there isn’t enough room to put all the elements next to each other where the vector currently is.
+> In that case, the reference to the first element would be pointing to deallocated memory.
+> The borrowing rules prevent programs from ending up in that situation.
+
+### Iterating over the Values in a Vector
+
+Iterating over a vector with a `for` loop will give you an immutable reference to each element.
+
+```rust
+let v = vec![100, 32, 57];
+for i in &v {
+    println!("{}", i);
+}
+```
+
+If we want to mutate: first mark the vector with `mut`.
+Inside the `for` loop, dereference the current element with `*`
+
+```rust
+let mut v = vec![100, 32, 57];
+for i in &mut v {
+    *i += 50;
+}
+```
+
+At this point, I don't know what dereferencing means and what that star does, but the book says it'll explain later, so I'm going with it.
+My current working understanding is: the vector is mutable but we mutate an element, so we follow the reference to the location of that element in the heap with that star somehow.
+
+### Using an Enum to Store Multiple Types
+
+A vector can only store elements of one type.
+All variants of an enum have the same type and can hold other values of differing types, _taps-temple.jpg_
+
+> When you’re writing a program, if you don’t know the exhaustive set of types the program will get at runtime to store in a vector,
+> the enum technique won’t work.
+> Instead, you can use a trait object, which we’ll cover in Chapter 17.
+
+## 8.2. Storing UTF-8 Encoded Text with Strings
+
+### What Is a String?
+
+The one string in the core language is `str`, usually seen as borrowed `&str`.
+
+A `String` is a type provided by the standard library, not the core language.
+
+> is a growable, mutable, owned, UTF-8 encoded string type
+
+Both `String` and `str` are UTF-8 encoded.
+
+What does that mean? 🤷‍♂️, UTF-8 is a standard for encoding text information and they both adhere to that standard.
+Apparently characters in UTF-8 can take up different amounts of bytes (1 to 4).
+
+### Creating a New String
+
+Creating an empty `String`:
+
+```rust
+let mut s = String::new();
+```
+
+Creating a `String`, starting with a string literal:
+
+```rust
+let data = "initial contents";
+
+let s = data.to_string();
+
+// the method also works on a literal directly:
+let s = "initial contents".to_string();
+```
+
+`to_string` is available on every type that implements the `Display` trait.
+Makes sense, if it can be printed to the console, if can be converted to a string (in fact, it has to do that first!).
+
+An other way to create a `String` from a string literal is with the `from` method on the `String` type.
+
+```rust
+let s = String::from("initial contents");
+```
+
+Because strings are UTF-8 encoded, they can hold a bunch of language text with different characters/alphabets (and emojis).
+
+### Updating a String
+
+You can concatenate strings with the `+`, of with the `format!` macro.
+
+#### Appending to a String with push_str and push
+
+`push_str` adds a string slice to the end of a `String`, so it doesn't take ownership of the string you pass in.
+
+```rust
+let mut s1 = String::from("foo");
+let s2 = "bar";
+s1.push_str(s2);
+println!("s1 is {}", s1); // the String "foobar"
+println!("s2 is {}", s2); // the &str "bar"
+```
+
+`push` takes a `char` type and appends it to the `String`
+
+```rust
+let mut s = String::from("lo");
+s.push('l'); // notice the single brackets, indicating a char
+```
+
+#### Concatenation with the + Operator or the format! Macro
+
+The `+` is a string concatenation operator.
+
+```rust
+let s1 = String::from("Hello, ");
+let s2 = String::from("world!");
+let s3 = s1 + &s2; // note s1 has been moved here and can no longer be used
+```
+
+Under the hood, a function call happens.
+That's why if you don't pass a reference, you will give ownership to variable you are assigning to.
+
+> we can only add a `&str` to a `String`; we can’t add two `String` values together.
+
+The type in the example is `&String` and not `&str` so why does it compile?
+The compiler can coerce `&String` to `&str`.
+Something called a deref coercion does this.
+In that example it would turn `&s2`, which is a `&String`, into `&s2[..]` (slice of the entire thing), which is a `&str`.
+
+For long/many concatenations, using `+` becomes unwieldy.
+
+```rust
+let s1 = String::from("tic");
+let s2 = String::from("tac");
+let s3 = String::from("toe");
+
+let s = s1 + "-" + &s2 + "-" + &s3;
+```
+
+The `format!` macro makes that more readable.
+It returns the `String` it created.
+It doesn't take ownership of any of its parameters.
+
+```rust
+let s1 = String::from("tic");
+let s2 = String::from("tac");
+let s3 = String::from("toe");
+
+let s = format!("{}-{}-{}", s1, s2, s3);
+```
+
+### Indexing into Strings
+
+In Rust, you can't index into a string and access a part of it that way.
+
+The reason? The internal respresentation.
+
+#### Internal Representation
+
+A `String` is a wrapper over a `Vec<u8>`.
+For many characters that take 1 byte of space, indexing into a string would be a solution, but not every UTF-8 character takes one byte, it can take up to 4.
+
+A `String` made from a string literal in another language, using another alphabet. Each letter takes up 2 bytes.
+
+> Note that this string begins with the capital Cyrillic letter Ze, not the Arabic number 3.
+
+```rust
+let hello = String::from("Здравствуйте");
+```
+
+> Asked how long the string is, you might say 12.
+> However, Rust’s answer is 24: that’s the number of bytes it takes to encode “Здравствуйте” in UTF-8,
+> because each Unicode scalar value in that string takes 2 bytes of storage.
+> Therefore, an index into the string’s bytes will not always correlate to a valid Unicode scalar value.
+
+#### Bytes and Scalar Values and Grapheme Clusters! Oh My!
+
+Example: “नमस्ते” written in the Devanagari script.
+Three relevant ways to look at that data from Rust's perspective.
+
+It is stored as a `Vec<u8>`.
+As bytes:
+
+```rust
+[224, 164, 168, 224, 164, 174, 224, 164, 184, 224, 165, 141, 224, 164, 164,
+224, 165, 135]
+```
+
+As unicode scalar values, what the Rust `char` type is:
+
+```rust
+['न', 'म', 'स', '्', 'त', 'े']
+```
+
+The fourth and sixth are not letters, they are diacritics (accents, like accent circomflexe).
+
+As grapheme clusters, what a person would call letters:
+
+```rust
+["न", "म", "स्", "ते"]
+```
+
+### Slicing Strings
+
+Indexing into a string with a single index is weird because a single character can take up to 4 bytes.
+If you index using a single number, you can index in the middle of a character.
+
+> Indexing into a string is often a bad idea because it’s not clear what the return type of the string-indexing operation should be:
+> a byte value, a character, a grapheme cluster, or a string slice.
+
+As a result, Rust will not let you index into a string with a single index, but with a range.
+That range has to be valid, if it's not the program will panic at runtime.
+
+```rust
+let hello = "Здравствуйте";
+let answer = &hello[0..6];
+println!("{}", answer); // Здр
+```
+
+Each entity humans think of as a character is two bytes for that string, so the range from index 0 to index 6 contains those first 3 character.
+Note it doesn't return the byte values (`u8` numbers), but the UTF-8 encoded values.
+
+### Methods for Iterating Over Strings
+
+Luckily more methods exist to get at the things inside a string.
+
+by using a `for` loop, we can loop over every `char` if we call the `.chars()` method
+
+```rust
+for c in "नमस्ते".chars() {
+    println!("{}", c);
+}
+```
+
+Remember from before, that string has 6 chars (unicode scalar values), 2 of them are diacritics.
+
+Similarly, looping over every `byte` by calling the `.bytes()` method
+
+```rust
+for b in "नमस्ते".bytes() {
+    println!("{}", b);
+}
+```
+
+This code will print the 18 bytes that make up the internal `Vec<u8>`:
+
+```
+224
+164
+// --snip--
+165
+135
+```
+
+For getting grapheme clusters: use a crate, that functionality is not in the standard library.
