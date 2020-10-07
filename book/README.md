@@ -3127,3 +3127,166 @@ This code will print the 18 bytes that make up the internal `Vec<u8>`:
 ```
 
 For getting grapheme clusters: use a crate, that functionality is not in the standard library.
+
+## 8.3. Storing Keys with Associated Values in Hash Maps
+
+`HashMap<K,V>` stores a mapping of keys of type `K` to values of type `V`.
+
+A hashing function determines how it does that.
+
+### Creating a New Hash Map
+
+Create an empty one with `::new()`, and insert things into it with `insert()`.
+Notice this codesnippet has no type annotations for `scores`, as the compiler infers them from the first usage of `.insert()`:
+
+```rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+```
+
+Like vectors, hashmap data is stored on the heap, it can grow/shrink.
+
+Another method to create them is by using iterators (tuple, vector,...) combined with the `collect` method to group some data into a hashmap.
+`collect` gathers data into a collection, that collection can be a hashmap, but also a vector or an other type.
+
+This piece of code combines 2 vectors (turned into iterators) into a single iterator of pairs (tuples of the form `(team, score)`).
+That single iterator is a vector of tuples.
+It then collects that iterator into a `HashMap` with keys of type `String` (for team) and values of type `i32` (for score).
+
+```rust
+use std::collections::HashMap;
+
+let teams = vec![String::from("Blue"), String::from("Yellow")];
+let initial_scores = vec![10, 50];
+
+let mut scores: HashMap<_, _> =
+    teams.into_iter().zip(initial_scores.into_iter()).collect();
+```
+
+### Hash Maps and Ownership
+
+Similar to the ownership rules of a struct:
+Types that implement the `Copy` trait are copied into the hashmap.
+Owned values like `String` are moved and the hashmap will be the owner of those values.
+
+### Accessing Values in a Hash Map
+
+Access a value in a hashmap by providing the corresponding key to its `get` method.
+
+```rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+
+let team_name = String::from("Blue");
+let score = scores.get(&team_name);
+```
+
+Like with vectors, `get` returns an `Option<&V>`.
+It might hold a reference to the value for that key in a `Some`, it might return `None`.
+
+You can iterate over every entry in a hashmap with a `for` loop
+
+```rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+
+for (key, value) in &scores {
+    println!("{}: {}", key, value);
+}
+```
+
+The order you get the key/value pairs in is arbitrary!
+If you need guaranteed ordering, use a vector.
+
+### Updating a Hash Map
+
+Each key can only have one value.
+_but that value can be a vector, taps-temple.jpg_
+
+#### Overwriting a Value
+
+Replacing an existing value for a key with a new value.
+
+With `.insert`:
+Only the last value for the same key will be used, that means when the second `insert` in this snippet fires,
+the existing value for the key is discarded and the new one replaces it.
+
+```rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Blue"), 25);
+
+println!("{:?}", scores); // {"Blue": 25}
+```
+
+#### Only Inserting a Value If the Key Has No Value
+
+Checking if a value exists and only inserting if there is no value yet.
+
+With `.entry`:
+`.entry` checks if a value is already present for a given key and returns an `Entry` enum.
+`.or_insert` checks that enum and will insert into the hashmap at that key if there is no value already there.
+The value will only be inserted for that key if no value was already associated with that key.
+That means that when the
+
+```rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+scores.insert(String::from("Blue"), 10);
+
+scores.entry(String::from("Yellow")).or_insert(50);
+scores.entry(String::from("Blue")).or_insert(50);
+
+println!("{:?}", scores); // {"Yellow": 50, "Blue": 10}
+```
+
+### Updating a Value Based on the Old Value
+
+Updating a value based on the value that's already there.
+
+Like counting the amount of occurences of a word in a string:
+
+```rust
+use std::collections::HashMap;
+
+let text = "hello world wonderful world";
+
+let mut map = HashMap::new();
+
+for word in text.split_whitespace() {
+    let count = map.entry(word).or_insert(0);
+    *count += 1;
+}
+
+println!("{:?}", map); // {"world": 2, "hello": 1, "wonderful": 1}
+```
+
+The first time it comes across a word, it inserts `0` as a value for that key.
+If there is a value already, it doesn't do this step.
+Every iteration adds `1` to the current value.
+(so for a first occurrance of a word it sets it to `0`, then adds `1`)
+The `.or_insert` returns a mutable reference to the value for that key: `&mut V`.
+So in order to assign to `count`, we first dereference it with the `*`.
+
+### Hashing Functions
+
+The default hashing function `HashMap` uses is [_pretty good_](https://www.131002.net/siphash/siphash.pdf) (I have no idea, I'm taking the word of smart people.)
+
+There are tradeoffs made, so if you ever want to change it, you can.
+You can change the _hasher_ by implementing the `BuildHasher` trait.
