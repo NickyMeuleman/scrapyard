@@ -45,8 +45,14 @@ fn mode(vec: &Vec<i32>) -> i32 {
             most_common_int = *int;
         }
     }
-
     most_common_int
+
+    // alternative for the variable declarations and for loop:
+    // counts
+    //     .into_iter()
+    //     .max_by_key(|&(_, count)| count)
+    //     .map(|(value, _)| *value)
+    //     .unwrap()
 }
 
 fn main() {
