@@ -1,9 +1,14 @@
+// Using a hash map and vectors, create a text interface to allow a user to add employee names to a department in a company.
+// For example, “Add Sally to Engineering” or “Add Amir to Sales.”
+// Then let the user retrieve a list of all people in a department or all people in the company by department, sorted alphabetically.
+
 use std::collections::HashMap;
 
 enum Task {
     Add((String, String)),
     Show(String),
     ShowAll,
+    Help,
     Quit,
 }
 
@@ -69,7 +74,7 @@ fn parse_input(input: String) -> Option<Task> {
         }
         _ => {
             println!("Incorrect input");
-            None
+            Some(Task::Help)
         }
     }
 }
@@ -79,6 +84,15 @@ fn process_task(task: Task, company_map: &mut HashMap<String, Vec<String>>) {
         Task::Add((person, department)) => add_to_department(person, department, company_map),
         Task::Show(department) => print_department(&department, company_map),
         Task::ShowAll => print_all(company_map),
+        Task::Help => println!(
+            r#"
+            List of valid inputs:
+            - add <name> to <department>
+            - show all
+            - show <department>
+            - quit
+            "#
+        ),
         Task::Quit => (),
     }
 }
