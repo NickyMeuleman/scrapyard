@@ -16,8 +16,9 @@ fn word_to_pig_latin(string: &str) -> String {
     // 1. entire word is alphabetic
     // 2. entire word is not alphabetic
     // 3. contains mix: split in two parts and use recursion to handle part of the word.
-
-    if string.chars().all(|c| c.is_alphabetic()) {
+    if string == "" {
+        "".to_string()
+    } else if string.chars().all(|c| c.is_alphabetic()) {
         let mut iter = string.chars();
         let first_letter = iter.next().unwrap();
         if is_vowel(&first_letter) {
@@ -28,41 +29,34 @@ fn word_to_pig_latin(string: &str) -> String {
     } else if string.chars().all(|c| !c.is_alphabetic()) {
         string.to_string()
     } else {
-        // I hate this part of the code, YUCK
-        // TODO: punctation has more options than the comma
-        let parts: Vec<_> = string.splitn(2, ",").collect();
-        format!(
-            "{},{}",
-            if parts[0] == "" {
-                "".to_string()
-            } else {
-                word_to_pig_latin(parts[0])
-            },
-            if parts[1] == "" {
-                "".to_string()
-            } else {
-                word_to_pig_latin(parts[1])
-            }
-        )
+        // if you only use the symbol_index the stack will overflow on a symbol followed by a letter eg: 'a
+        // if you only use the alphabetic_index the stack will overflow on a letter followed by a symbol eg: a'
+        let symbol_index = string.find(|c: char| !c.is_alphabetic()).unwrap();
+        let alphabetic_index = string.find(|c: char| c.is_alphabetic()).unwrap();
+        // get max to prevent the index being 0
+        // can't just set the index to 1, because the symbol might be longer than one character, that's why we look to the alphabetic one too
+        let index = symbol_index.max(alphabetic_index);
+        let (left, right) = string.split_at(index);
+        format!("{}{}", word_to_pig_latin(left), word_to_pig_latin(right))
     }
 }
 
 fn is_vowel(letter: &char) -> bool {
     // TODO: include other languages
-    // weird things happen with letter.to_lowercase() so the const has both lower and uppercase
-    const VOWELS: [char; 10] = ['a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U'];
+    const VOWELS: [char; 5] = ['a', 'e', 'i', 'o', 'u'];
+    // the following assumes to_lowercase will return an iterator of size one
+    let letter = &letter.to_lowercase().next().unwrap();
     VOWELS.contains(letter)
 }
 
 fn main() {
-    // Oya Lele, Ik voel me plots weer zo oya lele, Doe het nog een keer zo oya lele, zing met ons mee
     let mut sentence = String::new();
     println!("Please enter a sentence to translate into pig latin.");
     std::io::stdin()
         .read_line(&mut sentence)
         .expect("Cannot read the input");
-    let translated = sentence_to_pig_latin(&sentence.trim());
 
+    let translated = sentence_to_pig_latin(&sentence.trim());
     println!("Original sentence: {}", sentence);
     println!("Translated: {}", translated);
 }
