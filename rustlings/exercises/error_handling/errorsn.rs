@@ -17,19 +17,20 @@
 //
 // Execute `rustlings hint errorsn` for hints :)
 
-// I AM NOT DONE
-
+use std::convert::TryFrom;
 use std::error;
 use std::fmt;
 use std::io;
 
 // PositiveNonzeroInteger is a struct defined below the tests.
-fn read_and_validate(b: &mut dyn io::BufRead) -> Result<PositiveNonzeroInteger, ???> {
+fn read_and_validate(
+    b: &mut dyn io::BufRead,
+) -> Result<PositiveNonzeroInteger, Box<dyn error::Error>> {
     let mut line = String::new();
-    b.read_line(&mut line);
-    let num: i64 = line.trim().parse();
-    let answer = PositiveNonzeroInteger::new(num);
-    answer
+    b.read_line(&mut line)?;
+    let num: i64 = line.trim().parse()?;
+    let answer = PositiveNonzeroInteger::new(num)?;
+    Ok(answer)
 }
 
 //
@@ -83,7 +84,10 @@ impl PositiveNonzeroInteger {
         } else if value < 0 {
             Err(CreationError::Negative)
         } else {
-            Ok(PositiveNonzeroInteger(value as u64))
+            // `try_from` will panic if the conversion fails
+            Ok(PositiveNonzeroInteger(u64::try_from(value).unwrap()))
+            // `as` casting will throw information away when converting if the value doesn't fit
+            // Ok(PositiveNonzeroInteger(value as u64))
         }
     }
 }
