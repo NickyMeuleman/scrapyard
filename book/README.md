@@ -3290,3 +3290,577 @@ The default hashing function `HashMap` uses is [_pretty good_](https://www.13100
 
 There are tradeoffs made, so if you ever want to change it, you can.
 You can change the _hasher_ by implementing the `BuildHasher` trait.
+
+## 9. Error Handling
+
+Errors, they happen.
+In many cases Rust will force you to deal with them before your code will compile.
+2 kinds:
+1. recoverable
+2. unrecoverable
+
+Rust doesn't have exceptions.
+It has the `Result<T, E>` enum, which has an `Err(E)` variant for recoverable errors.
+For unrecoverable errors there is `panic!`, ~~a peculiar call to action~~ which will stop execution.
+
+## 9.1. Unrecoverable Errors with panic!
+
+When the `panic!` macro exucutes, the program will stop and print a failure.
+It will unwind and clean up the stack before quitting.
+
+### Unwinding the Stack or Aborting in Response to a Panic
+
+By default, when a panic occurs, the program starts unwinding the stack.
+Rust pops things off the stack and cleans them up, that takes time.
+The alternative is to immediately abort upon a panic, and leave the cleanup (of memory) to the operating system.
+
+This is done sometimes when the resulting binary needs to be as small as possible.
+You can change the behaviour upon panic in `Cargo.toml`.
+
+```toml
+[profile.release]
+panic = 'abort'
+```
+
+---
+
+You can call the `panic!` in your code directly.
+
+```rust
+fn main() {
+    panic!("crash and burn");
+}
+```
+
+When the macro gets executed, it will stop the program and produce some output with the message you included among some extra information.
+
+```
+$ cargo run
+   Compiling panic v0.1.0 (file:///projects/panic)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.25s
+     Running `target/debug/panic`
+thread 'main' panicked at 'crash and burn', src/main.rs:2:5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace.
+```
+
+That message also shows the location at which the panic happened: the file at `src/main.rs` at line 2, column 5.
+
+### Using a panic! Backtrace
+
+The `panic!` isn't always called in code you wrote, causing the displayed error to point at the location `panic!` was called in someone else's code.
+To figure out which line of code you wrote that caused that panic, you can use the backtrace (I guess this is Rust's name for stacktrace?).
+
+The following code tries to access a vector at an index that is out of bounds:
+
+```rust
+fn main() {
+    let v = vec![1, 2, 3];
+
+    v[99];
+}
+```
+
+This won't cause Rust to try and read the memory at that location, it doesn't belong to the vector.
+That would be a _buffer overread_ and would cause security issues.
+Instead, it panics.
+
+```
+$ cargo run
+   Compiling panic v0.1.0 (file:///projects/panic)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.27s
+     Running `target/debug/panic`
+thread 'main' panicked at 'index out of bounds: the len is 3 but the index is 99', /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libcore/slice/mod.rs:2806:10
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace.
+```
+
+The panic happened at a place that isn't in the code we wrote.
+It happened at `libcore/slice/mod.rs`. (That's the implementation of `slice`, the code that ran when we tried to into the vector with `[]`)
+
+Running the code with the `RUST_BACKTRACE` environment variable set will cause the backtrace to be included in that error.
+
+A backtrace is a list of all functions that have been called up to that point.
+The line in the code you wrote that triggered the panic will be in there.
+Everything above that in the backtrace is code your code called.
+Everything below that it are functions that called your function.
+Those might still be lines of code you wrote, but also include lines of code that call the code you wrote.
+
+> These lines might include core Rust code, standard library code, or crates that you’re using.
+
+```
+$ RUST_BACKTRACE=1 cargo run
+thread 'main' panicked at 'index out of bounds: the len is 3 but the index is 99', /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libcore/slice/mod.rs:2806:10
+stack backtrace:
+   0: backtrace::backtrace::libunwind::trace
+             at /Users/runner/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.40/src/backtrace/libunwind.rs:88
+   1: backtrace::backtrace::trace_unsynchronized
+             at /Users/runner/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.40/src/backtrace/mod.rs:66
+   2: std::sys_common::backtrace::_print_fmt
+             at src/libstd/sys_common/backtrace.rs:84
+   3: <std::sys_common::backtrace::_print::DisplayBacktrace as core::fmt::Display>::fmt
+             at src/libstd/sys_common/backtrace.rs:61
+   4: core::fmt::ArgumentV1::show_usize
+   5: std::io::Write::write_fmt
+             at src/libstd/io/mod.rs:1426
+   6: std::sys_common::backtrace::_print
+             at src/libstd/sys_common/backtrace.rs:65
+   7: std::sys_common::backtrace::print
+             at src/libstd/sys_common/backtrace.rs:50
+   8: std::panicking::default_hook::{{closure}}
+             at src/libstd/panicking.rs:193
+   9: std::panicking::default_hook
+             at src/libstd/panicking.rs:210
+  10: std::panicking::rust_panic_with_hook
+             at src/libstd/panicking.rs:471
+  11: rust_begin_unwind
+             at src/libstd/panicking.rs:375
+  12: core::panicking::panic_fmt
+             at src/libcore/panicking.rs:84
+  13: core::panicking::panic_bounds_check
+             at src/libcore/panicking.rs:62
+  14: <usize as core::slice::SliceIndex<[T]>>::index
+             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libcore/slice/mod.rs:2806
+  15: core::slice::<impl core::ops::index::Index<I> for [T]>::index
+             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libcore/slice/mod.rs:2657
+  16: <alloc::vec::Vec<T> as core::ops::index::Index<I>>::index
+             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/liballoc/vec.rs:1871
+  17: panic::main
+             at src/main.rs:4
+  18: std::rt::lang_start::{{closure}}
+             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/rt.rs:67
+  19: std::rt::lang_start_internal::{{closure}}
+             at src/libstd/rt.rs:52
+  20: std::panicking::try::do_call
+             at src/libstd/panicking.rs:292
+  21: __rust_maybe_catch_panic
+             at src/libpanic_unwind/lib.rs:78
+  22: std::panicking::try
+             at src/libstd/panicking.rs:270
+  23: std::panic::catch_unwind
+             at src/libstd/panic.rs:394
+  24: std::rt::lang_start_internal
+             at src/libstd/rt.rs:51
+  25: std::rt::lang_start
+             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/rt.rs:67
+  26: panic::main
+```
+
+So, the way to read it is from top to bottom (most recent to longest ago) until you arrive at code you wrote.
+Doing that, this trace points us to `src/main.rs:4`.
+
+> When your code panics in the future, you’ll need to figure out what action the code is taking with what values to cause the panic and what the code should do instead
+
+To get that output, debug symbols have to be enabled.
+Those are pieces of information that is included in the binary you run to help figure out where the instructions to the CPU the binary contains came from.
+That information is ignored by the CPU, but used by debugging tools.
+
+By default, debug symbols are only enabled in development builds and omitted in release builds.
+
+## 9.2. Recoverable Errors with Result
+
+Most errors don't require the program to stop entirely.
+
+> For example, if you try to open a file and that operation fails because the file doesn’t exist, you might want to create the file instead of terminating the process.
+
+Those are good cases for a function to return a `Result<T, E>` type. (an enum with 2 variants)
+- The generic `T` represents the type the `Ok` variant will hold.
+- The generic `E` represents the type the `Err` variant will hold.
+
+Code that calls it can then determine how to handle a possible success or error case based on the returned variant:
+- Handle the error if there was one. (handling the `Err(E)` variant)
+- If everything went well, an `Ok(T)` will be returned.
+
+```rust
+use std::fs::File;
+
+fn main() {
+    let f = File::open("hello.txt");
+}
+```
+
+`File::open` returns a `Result<std::fs::File, std::io::Error>`.
+To confirm, visit the documentation, or induce an error by wrongly annotating its type, the compiler will tell you what it found instead.
+
+That means the function was successful, it will return an `Ok()` and the type of the thing inside will be `std::fs::File`.
+If that function fails (eg. the file doesn't exist), it will return an `Err()` and the type of the thing inside will be `std::io::Error`.
+
+A `match` can be used to execute code based on the variant of the enum that was returned.
+
+```rust
+use std::fs::File;
+
+fn main() {
+    let f = File::open("hello.txt");
+
+    let f = match f {
+        Ok(file) => file,
+        Err(error) => panic!("Problem opening the file: {:?}", error),
+    };
+}
+```
+
+If the returned value is an `Ok`, return the file handler that's inside the `Ok` variant.
+If the returned value is an `Err`, panic. Show the error contained in the `Err` variant in the panic message.
+
+### Matching on Different Errors
+
+That snippet would panic regardless of the type of error that was returned.
+
+The code below distinguishes between the returned errors.
+If the error was because the file was not found, it tries to create the file, and returns the file handler to the newly created file.
+If it was any other error, it panics.
+
+```rust
+use std::fs::File;
+use std::io::ErrorKind;
+
+fn main() {
+    let f = File::open("hello.txt");
+
+    let f = match f {
+        Ok(file) => file,
+        Err(error) => match error.kind() {
+            ErrorKind::NotFound => match File::create("hello.txt") {
+                Ok(fc) => fc,
+                Err(e) => panic!("Problem creating the file: {:?}", e),
+            },
+            other_error => {
+                panic!("Problem opening the file: {:?}", other_error)
+            }
+        },
+    };
+}
+```
+
+It does this by running a `match` on the error inside the `Err` variant.
+From the type (`std::io::Error)`, we know it has a `.kind()` method that will return an `io::ErrorKind` value.
+
+> the enum io::ErrorKind is provided by the standard library and has variants representing the different kinds of errors that might result from an io operation. 
+
+If the `ErrorKind` was an `ErrorKind::NotFound`, indicating the file we're trying to open doesn't exist yet, the code tries to create it.
+Trying to create it with `File::create` also returns a `Result`, so the code has another `match` to handle the possible `Err` and `Ok` from that function.
+
+> That’s a lot of `match`! The `match` expression is very useful but also very much a primitive.
+
+`Result` types have lots of useful methods that can shorten the code, like the `unwrap_or_else` method.
+
+### Shortcuts for Panic on Error: unwrap and expect
+
+`unwrap` is another method available on a `Result`.
+It will either return the value in the `Ok` or panic if the value was an `Err`.
+
+```rust
+use std::fs::File;
+
+fn main() {
+    let f = File::open("hello.txt").unwrap();
+}
+```
+
+if it panics:
+```
+thread 'main' panicked at 'called `Result::unwrap()` on an `Err` value: Error {
+repr: Os { code: 2, message: "No such file or directory" } }',
+src/libcore/result.rs:906:4
+```
+
+The `expect` method is very similar, but will also let you choose the message shown in case of a panic.
+
+```rust
+use std::fs::File;
+
+fn main() {
+    let f = File::open("hello.txt").expect("Failed to open hello.txt");
+}
+```
+
+if it panics:
+```
+thread 'main' panicked at 'Failed to open hello.txt: Error { repr: Os { code:
+2, message: "No such file or directory" } }', src/libcore/result.rs:906:4
+```
+
+### Propagating Errors
+
+If a function whose implementation calls something that might fail, you can return that error to the calling code so it can handle it.
+
+This code reads a username from a file, it returns a `Result`.
+If the `File::open` call fails, the function returns that error immediately.
+If it succeeds, it will call `read_to_string` and return the string it read to in an `Ok`, or the error that produced in an `Err`.
+
+```rust
+use std::fs::File;
+use std::io;
+use std::io::Read;
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let f = File::open("hello.txt");
+
+    let mut f = match f {
+        Ok(file) => file,
+        Err(e) => return Err(e),
+    };
+
+    let mut s = String::new();
+
+    match f.read_to_string(&mut s) {
+        Ok(_) => Ok(s),
+        Err(e) => Err(e),
+    }
+}
+```
+
+In other words, it fails early.
+If an operation that can fail returns an `Err`, the whole function returns that `Err`.
+Else, it continues on until the end of the function body, making sure the eventual return value from the function is a `Result` variant that matches the function signature.
+The last `match` statement doesn't need a `return` keyword, because it's the ending expression of the function.
+
+Based on the function signature, the `Err` holds an `io::Error` and the `Ok` holds a `String`.
+That means the possible error returned from `File::open` and `read_to_string` are both instances of `io::Error`.
+
+Because we returned a `Result`, the calling code has more flexibility.
+It will either receive an `Ok` with a `String` in it, or an error.
+It can choose what to do with that error.
+It could `panic!`, but it could also use a default username, or use an other method to get a username.
+
+This can be written much shorter.
+This pattern of propagating errors is so common, Rust has a special piece of syntax for it, the questionmark `?`.
+
+#### A Shortcut for Propagating Errors: the ? Operator
+
+The same functionality, written with the `?` operator:
+
+```rust
+use std::fs::File;
+use std::io;
+use std::io::Read;
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut f = File::open("hello.txt")?;
+    let mut s = String::new();
+    f.read_to_string(&mut s)?;
+    Ok(s)
+}
+```
+
+When placing a `?` after a `Result` value:
+If the value is an `Ok`, the value inside the `Ok` will be returned and the function continues execution.
+If the value is an `Err`, the function will stop execution and return the entire `Err`.
+
+There is a difference between the longer code using `match` and the code using the `?` operator.
+Error values that have the `?` operator called on them go through the `from` function.
+
+The `from` function is defined in the `From` trait in the standard library.
+It converts error messages from one type into another.
+When `?` calls `from`, the received error type is converted into the error type that is defined in the signature of the function the `?` was used in.
+
+> This is useful when a function returns one error type to represent all the ways a function might fail, even if parts might fail for many different reasons
+> As long as each error type implements the `from` function to define how to convert itself to the returned error type, the `?` operator takes care of the conversion automatically.
+
+You can use the `?` and chain methods.
+The `?` will return from the function early if there is an `Err`, else, the entire thing acts as an `Ok` (and can have methods chained on it).
+
+```rust
+use std::fs::File;
+use std::io;
+use std::io::Read;
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut s = String::new();
+    File::open("hello.txt")?.read_to_string(&mut s)?;
+    Ok(s)
+}
+```
+
+Turns out this example is a common enough usecase to have its own method
+
+```rust
+use std::fs;
+use std::io;
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    fs::read_to_string("hello.txt")
+}
+```
+
+#### The ? Operator Can Be Used in Functions That Return Result
+
+As a result of early returning an `Err`, the `?` can only be used in functions that have a return type of `Result`.
+
+note: `?` can also be used with `Option` types, where it early returns the `None`.
+note2: or with types that implement the `std::ops::Try` trait.
+
+By default, the `main` function has a return type of `()`, so the `?` cannot be used there.
+
+Trying to use it will result in the following compiler error:
+
+```
+$ cargo run
+   Compiling error-handling v0.1.0 (file:///projects/error-handling)
+error[E0277]: the `?` operator can only be used in a function that returns `Result` or `Option` (or another type that implements `std::ops::Try`)
+ --> src/main.rs:4:13
+  |
+3 | / fn main() {
+4 | |     let f = File::open("hello.txt")?;
+  | |             ^^^^^^^^^^^^^^^^^^^^^^^^ cannot use the `?` operator in a function that returns `()`
+5 | | }
+  | |_- this function should return `Result` or `Option` to accept `?`
+  |
+  = help: the trait `std::ops::Try` is not implemented for `()`
+  = note: required by `std::ops::Try::from_error`
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `error-handling`.
+
+To learn more, run the command again with --verbose.
+```
+
+The `main` function has a few restrictions on what types it can return.
+The default is `()`, and an other valid return type is `Result<T,E>`
+
+```rust
+use std::error::Error;
+use std::fs::File;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let f = File::open("hello.txt")?;
+
+    Ok(())
+}
+```
+
+The `Box<dyn Error>` type is called a trait object, the book will explain what those are later.
+For now, treat it as "pick an error, any error"
+
+Because that function returns a `Result`, using the `?` operator is allowed.
+
+## 9.3. To panic! or Not To panic!
+
+A `panic!` is final, a `Result` it not.
+If you call `panic!`, you are making a decision on behalf of the code that called your code.
+If you return a `Result`, the code that calls your may still decide to call `panic!` on error.
+Usually, returning a `Result` from a function that might fail is a good default choice as it gives more control to the caller.
+In other situations, it is more appropriate to panic.
+
+### Examples, Prototype Code, and Tests
+
+In example code, `panic!` is usually preferred, since it is clearer.
+Similarly `unwrap` and `expect` are handy when prototyping.
+They're clear markers that say "this code might panic"
+
+In tests, when a method call fails, it's appropriate to panic (in your code, lol).
+You'd want the whole test to fail.
+`panic!` is how a test is marked as a failure, making `unwrap` and `expect` ideal parts of testing code.
+
+### Cases in Which You Have More Information Than the Compiler
+
+It's also fine to call `unwrap` in regular code when you don't want to panic sometimes.
+Maybe some preceding logic dictates it will always succeed.
+You know this, the compiler doesn't.
+
+For example: by looking at the hardcoded string literal, you can guarantee the call to `parse` will succeed:
+
+```rust
+use std::net::IpAddr;
+
+let home: IpAddr = "127.0.0.1".parse().unwrap();
+```
+
+### Guidelines for Error Handling
+
+The book advises to panic when your code ends up in a "bad state".
+That means: when an assumption, guarantee, contract, invariant is broken.
+When there are invalid, contradictory, or missing values.
+That, combined with one or more of these:
+> - The bad state is not something that’s expected to happen occasionally.
+> - Your code after this point needs to rely on not being in this bad state.
+> - There’s not a good way to encode this information in the types you use.
+
+Basically when stuff happens that shouldn't be possible or is impossible to recover from.
+
+Your code can panic if someone calls it with invalid values.
+This lets the user of the library they are passing wrong values and alerts them to a possible bug in their code.
+
+When calling external code, it might make sense to panic if it returns an invalid state that you have no way of fixing.
+
+If the failure is expected, a `Result` makes more sense to indicate a failure.
+Examples are a rate limit code on a HTTP request, or a parser returning an error on invalid date.
+
+The Rust type system is a way define a type of contract for a function.
+It expects specific types of input and won't even compile when that contract is broken.
+If a function operates on an `i32`, giving it an `Option<i32>` is invalid.
+Your function expects an `i32`, not a `Some` that holds an `i32`, and also not a `None`.
+
+### Creating Custom Types for Validation
+
+You can turn Rust's type system up to 11 by creating your own custom error types.
+
+The guessing game dealt with a secret number between 1 and 100, yet the guess was never validated.
+
+We could parse the guess as `i32` (and allow potentially negative guesses) and print a specific line of text if the guess wasn't between 1-100.
+If it wasn't, call `continue` to restart the `loop` and ask for a new guess.
+
+```rust
+loop {
+    // --snip--
+
+    let guess: i32 = match guess.trim().parse() {
+        Ok(num) => num,
+        Err(_) => continue,
+    };
+
+    if guess < 1 || guess > 100 {
+        println!("The secret number will be between 1 and 100.");
+        continue;
+    }
+
+    match guess.cmp(&secret_number) {
+        // --snip--
+    }
+}
+```
+
+> However, this is not an ideal solution: if it was absolutely critical that the program only operated on values between 1 and 100,
+> and it had many functions with this requirement,
+> having a check like this in every function would be tedious (and might impact performance).
+
+We can create a new type and put the validation logic on that type.
+
+```rust
+pub struct Guess {
+    value: i32,
+}
+
+impl Guess {
+    pub fn new(value: i32) -> Guess {
+        if value < 1 || value > 100 {
+            panic!("Guess value must be between 1 and 100, got {}.", value);
+        }
+
+        Guess { value }
+    }
+
+    pub fn value(&self) -> i32 {
+        self.value
+    }
+}
+```
+
+To create an instance of `Guess`, we have to call `Guess::new()` since the `value` key for that struct is private and we can't set it directly.
+`new` is an associated function that will create a new instance of `Guess`.
+It will first validate the argument passed to it, if that argument isn't a valid integer between 1 and 100, it will panic.
+Trying to create a `Guess` with a `value` outside of that range would violate the contract `Guess::new` relies on.
+That panic will alert the programmer who is writing the calling code that they have a bug that needs fixing.
+
+**The conditions in which `Guess::new` panics should be available in documentation.**
+
+Every instance of `Guess` will hold an `i32` in the `value` key that is between 1 and 100.
+Code that uses it can operate on that assumption.
+
+The `value` method is a _getting_, it's necessary because `value` is private.
+It's important it's private so every instance of `Guess` has to be created through `Guess::new` and is guaranteed to hold a `value` between 1 and 100.
+It being private also prevents code using the `Guess` struct from manipulating it directly.
+
+A function could then take a `Guess` instead of an `i32`.
+At that point, you wouldn't need any additional checks, but can safely assume the `value` to be between 1 and 100.
