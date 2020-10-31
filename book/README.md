@@ -3864,3 +3864,890 @@ It being private also prevents code using the `Guess` struct from manipulating i
 
 A function could then take a `Guess` instead of an `i32`.
 At that point, you wouldn't need any additional checks, but can safely assume the `value` to be between 1 and 100.
+
+## 10. Generic Types, Traits, and Lifetimes
+
+What function parameter types are to concrete values, generics are to types.
+Kinda.
+
+Generics are a tool to handle the duplication of concepts. They are abstract stand-ins for types or properties.
+Generic types are typically presented with a capital letter, that has no real meaning. A capital letter is just short.
+The popular first choice is `T`, which stands for type (aren't programmers so smart).
+
+The `T` in `Option<T>` is a generic. It's a stand-in for a type.
+It says that whatever type is entered in the place of that `T` will be the type of the concrete value `Some` holds.
+
+```rust
+enum Option<T> {
+    Some(T)
+    None
+}
+```
+
+Same thing with `Result<T,E>`.
+The `T` and `E` are generics, they are stand-ins for concrete types.
+Whatever type `T` gets will be the type of the value `Ok` holds.  
+Whatever type `E` gets will be the type of the value `Err` holds.
+
+```rust
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
+
+A `Result<String, std::io::Error>` has 2 variants, an `Ok` with a value of type `String` inside, or an `Err` with a value of type `std::io::Error` inside.
+
+First, the book will extract duplicated logic to a function.
+Then it'll make the function generic to replace 2 functions that differ only in the types of data they deal with.
+
+Traits define behaviour in a generic way.
+Traits can be combined with generic types to constrain those generic types to only those that have a specific behaviour.
+
+Lifetimes are a form of generics that give the compiler information about how references relate to each other.
+They allow us to borrow values while the compiler ensures the data behind that borrow is still there in memory.
+
+### Removing Duplication by Extracting a Function
+
+Let's start by removing duplication without generics, by moving instructions to a function.
+
+```rust
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+
+    let mut largest = number_list[0];
+
+    for number in number_list {
+        if number > largest {
+            largest = number;
+        }
+    }
+
+    println!("The largest number is {}", largest);
+
+    let number_list = vec![102, 34, 6000, 89, 54, 2, 43, 8];
+
+    let mut largest = number_list[0];
+
+    for number in number_list {
+        if number > largest {
+            largest = number;
+        }
+    }
+
+    println!("The largest number is {}", largest);
+}
+```
+
+This code repeats the same logic twice.
+It finds the largest integer in a vector and stores it in a variable.
+
+A function can abstract this logic, which is then repeated by giving the function different inputs when we call it.
+
+```rust
+fn largest(list: &[i32]) -> &i32 {
+    let mut largest = &list[0];
+
+    for item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+
+    let result = largest(&number_list);
+    println!("The largest number is {}", result);
+    assert_eq!(result, &100);
+
+    let number_list = vec![102, 34, 6000, 89, 54, 2, 43, 8];
+
+    let result = largest(&number_list);
+    println!("The largest number is {}", result);
+    assert_eq!(result, &6000);
+}
+```
+
+> In sum, here are the steps we took to change the code from Listing 10-2 to Listing 10-3:
+> 
+> 1. Identify duplicate code.
+> 1. Extract the duplicate code into the body of the function and specify the inputs and return values of that code in the function signature.
+> 1. Update the two instances of duplicated code to call the function instead.
+
+Next, we'll repeat those steps.
+In the same way the function can operate on an abstract vector by using a type, it can operate on an abstract type by using a generic.
+
+## 10.1. Generic Data Types
+
+Generics can be used in function signatures, structs, enums, ...
+
+### In Function Definitions
+
+Generics in a function signature are where the types would usually be.
+
+Let's replace 2 functions that deal with concrete types with one that deals with a generic type:
+
+```rust
+fn largest_i32(list: &[i32]) -> &i32 {
+    let mut largest = &list[0];
+
+    for item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+
+    largest
+}
+
+fn largest_char(list: &[char]) -> &char {
+    let mut largest = &list[0];
+
+    for item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+
+    let result = largest_i32(&number_list);
+    println!("The largest number is {}", result);
+    assert_eq!(result, &100);
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+
+    let result = largest_char(&char_list);
+    println!("The largest char is {}", result);
+    assert_eq!(result, &'y');
+}
+```
+
+Before using a generic type, we must first declare we are going to use a generic type. That way, the compiler doesn't confuse a generic type for a concrete one.
+
+Generic types are represented with CamelCase, often abbreviated to one letter. `T` is the most popular one, for "type".
+
+Declaring a generic type is done with angle brackets `<>`, between the function name and the parameter list.
+
+Using a generic type to rewrite the function above:
+
+```rust
+// COMPILER ERROR
+fn largest<T>(list: &[T]) -> &T {
+    let mut largest = list[0];
+
+    for item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+
+    let result = largest(&number_list);
+    println!("The largest number is {}", result);
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+
+    let result = largest(&char_list);
+    println!("The largest char is {}", result);
+}
+```
+
+This doesn't compile yet.
+
+```error
+$ cargo run
+   Compiling chapter10 v0.1.0 (file:///projects/chapter10)
+error[E0369]: binary operation `>` cannot be applied to type `T`
+ --> src/main.rs:5:17
+  |
+5 |         if item > largest {
+  |            ---- ^ ------- T
+  |            |
+  |            T
+  |
+  = note: `T` might need a bound for `std::cmp::PartialOrd`
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0369`.
+error: could not compile `chapter10`.
+
+To learn more, run the command again with --verbose.
+```
+
+Right now, the generic `T` represents _any_ type.
+Inside the function, we compare 2 values of that type with the `<` operator, not all types can do that.
+
+That's where constraining the generic to types that allow comparison comes in handy.
+In Rust, types can have certain behaviours when they implement _traits_.
+
+The standard library has a trait that says: types that have this trait (`std::cmp::PartialOrd`) can be ordered. 
+That means that comparison will work.
+So the solution is: constraining the generic type to only allow types that implement that trait.
+More about this error in the very next chapter, the one on traits.
+
+### In Struct Definitions
+
+An example of a struct using a generic type:
+The generic type is declared after the name in angle brackets again.
+The generic is used in place of where concrete types would be inside the definition.
+Like with functions, if more than one generic parameter is used, they are seperated with a comma inside the angle brackets.
+
+```rust
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+fn main() {
+    let integer = Point { x: 5, y: 10 };
+    let float = Point { x: 1.0, y: 4.0 };
+}
+```
+
+In this case, both `x` and `y` must have the same type.
+If they need to be able to have different types, we can explicitly define that possibility.
+
+```rust
+struct Point<T, U> {
+    x: T,
+    y: U,
+}
+```
+
+### In Enum Definitions
+
+Very similar to structs: 
+- generic declaration after the name
+- in angle brackets
+- multiple generic declarations seperated by a comma
+- used in place of concrete types.
+
+```rust
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
+
+> When you recognize situations in your code with multiple struct or enum definitions that differ only in the types of the values they hold,
+> you can avoid duplication by using generic types instead.
+
+### In Method Definitions
+
+The `impl` block can use generics too.
+As with functions, usage of a generic inside an `impl` block needs to be declared first, giving that information to the compiler.
+After declaring the block uses a generc, you can use it within the block but also on the `impl` line, as you can use it to implement for a struct that uses a generic itself. _woah_
+
+```rust
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Point<T> {
+    fn x(&self) -> &T {
+        &self.x
+    }
+}
+
+fn main() {
+    let p = Point { x: 5, y: 10 };
+
+    println!("p.x = {}", p.x());
+}
+```
+
+The code above implemented a struct `Point` that's generic over a type `T`, both the `x` and the `y` fields will have values of that type.
+
+Later, we write an implementation for that generic type.
+We have to declare that generic before we can use it, so we tell the compiler with `<T>`.
+
+By declaring the generic type right after the `impl`, Rust can identify it's a generic when it's used again, not a concrete type (like `i32`).
+The fact this generic type is also `T` is a coincidence, it could also be `Boop`.
+
+In fact, let's make the implementation use a generic named `Boop`:
+
+```rust
+struct Point<T> {
+    x: T,
+    y: T,
+}
+
+impl<Boop> Point<Boop> {
+    fn x(&self) -> &Boop {
+        &self.x
+    }
+}
+
+fn main() {
+    let p = Point { x: 5, y: 10 };
+
+    println!("p.x = {}", p.x());
+}
+```
+
+The method `x` returns a reference to the data in the field `x` of the `Point` struct.
+
+We could implement `Point<T>` for a specific type:
+
+```rust
+impl Point<f32> {
+    fn distance_from_origin(&self) -> f32 {
+        (self.x.powi(2) + self.y.powi(2)).sqrt()
+    }
+}
+```
+
+Only instances of `Point<T>` that use `f32` as values for `T` will then have the `distance_from_origin` method defined.
+
+> we use the concrete type `f32`, meaning we don’t declare any types after `impl`.
+
+Other generics can be used within an `impl` block that uses generics itself, they don't need to all be declared right after `impl`.
+Generics that are specific to a method can be defined in their usual position: between the name and the parameter list:
+
+```rust
+struct Point<T, U> {
+    x: T,
+    y: U,
+}
+
+impl<T, U> Point<T, U> {
+    fn mixup<V, W>(self, other: Point<V, W>) -> Point<T, W> {
+        Point {
+            x: self.x,
+            y: other.y,
+        }
+    }
+}
+
+fn main() {
+    let p1 = Point { x: 5, y: 10.4 };
+    let p2 = Point { x: "Hello", y: 'c' };
+
+    let p3 = p1.mixup(p2);
+
+    println!("p3.x = {}, p3.y = {}", p3.x, p3.y);
+}
+```
+
+> The method takes another `Point` as a parameter, which might have different types from the `self` `Point` we’re calling `mixup` on.
+> The method creates a new `Point` instance with the `x` value from the `self` `Point` (of type `T`) and the `y` value from the passed-in `Point` (of type `W`).
+
+> The `println!` macro call will print `p3.x = 5, p3.y = c`
+
+### Performance of Code Using Generics
+
+Rust implements generics in such a way that your code using generics is just as fast as code with concrete types.
+
+That is because Rust uses Performance of Code Using Generics.
+Under the hood Rust literally treats instances using a specific type as different types.
+It turns generic code into concrete code based on the usage in your code.
+You can use generics while writing Rust, but when compiling, they're replaced with concrete types.
+
+> Monomorphization is the process of turning generic code into specific code by filling in the concrete types that are used when compiled.
+
+That means this code using an enum that uses a generic:
+
+```rust
+enum Option<T> {
+    Some(T),
+    None,
+}
+
+let integer = Some(5);
+let float = Some(5.0);
+```
+
+Will turn into this code that does not use generics, only concrete types.
+The types are filled in during compilation.
+
+```rust
+enum Option_i32 {
+    Some(i32),
+    None,
+}
+
+enum Option_f64 {
+    Some(f64),
+    None,
+}
+
+fn main() {
+    let integer = Option_i32::Some(5);
+    let float = Option_f64::Some(5.0);
+}
+```
+
+## 10.2. Traits: Defining Shared Behavior
+
+A trait tells the compiler about the functionality of a particular type.
+Different types can implement the same trait and therefor share the same behaviour.
+We can use trait bounds to restrict a generic to only be a type that has certain behaviour.
+
+### Defining a Trait
+
+Trait definitions are a way to group method signatures together to define a set of behaviours necessary to accomplish some purpose.
+Types that implement the same trait will have that same behaviour/the same methods.
+
+If we have 2 structs: `NewsArticle` and `Tweet` and we want them both to have a method called `summarize`.
+We can choose to create a `Summary` trait and have both types implement that trait.
+
+syntax: `trait` keyword followed by a PalcalCase name and a block of code surrounded by `{}`.
+Inside the curly brackets are the signatures for the methods of types that implement this trait.
+
+```rust
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+```
+
+They don't need to be full functions with implementations, the signature is enough.
+The type implementing that trait must then provide implementations of methods that match that signature.
+Each line is terminated with a semicolon `;`.
+
+> The compiler will enforce that any type that has the `Summary` trait will have the method `summarize` defined with this signature exactly.
+
+### Implementing a Trait on a Type
+
+Below are implementations of the `Summary` trait.
+`NewsArticle` and `Tweet` both implement it, each providing an implementation for the required `summarize` method.
+
+syntax: similar to a regular implementation for a struct.
+The `impl` keyword, followed by the name of the trait, the `for` keyword, followed by the name of the struct.
+Then the codeblock with the implementation opens and closes `{}`.
+
+syntax: `impl TraitName for TypeName {}`
+
+```rust
+pub struct NewsArticle {
+    pub headline: String,
+    pub location: String,
+    pub author: String,
+    pub content: String,
+}
+
+impl Summary for NewsArticle {
+    fn summarize(&self) -> String {
+        format!("{}, by {} ({})", self.headline, self.author, self.location)
+    }
+}
+
+pub struct Tweet {
+    pub username: String,
+    pub content: String,
+    pub reply: bool,
+    pub retweet: bool,
+}
+
+impl Summary for Tweet {
+    fn summarize(&self) -> String {
+        format!("{}: {}", self.username, self.content)
+    }
+}
+```
+
+> After implementing the trait, we can call the methods on instances of `NewsArticle` and `Tweet` in the same way we call regular methods
+
+If we published this as a crate called `aggregator`, others can bring the trait into scope and implement it on their types.
+They'd bring it into scope with: `use agrregator::Summary;`
+In order for them to do that, the trait needs to be marked as public with `pub`.
+
+A restriction: we can implement a trait on a type only if at least one of those is local to our crate.
+Implementing a third-party trait on a third-party type is not possible.
+For example, we can't implement the `Display` trait on a `Vec<T>`, as both the trait and the type are external to our crate.
+they are both part of the `std` library in this example, but the same rule applies if they were from seperate external crates.
+
+> This restriction is part of a property of programs called coherence,
+> and more specifically the orphan rule, so named because the parent type is not present.
+> This rule ensures that other people’s code can’t break your code and vice versa.
+> Without the rule, two crates could implement the same trait for the same type, and Rust wouldn’t know which implementation to use.
+
+### Default Implementations
+
+That trait declaration with the signatures in it?
+Those method signatures can have implementations too, those are default implementations.
+
+Types implementing this trait will use the default implementation if they don't override it in their own implementation.
+
+> instead of requiring implementations for all methods on every type.
+> Then, as we implement the trait on a particular type, we can keep or override each method’s default behavior.
+
+```rust
+pub trait Summary {
+    fn summarize(&self) -> String {
+        String::from("(Read more...)")
+    }
+}
+```
+
+To use this default implementation for the `NewsArticle` type, we specify an empty `impl` block with `impl Summary for NewsArticle {}`.
+
+Because we implemented the trait without an implementation for `summarize`, the default implementation will be used.
+
+```rust
+let article = NewsArticle {
+    headline: String::from("Penguins win the Stanley Cup Championship!"),
+    location: String::from("Pittsburgh, PA, USA"),
+    author: String::from("Iceburgh"),
+    content: String::from(
+        "The Pittsburgh Penguins once again are the best \
+            hockey team in the NHL.",
+    ),
+};
+
+println!("New article available! {}", article.summarize());
+// New article available! (Read more...).
+```
+
+A specific implementation will be preferred to the default one.
+If we had left the implementation for `summarize` on `NewsArticle` there,
+the default implementation defined during the trait declaration would not be used.
+
+Default implementations can call other methods in the same trait, even if those other methods don't have a default implementation.
+This way, traits can provide lots of functionality while require implementors to only specify a small part of the entire trait.
+
+When adding a `summarize_author` method to the trait and providing a default implementation of `summarize`:
+types that implement the trait only have to implement a `summarize_author` method.
+They can still call `summarize`, which will in turn call their implementation of `summarize_author`.
+
+```rust
+pub trait Summary {
+    fn summarize_author(&self) -> String;
+
+    fn summarize(&self) -> String {
+        format!("(Read more from {}...)", self.summarize_author())
+    }
+}
+```
+
+```rust
+impl Summary for Tweet {
+    fn summarize_author(&self) -> String {
+        format!("@{}", self.username)
+    }
+}
+```
+
+```rust
+let tweet = Tweet {
+    username: String::from("horse_ebooks"),
+    content: String::from(
+        "of course, as you probably already know, people",
+    ),
+    reply: false,
+    retweet: false,
+};
+
+println!("1 new tweet: {}", tweet.summarize());
+// 1 new tweet: (Read more from @horse_ebooks...)
+```
+
+It isn't possible to call the default implementation from an overriding implementation of that same method.
+I think it isn't possible to call default implentations if they are overridden at all.
+
+### Traits as Parameters
+
+Traits can be used in generic function parameters.
+
+> we implemented the Summary trait on the NewsArticle and Tweet types.
+> We can define a notify function that calls the summarize method on its item parameter,
+> which is of some type that implements the Summary trait. To do this, we can use the impl Trait syntax, like this:
+
+```rust
+pub fn notify(item: &impl Summary) {
+    println!("Breaking news! {}", item.summarize());
+}
+```
+
+syntax: in the place where you would normally specify a type: `impl` followed by the name of the trait.
+That parameter then accepts any value of a type that implements that trait.
+
+#### Trait Bound Syntax
+
+The `impl Trait` syntax is syntax sugar for a longer form syntax.
+
+The longer syntax is called a _trait bound_.
+
+Declare a generic, inside the angle brackets,
+follow the name of the generic with a colon `:`, followed by the name of the trait that generic type has to implement.
+
+```rust
+pub fn notify<T: Summary>(item: &T) {
+    println!("Breaking news! {}", item.summarize());
+}
+```
+
+This syntax makes it shorter to have multiple parameters that have the same generic types.
+In the following example, `item1` and `item2` can have different types:
+
+```rust
+pub fn notify(item1: &impl Summary, item2: &impl Summary) {}
+```
+
+Using the trait bound syntax, we can force both parameters to have the same type:
+
+```rust
+pub fn notify<T: Summary>(item1: &T, item2: &T) {}
+```
+
+#### Specifying Multiple Trait Bounds with the + Syntax
+
+It also allows for a single generic type to be constrained by multiple traits.
+
+Syntax: a `+` between trait names the generic type must implement.
+
+with the `impl Trait` syntax:
+
+```rust
+pub fn notify(item: &(impl Summary + Display)) {}
+```
+
+with the trait bound syntax:
+
+```rust
+pub fn notify<T: Summary + Display>(item: &T) {}
+```
+
+#### Clearer Trait Bounds with where Clauses
+
+This can get long pretty fast.
+The `where` syntax places that information at the end of a function signature.
+
+syntax:
+- declare the names of generic types used at their regular location, inside angle brackets `<>` 
+- at the end of the function signature, between the return type and the function body place the `where` keyword.
+type what would be between the angle brackets `<>` in the normal trait bound syntax there.
+
+without the syntax:
+
+```rust
+fn some_function<T: Display + Clone, U: Clone + Debug>(t: &T, u: &U) -> i32 {}
+```
+
+using the `where` syntax:
+
+```rust
+fn some_function<T, U>(t: &T, u: &U) -> i32
+    where T: Display + Clone,
+          U: Clone + Debug
+{}
+```
+
+#### Returning Types that Implement Traits
+
+The `impl Trait` syntax can be used for return values too.
+
+> The ability to return a type that is only specified by the trait it implements is especially useful in the context of closures and iterators,
+> which we cover in Chapter 13.
+> Closures and iterators create types that only the compiler knows or types that are very long to specify.
+> The `impl Trait` syntax lets you concisely specify that a function returns some type that implements the `Iterator` trait without needing to write out a very long type.
+
+You can only use the `impl Trait` syntax if you're returning a single type.
+
+The following code returns either a `Tweet` or a `NewsArticle`.
+Both implement the `Summary` trait.
+
+```rust
+// DOES NOT COMPILE
+fn returns_summarizable(switch: bool) -> impl Summary {
+    if switch {
+        NewsArticle {
+            headline: String::from(
+                "Penguins win the Stanley Cup Championship!",
+            ),
+            location: String::from("Pittsburgh, PA, USA"),
+            author: String::from("Iceburgh"),
+            content: String::from(
+                "The Pittsburgh Penguins once again are the best \
+                 hockey team in the NHL.",
+            ),
+        }
+    } else {
+        Tweet {
+            username: String::from("horse_ebooks"),
+            content: String::from(
+                "of course, as you probably already know, people",
+            ),
+            reply: false,
+            retweet: false,
+        }
+    }
+}
+```
+
+> Returning either a `NewsArticle` or a `Tweet` isn’t allowed due to restrictions around how the `impl Trait` syntax is implemented in the compiler
+> We’ll cover how to write a function with this behavior in the “Using Trait Objects That Allow for Values of Different Types” section of Chapter 17.
+
+### Fixing the largest Function with Trait Bounds
+
+Remember that `largest` function that wouldn't compile with generics from the previous chapter?
+
+In the body of the function, we used `>` to compare two values.
+
+Whichever values we compare should be able to do that.
+With the `std::cmp::PartialOrd` trait, they are!
+
+Change the type signature to include a trait bound:
+
+```rust
+fn largest<T: PartialOrd>(list: &[T]) -> T {}
+```
+
+This results in a new error
+
+```error
+$ cargo run
+   Compiling chapter10 v0.1.0 (file:///projects/chapter10)
+error[E0508]: cannot move out of type `[T]`, a non-copy slice
+ --> src/main.rs:2:23
+  |
+2 |     let mut largest = list[0];
+  |                       ^^^^^^^
+  |                       |
+  |                       cannot move out of here
+  |                       move occurs because `list[_]` has type `T`, which does not implement the `Copy` trait
+  |                       help: consider borrowing here: `&list[0]`
+
+error[E0507]: cannot move out of a shared reference
+ --> src/main.rs:4:18
+  |
+4 |     for &item in list {
+  |         -----    ^^^^
+  |         ||
+  |         |data moved here
+  |         |move occurs because `item` has type `T`, which does not implement the `Copy` trait
+  |         help: consider removing the `&`: `item`
+
+error: aborting due to 2 previous errors
+
+Some errors have detailed explanations: E0507, E0508.
+For more information about an error, try `rustc --explain E0507`.
+error: could not compile `chapter10`.
+
+To learn more, run the command again with --verbose.
+```
+
+The code tries to _move_ values into the `largest` variable.
+
+With out non-generic functions we only operated on lists of `i32` or `char`.
+Both types are able to be stored on the stack and implement the `Copy` trait.
+As a result, that line doesn't try to move the values into `largest`, it copies them.
+
+To enforce this we can add another trait bound and require the generic type `T` to implement the `Copy` trait.
+
+```rust
+fn largest<T: PartialOrd + Copy>(list: &[T]) -> T {
+    let mut largest = list[0];
+
+    for &item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+
+    let result = largest(&number_list);
+    println!("The largest number is {}", result);
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+
+    let result = largest(&char_list);
+    println!("The largest char is {}", result);
+}
+```
+
+disclaimer: I don't know if this is correct, but it compiles, and the output makes sense:
+If we didn't want to do that, we could slightly change the function to return a reference to the item instead of the item
+
+```rust
+fn largest<T: PartialOrd>(list: &[T]) -> &T {
+    let mut largest = &list[0];
+
+    for item in list {
+        if item > largest {
+            largest = &item;
+        }
+    }
+
+    largest
+}
+```
+
+> If we don’t want to restrict the `largest` function to the types that implement the `Copy` trait,
+> we could specify that T has the trait bound `Clone` instead of `Copy`.
+> Then we could clone each value in the slice when we want the `largest` function to have ownership.
+> Using the clone function means we’re potentially making more heap allocations in the case of types that own heap data like String,
+> and heap allocations can be slow if we’re working with large amounts of data.
+
+> Another way we could implement `largest` is for the function to return a reference to a `T` value in the slice.
+> If we change the return type to `&T` instead of `T`, thereby changing the body of the function to return a reference,
+> we wouldn’t need the `Clone` or `Copy` trait bounds and we could avoid heap allocations.
+
+
+### Using Trait Bounds to Conditionally Implement Methods
+
+We can implement methods conditionally for types that implement specified traits.
+
+In the example below, the type `Pair<T>` always implements a `new` function.
+Instances of `Pair<T>` with an inner type `T` that implements both the `Display` and `ParialOrd` trait also implements the `cmp_display` method.
+
+```rust
+use std::fmt::Display;
+
+struct Pair<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Pair<T> {
+    fn new(x: T, y: T) -> Self {
+        Self { x, y }
+    }
+}
+
+impl<T: Display + PartialOrd> Pair<T> {
+    fn cmp_display(&self) {
+        if self.x >= self.y {
+            println!("The largest member is x = {}", self.x);
+        } else {
+            println!("The largest member is y = {}", self.y);
+        }
+    }
+}
+```
+
+We can also conditionally implement a trait for any type that implements another trait.
+
+> Implementations of a trait on any type that satisfies the trait bounds are called blanket implementations and are extensively used in the Rust standard library.
+
+> For example, the standard library implements the `ToString` trait on any type that implements the `Display` trait.
+> The `impl` block in the standard library looks similar to this code:
+
+```rust
+impl<T: Display> ToString for T {
+    // --snip--
+}
+```
+
+> Because the standard library has this blanket implementation,
+> we can call the `to_string` method defined by the `ToString` trait on any type that implements the `Display` trait.
