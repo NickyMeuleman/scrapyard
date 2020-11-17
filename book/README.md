@@ -5347,3 +5347,798 @@ where
 
 The lifetime annotation and generic type parameter are next to each other in the angle brackets `<>`, seperated by a comma.
 
+## 11. Writing Automated Tests
+
+Rust is designed with a high degree of concern about correctness.
+The compiler will catch many issues and even provides some guarantees about the corectness of your code.
+The type system is responsible for a large part of this.
+
+However, it can't read your mind, and logical correctness is up to you, the programmer.
+Like a function called `add_2`, adding 2 to a number and not subtracting 2, or any other behavior for that matter.
+They might all be technically correct [(the best kind of correct)](https://youtu.be/hou0lU8WMgo), but logically flawed.
+
+Rust supports automated software tests.
+
+If we write an `add_2` function that takes an integer, and returns an integer, Rust will check that.
+For instance, trying to pass a `String` as parameter won't work.
+The compiler will prevent that.
+The correctness of the logic within that function is up to us.
+
+We can write tests that assert the function returns the expected values when given a few inputs.
+We can run these tests whenever we make changes to our code to make sure any existing correct behavior doesn't change.
+
+## 11.1. How to Write Tests
+
+Tests are functions that verify the non-test code is functioning correctly.
+
+> The bodies of test functions typically perform these three actions:
+> 
+> 1. Set up any needed data or state.
+> 1. Run the code you want to test.
+> 1. Assert the results are what you expect.
+
+### The Anatomy of a Test Function
+
+A test is a function that is annotated with the `test` attribute.
+Attributes are a piece of syntax we haven't seen before.
+They're metadata about pieces of Rust code.
+
+An example is the `derive` attribute we previously used with structs (`#[derive(Debug)]`).
+To change a function into a test, add `#[test]` on the line before `fn`.
+
+Functions marked like that will be treated as tests.
+When you run `cargo test`, cargo builds a test binary runner and executes it.
+It reports passes or failures from the functions that were marked with `#[test]`.
+
+When you create a new library project with Cargo, a test module with a test function inside is automatically generated.
+The module isn't strictly necessary, but has a few advantages and is considered best practice.
+
+You can add as many test modules, or functions, as you wish.
+
+Let's create a new library project
+
+```sh
+cargo new adder --lib
+```
+
+In `src/lib.rs` there is a `tests` module marked with the `cfg` attribute.
+More specifically, `#[cgf(tests)]`.
+
+```rust
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
+    }
+}
+```
+
+The `it_works` function is marked with `#[test]`,
+this attribute indicates it's a test function and the success/failure should be reported to the user.
+We could have non-test functions in the `tests` module (helper functions), that's why we need to indicate which functions are tests with `#[test]`.
+
+The function body uses the `assert_eq!` macro in the body.
+That macro calls `panic!` internally is the 2 arguments it gets aren't equal.
+
+Running `cargo test` will execute all tests in the project and output the results:
+
+```sh
+$ cargo test
+   Compiling adder v0.1.0 (file:///projects/adder)
+    Finished test [unoptimized + debuginfo] target(s) in 0.57s
+     Running target/debug/deps/adder-92948b65e88960b4
+
+running 1 test
+test tests::it_works ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+   Doc-tests adder
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+```
+
+It shows `running 1 test`.
+Underneath it is a list of all tests it ran (a single one in this case).
+The line below shows the path to the test functions it ran:
+`tests::it_works` (a module called `tests` and a function called `it_works`),
+and the result of that test: `ok`.
+
+The overall summary of all the tests is underneath that list.
+`test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out`
+It mentions the overall result of the tests: `ok`, followed by a summary.
+
+Tests can be marked as ignored, those won't be ran unless specifically instructed.
+Specific tests can be run using a filter, which we didn't do, so the summary showed 0 tests being filtered out.
+
+The `0 measured` is for benchmark tests.
+
+That was one section of the testing output.
+The next section starts with `Doc-tests adder`, and follows a similar structure.
+
+This section is for documentation tests, which we don't have yet.
+Rust can compile code examples in documentation.
+This is very useful to make sure comments stay current to the code they use.
+
+Let's add a failing test.
+Tests fail when something in the test function panics.
+Each test is ran in a new thread, when the main thread sees that a thread died, that test is marked as failed.
+
+the added test is a function marked with the `test` attribute, inside the module named `tests`:
+
+```rust
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
+    }
+
+    #[test]
+    fn another() {
+        panic!("Oh, oh.");
+    }
+}
+```
+
+The output:
+
+```sh
+❯ cargo test
+   Compiling adder v0.1.0 (/home/nicky/projects/scrapyard/book/11_writing_automated_tests/adder)
+    Finished test [unoptimized + debuginfo] target(s) in 0.41s
+     Running target/debug/deps/adder-dae29a78559bde73
+
+running 2 tests
+test tests::it_works ... ok
+test tests::another ... FAILED
+
+failures:
+
+---- tests::another stdout ----
+thread 'tests::another' panicked at 'Oh, oh.', src/lib.rs:10:9
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::another
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out
+
+error: test failed, to rerun pass '--lib'
+```
+
+The list of tests now includes a second line for the test we added: `test tests::another ... FAILED`
+The status of the test is not `ok`, it's `FAILED`.
+
+2 new sections appear between that list and the summary.
+
+1. The first section displays a detailed reason for each test failure.
+Including the output that caused the panic.
+That output mentions the panic happened on line 10 of `src/lib.rs`.
+1. The second section lists the names of all the failing tests.
+If there are a lot of them, that's useful to have, instead of having to scroll to each output section individually.
+We can use the name of a failing test to ran it more easily to debug by running tests with a filter.
+
+The overall result changed from `result: ok` to `result: FAILED`.
+
+### Checking Results with the assert! Macro
+
+The `assert!` macro is provided by the standard library and assures the value passed to it evaluates to `true`.
+We pass it an argument that evaluates to a boolean.
+If that boolean is `true`, `assert!` does nothing and the test passes.
+If that boolean is `false`, `assert!` panics and the test fails.
+
+Earlier, this book had us write some code for a `Rectangle` struct, and a `can_hold` method.
+
+```rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width > other.width && self.height > other.height
+    }
+}
+```
+
+`can_hold` returns a boolean, perfect to test the `assert!` macro in a test.
+
+Change the file to add that code and write a test for it:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn larger_can_hold_smaller() {
+        let larger = Rectangle {
+            width: 8,
+            height: 7,
+        };
+        let smaller = Rectangle {
+            width: 5,
+            height: 1,
+        };
+
+        assert!(larger.can_hold(&smaller));
+    }
+}
+```
+
+The `use super::*` is because the test is in a child module to the code it's testing.
+This is very common in a testing module, bringing in everything from the parent module so it can be used.
+
+The test creates two instances of `Rectangle` and asserts that the larger one can hold the smaller one.
+Checked via the method on `Rectangle` named `can_hold`.
+Because the definition for that method requires a reference to a `Rectangle` to be passed as argument,
+we pass `&smaller`.
+The returned value should be `true`, the `assert!` should do nothing, and the test passes.
+
+```sh
+running 3 tests
+test tests::it_works ... ok
+test tests::another ... FAILED
+test tests::larger_can_hold_smaller ... ok
+```
+
+Adding another test that asserts a smaller rectangle cannot hold a larger one:
+
+```rust
+#[test]
+fn smaller_cannot_hold_larger() {
+    let larger = Rectangle {
+        width: 8,
+        height: 7,
+    };
+    let smaller = Rectangle {
+        width: 5,
+        height: 1,
+    };
+
+    assert!(!smaller.can_hold(&larger));
+}
+```
+
+Very similar in structure, almost identical.
+The logic is flipped, so we need to flip the boolean that returns from `can_hold`.
+Now, if the method returns `false`, the `assert!` macro will see `!false`, which evaluates to `true`,
+not making the `assert!` panic, and passing the test.
+
+Time to see what happens when we introduce a bug, making our tests fail.
+Flipping a signle sign from `>` to `<` will do the trick:
+
+```rust
+impl Rectangle {
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width < other.width && self.height > other.height
+    }
+}
+```
+
+Now, the list of tests when you run `cargo run` includes a failure:
+
+```sh
+test tests::smaller_cannot_hold_larger ... ok
+test tests::larger_can_hold_smaller ... FAILED
+```
+
+The output for that failure:
+```sh
+---- tests::larger_can_hold_smaller stdout ----
+thread 'tests::larger_can_hold_smaller' panicked at 'assertion failed: larger.can_hold(&smaller)', src/lib.rs:39:9
+```
+
+### Testing Equality with the assert_eq! and assert_ne! Macros
+
+It is very common to compare the result of your code to an expected value.
+This is possible with `assert!` and adding an equality expression with the `==` operator.
+It's so common the standard library provides two other macros for it:
+- `assert_eq!` checks for equality
+- `assert_ne!` expects inequality
+
+They will also print the two values given as arguments if they fail, making it more convenient to see whhy they failed.
+The `assert!` macro with a `==`  or `!=` comparison would not do that and only mention the check failed.
+
+We add a function to test and use `assert_eq!` to verify the return value for the given argument is what we expect:
+
+```rust
+pub fn add_two(a: i32) -> i32 {
+    a + 2
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_adds_two() {
+        assert_eq!(4, add_two(2));
+    }
+}
+```
+
+The test verifies the first argument `4` i s equal to the second argument `add_two(2)`.
+As expected, it passes and the relevant line is added to the `cargo test` output:
+`test tests::it_adds_two ... ok`
+
+Time to introduce a bug to see the output again!
+
+```rust
+pub fn add_two(a: i32) -> i32 {
+    a + 3
+}
+```
+
+The item in the list changes to `test tests::it_adds_two ... FAILED`.
+It has a section with output from that test:
+
+```sh
+---- tests::it_adds_two stdout ----
+thread 'tests::it_adds_two' panicked at 'assertion failed: `(left == right)`
+  left: `4`,
+ right: `5`', src/lib.rs:61:9
+```
+
+The parameters are not named `expexted` and `received` like in [Jest](https://jestjs.io/en/).
+So the order the arguments are supplied to the macro have no special semantical meaning.
+They will be called `left` for the first argument, and `right` for the second argument.
+
+`assert_ne!` will fail if two values are equal.
+It's useful for cases we're not sure what a value will be, but certain about what it won't be.
+For example: a function that is guaranteed to change the input and return the changed value.
+The change is unknown as it's _flaky_ (based on the current time, or random, ...)
+
+To get `assert_eq!` and `assert_ne!` to print the results of comparison with `==` or `!=`,
+arguments need to implement the `PartialEq` and `Debug` traits.
+You'll sometimes need to implement these on types you create.
+It's common that possible by annotating them with the derive attribute.
+`#[derive(PartialEq, Debug)]`.
+
+### Adding Custom Failure Messages
+
+You can add a custom message to the `assert!`, `assert_eq!`, and `assert_ne!` macros.
+Any argument after the two required ones are passed to the `format!` macro.
+This allows you to construct a custom string that will be output upon failure.
+In practice that means a format string with `{}` as placeholder, and values that should fill that placeholder.
+
+> Custom messages are useful to document what an assertion means; when a test fails, you’ll have a better idea of what the problem is with the code.
+
+Let's add a greeting function and a test:
+
+```rust
+pub fn greeting(name: &str) -> String {
+    format!("Hello {}!", name)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn greeting_contains_name() {
+        let result = greeting("Carol");
+        assert!(result.contains("Carol"));
+    }
+}
+```
+
+The requirements for the function aren't agreed yet and may change.
+We decide to not check for exact equality, but we'll check the output contains the input parameter.
+
+Purposeful bug introduction time!
+
+```rust
+pub fn greeting(name: &str) -> String {
+    String::from("Hello!")
+}
+```
+
+The output in `cargo test` for this failing test:
+
+```sh
+---- tests::greeting_contains_name stdout ----
+thread 'tests::greeting_contains_name' panicked at 'assertion failed: result.contains("Carol")', src/lib.rs:71:9
+```
+
+This just alerts us that the test failed,
+a more useful message would also print the value we got from the `greeting` function.
+
+Giving the `assert!` a custom message:
+
+```rust
+#[test]
+fn greeting_contains_name() {
+    let result = greeting("Carol");
+    assert!(
+        result.contains("Carol"),
+        "Greeting did not contain name, value was `{}`",
+        result
+    );
+}
+```
+
+The resulting output from the failure is now more descriptive:
+
+```sh
+---- tests::greeting_contains_name stdout ----
+thread 'tests::greeting_contains_name' panicked at 'Greeting did not contain name, value was `Hello!`', src/lib.rs:71:9
+```
+
+### Checking for Panics with should_panic
+
+Apart from checking correct returned values, it's important to verify errors are handled correctly.
+_sooooo, testing the not-so-happy-path_
+
+The book created a `Guess` type earlier.
+Other code depends on the guarantee `Guess` provides: instances will be integers between 1 and 100.
+We can write a test that verifies that trying to create an instance of `Guess` with a value outside of that range causes a panic.
+
+We do this by adding another attribute to our function that has the `test` attribute.
+The `should_panic` attribute (written as `#[should_panic]`) makes tests pass if the code inside the function panics.
+It doesn't care how or where, only that it does.
+
+`#[should_panic]` is written after the `#[test]` attribute and before the test function it applies to.
+Applied to the `Guess` code:
+
+```rust
+pub struct Guess {
+    value: i32,
+}
+
+impl Guess {
+    pub fn new(value: i32) -> Guess {
+        if value < 1 || value > 100 {
+            panic!("Guess value must be between 1 and 100, got {}.", value);
+        }
+
+        Guess { value }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn greater_than_100() {
+        Guess::new(200);
+    }
+}
+```
+
+Running `cargo test` causes a panic in the `greater_than_100` function and the test passes.
+
+Time to, you guessed it (pun definitely intended), introducing a bug and looking at the output!
+
+Deleting the `|| value > 100` check in the `new` associated function should do it.
+
+The output:
+
+```sh
+---- tests::greater_than_100 stdout ----
+note: test did not panic as expected
+```
+
+It's correct, just not very helpful.
+We can add an optional `expected` parameter to the `should_panic` attribute.
+The tests will make sure the panic message contains the provided text.
+
+syntax: `#[should_panic(expected = "boop")]`
+
+We modified the `Guess` struct to provide more detailed messages on panic.
+In the test, we expect the function to panic with a specific (part of) a message.
+
+```rust
+impl Guess {
+    pub fn new(value: i32) -> Guess {
+        if value < 1 {
+            panic!(
+                "Guess value must be greater than or equal to 1, got {}.",
+                value
+            );
+        } else if value > 100 {
+            panic!(
+                "Guess value must be less than or equal to 100, got {}.",
+                value
+            );
+        }
+
+        Guess { value }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic(expected = "Guess value must be less than or equal to 100")]
+    fn greater_than_100() {
+        Guess::new(200);
+    }
+}
+```
+
+This test will pass because the `expected` parameter to the `should_panic` attribute matches the message that was output when the function panicked.
+
+The `expected` parameter is a substring of the panic message that caused the `greater_than_100` function to panic.
+
+> What you choose to specify in the expected parameter for `should_panic` depends on how much of the panic message is unique or dynamic and how precise you want your test to be. 
+
+The substring is sufficient to ensure one arm of the `if` condition was executed.
+
+Time to cause a failing test again! Swapping the `<` to a `>` in the `value < 100` check this time.
+
+Ok. This is a part where my experience is different to the book.
+I get no output, the section of output for failure
+
+The complete output from `cargo test` I should have seen, per the book:
+
+```sh
+$ cargo test
+   Compiling guessing_game v0.1.0 (file:///projects/guessing_game)
+    Finished test [unoptimized + debuginfo] target(s) in 0.66s
+     Running target/debug/deps/guessing_game-57d70c3acb738f4d
+
+running 1 test
+test tests::greater_than_100 ... FAILED
+
+failures:
+
+---- tests::greater_than_100 stdout ----
+thread 'main' panicked at 'Guess value must be greater than or equal to 1, got 200.', src/lib.rs:13:13
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace.
+note: panic did not contain expected string
+      panic message: `"Guess value must be greater than or equal to 1, got 200."`,
+ expected substring: `"Guess value must be less than or equal to 100"`
+
+failures:
+    tests::greater_than_100
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out
+
+error: test failed, to rerun pass '--lib'
+```
+
+That message indicates the test paniced as expected, but the panic message did not include the string we passed to `expected`.
+
+### Using Result<T, E> in Tests
+
+So far, test functions panicked to fail.
+Test functions can also return a `Result`.
+Either an `Ok` to pass, or an `Err` to fail.
+
+Here is that first basic test rewritten to return a `Result`
+
+```rust
+#[test]
+fn it_works() -> Result<(), String> {
+    if 2 + 2 == 4 {
+        Ok(())
+    } else {
+        Err(String::from("two plus two does not equal four"))
+    }
+}
+```
+
+We return an `Ok(())` if the test passes.
+An `Ok` that contains the unit value `()`.
+(the unit type is a type with one single possible value, an empty tuple)
+
+We return an `Err(String)` if the test fails.
+
+Returning a `Result` allows you to use the questionmark operator ([the Annie operator](https://nickymeuleman.netlify.app/garden/rust-syntax-questionmark)) in your test function.
+Convenient to write tests that should fail if an operation return an `Err` variant.
+
+You can't use the `#[should_panic]` annotation on tests that return a `Result`, only on ones that return the unit type.
+Instead, you should return an `Err` value directly (or wrapped in `Ok`, I guess) if the test should fail.
+
+## 11.2. Controlling How Tests Are Run
+
+`cargo run` compiles your code and runs the resulting binary.
+`cargo test` also compiles your code and runs the resulting binary.
+
+We can specify command line arguments to either affect `cargo test`, or the resulting binary from `cargo test`.
+
+The default behavior of the binary `cargo test` produces is to run all tests in parallel and capture output generated by tests.
+This prevents output from being displayed while the tests are ran.
+
+Use the `--` to seperate the arguments to `cargo test`, and the binary it creates.
+
+- `cargo test --help` displays help for options on `cargo test`.
+- `cargo test -- --help` displays help for options on the resulting binary.
+
+### Running Tests in Parallel or Consecutively
+
+Because tests run in parallel by default,
+you have to make sure they don't depend on each other, or any shared state, current working directory, or environment variables.
+
+If for example each test runs some code that creates a file on disk and writes to it.
+Then, because tests run at the same time, if the file is created with the same name in the same directory, they might fight each other.
+One test might create a file, write to it, but before it tests the results an other test overwrites that file.
+This makes the tests fail, resulting in sad tests...
+
+One solution is to make each test create a different file so they don't interfere with each other.
+Another is to run the tests in series, not parallel.
+
+You can control the number of threads that are used to run tests:
+
+```sh
+cargo test -- --test-threads=1
+```
+
+One thread, gone parallellism, _taps temple_.
+
+It'll take longer to finish the suite of tests, but they won't interfere with each other anymore, tradeoffs.
+
+### Showing Function Output
+
+By default, Rust captures output, and if a test passes, it's not shown at all.
+As we saw, failure messages are captured too, but shown in the final output of `cargo test`.
+
+That means, no `println!` for passing tests!
+Failing tests show that output, it's included in the failure message.
+
+Messages to stdout can be helpful to debug (I agree, I `console.log` in JS all the time).
+To show them for passing tests as well, pass a command line flag to the testig binary.
+
+```sh
+cargo test -- --show-output
+```
+
+With that flag, passing tests that output to stdout get their own section.
+for example:
+
+```rust
+fn prints_and_returns_10(a: i32) -> i32 {
+    println!("I got the value {}", a);
+    10
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn this_test_will_pass() {
+        let value = prints_and_returns_10(4);
+        assert_eq!(10, value);
+    }
+
+    #[test]
+    fn this_test_will_fail() {
+        let value = prints_and_returns_10(8);
+        assert_eq!(5, value);
+    }
+}
+```
+
+```sh
+successes:
+
+---- tests::this_test_will_pass stdout ----
+I got the value 4
+```
+
+and later:
+
+```sh
+failures:
+
+---- tests::this_test_will_fail stdout ----
+I got the value 8
+thread 'main' panicked at 'assertion failed: `(left == right)`
+  left: `5`,
+ right: `10`', src/lib.rs:19:9
+```
+
+### Running a Subset of Tests by Name
+
+Running a whole testsuite can take a long time, or the resulting output makes it hard to find the output relevant to the feature you're currently working on.
+You can choose which tests to run by passing the names of the test(s) you want to run to `cargo test` as an argument.
+
+add three tests for the `add_two` function
+
+```rust
+#[test]
+fn add_two_and_two() {
+    assert_eq!(4, add_two(2));
+}
+
+#[test]
+fn add_three_and_two() {
+    assert_eq!(5, add_two(3));
+}
+
+#[test]
+fn one_hundred() {
+    assert_eq!(102, add_two(100));
+}
+```
+
+### Running Single Tests
+
+Passing the name of a test function as argument:
+
+```sh
+cargo test one_hundred
+```
+
+causes only that test to run and output results:
+
+```sh
+    Finished test [unoptimized + debuginfo] target(s) in 0.00s
+     Running target/debug/deps/adder-dae29a78559bde73
+
+running 1 test
+test tests::one_hundred ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out
+```
+
+Only the test with the name `one_hundred` ran.
+The summary at the end tells us: `running 1 test`.
+Lower it tells us 1 test passed and 8 were filtered out (the remaining ones I didn't clear out from `src/lib.rs`).
+
+Only the first value given to `cargo test` will be used.
+So we can't run multiple tests by providing multiple arguments.
+
+### Filtering to Run Multiple Tests
+
+We can specify a part of a test name.
+Doing that will run all tests that have a name that matches that value.
+
+```sh
+cargo test add
+```
+
+This will run all tests with `add` in the name.
+
+```sh
+    Finished test [unoptimized + debuginfo] target(s) in 0.00s
+     Running target/debug/deps/adder-dae29a78559bde73
+
+running 2 tests
+test tests::add_two_and_two ... ok
+test tests::add_three_and_two ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out
+```
+
+We can run all tests within a module by filtering on the name of that module.
+That's a further usecase for having tests in (multiple) modules.
+
+Our module is names `tests`, so the command would be `cargo test tests`.
+
+### Ignoring Some Tests Unless Specifically Requested
+
+A single test can take a very long time, so we might want to exclude that one from running during normal runs of `cargo test`.
+
+You can annotate those tests with the `ignore` attribute, beneath the `test` attribute.
+
+```rust
+#[test]
+#[ignore]
+fn expensive_test() {
+    // code that takes an hour to run
+}
+```
+
+Now tests annotated with `#[ignore]` won't execute during regular `cargo test` runs.
+They will be counted as `ignored` in the summary.
+
+If we want to run only ignored tests:
+
+```sh
+cargo test -- --ignored
+```
+
