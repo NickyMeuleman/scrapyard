@@ -5878,8 +5878,9 @@ The substring is sufficient to ensure one arm of the `if` condition was executed
 
 Time to cause a failing test again! Swapping the `<` to a `>` in the `value < 100` check this time.
 
-Ok. This is a part where my experience is different to the book.
-I get no output, the section of output for failure
+~~Ok. This is a part where my experience is different to the book.
+I get no output, the section of output for failure.~~
+I am a doofus, to cause the bug, swap the bodies of the `if` and `else if` conditions.
 
 The complete output from `cargo test` I should have seen, per the book:
 
@@ -6142,3 +6143,255 @@ If we want to run only ignored tests:
 cargo test -- --ignored
 ```
 
+## 11.3. Test Organization
+
+Rust has 2 main categories: unit, and integration tests.
+
+Unit tests are small and focussed.
+Testing one module in isolation at a time.
+They can use private interfaces, as they're typically located in the same file as the code they are testing.
+(because of the privacy rules we covered when talking about the module system).
+
+Integration tests are external to your library and use only public parts of your code.
+They can test multiple modules of your code per test.
+
+### Unit Tests
+
+As the name suggest, these test a unit of code.
+Usually small, and in isolation from the rest of the code.
+They test if that unit of code is working as expected.
+
+The convention is te create a module that houses all your test functions.
+That module is typically named `tests` and is annotated with the `cfg()` attribute that takes `test` as a parameter.
+
+Syntax:
+```rust
+#[cfg(test)]
+mod tests {
+    // tests
+}
+```
+
+### The Tests Module and #[cfg(test)]
+
+The `#[cfg(test)]` tells the compiler what follows is code specific to tests.
+It will only compile it during `cargo test`, not during `cargo build`.
+
+Because integration tests go in a different directtory, they don't need that annotation.
+
+The `cfg` attribute stands for configuration and tells the compiler the following item should only be included in a specific configuration.
+In this case, that option is `test`, so the complete attribute is `cfg(test)`.
+`cargo test` tells the compiler to use the `test` configuration option, and bingo, presto, TESTS.
+That's useful when this module includes a bunch of code that's only used as a helper during testing.
+It also prevents that code from compiling to production binaries, not just functions that are annotate with `#[test]`.
+
+### Testing Private Functions
+
+Unit tests are usually in a module named `tests` inside of the code module they are testing.
+The code adheres to the privacy rules of the module system,
+so units of code can be accessed even if they aren't marked with `pub` to make them explicitly public.
+
+### Integration Tests
+
+In Rust, integration tests are external to your library.
+You use your library in the same way as other people would.
+You adhere to the privacy rules of the module system and only public units of code can be used.
+
+Their purpose is to test if many parts of your library work as intended when used together.
+
+To create integration tests you need a `tests` directory.
+As mentioned before, this directory is only compiled during `cargo test`, not `cargo build`.
+
+#### The tests Directory
+
+We create a `/tests` directory at the top level of our project directory, at the same level as `/src`.
+Cargo knows to look for integration tests there.
+We can make as many files as we want there, and cargo will compile each of them as an individual crate.
+
+Create a new file at `tests/integration_test.rs`
+
+```rust
+use adder;
+
+#[test]
+fn it_adds_two() {
+    assert_eq!(4, adder::add_two(2));
+}
+```
+
+We import our crate by its name at the top: `use adder`.
+Each file in the `tests` directory is a seperate crate, we need to bring our library into each crate's scope.
+
+Right now, `add_two` isn't marked as `pub` yet, so when we run `cargo test`, the testing binary won't even compile.
+After fixing that, this is the output:
+
+```sh
+ Finished test [unoptimized + debuginfo] target(s) in 0.94s
+     Running target/debug/deps/adder-dae29a78559bde73
+
+running 10 tests
+test tests::add_three_and_two ... ok
+test tests::add_two_and_two ... ok
+test tests::greater_than_100 ... FAILED
+test tests::it_works ... ok
+test tests::it_boops ... FAILED
+test tests::greeting_contains_name ... FAILED
+test tests::smaller_cannot_hold_larger ... ok
+test tests::larger_can_hold_smaller ... FAILED
+test tests::one_hundred ... ok
+test tests::another ... FAILED
+
+failures:
+
+-- shortened for notes --
+
+
+failures:
+    tests::another
+    tests::greater_than_100
+    tests::greeting_contains_name
+    tests::it_boops
+    tests::larger_can_hold_smaller
+
+test result: FAILED. 5 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out
+
+error: test failed, to rerun pass '--lib'
+```
+
+Soooooooooo, those are only the unit tests.
+After commenting out all failing unit tests:
+
+```sh
+    Finished test [unoptimized + debuginfo] target(s) in 0.54s
+     Running target/debug/deps/adder-dae29a78559bde73
+
+running 5 tests
+test tests::add_two_and_two ... ok
+test tests::add_three_and_two ... ok
+test tests::one_hundred ... ok
+test tests::smaller_cannot_hold_larger ... ok
+test tests::it_works ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+     Running target/debug/deps/integration_test-7842cb402bfb7433
+
+running 1 test
+test it_adds_two ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+   Doc-tests adder
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+```
+
+Much better.
+It seems the integration (and doc?) tests don't run if the unit test fail.
+TODO: investigate
+
+The output contains 3 big sections:
+1. unit tests
+2. integration tests
+3. doc tests
+
+As with unit tests, each test has a different line and outputs conditionally (output from passing tests stays captured).
+Similar to unit tests, adding more `#[test]` functions adds another line.
+
+Each integration test file has its own section.
+Adding another file will add another integration test section to the 3 that are output now.
+
+Add another file at `tests/second_integration_file.rs`.
+
+```rust
+#[test]
+fn learning_testing() {
+    assert!(true);
+}
+```
+
+Similar to unit test filtering, we can run particular integration tests by specifying the test name as argument to `cargo test`.
+To run all tests in an integration test file, use the `--test` argument followed by the name of the file.
+
+`cargo test --test second_integration_file`
+
+```sh
+   Compiling adder v0.1.0 (/home/nicky/projects/scrapyard/book/11_writing_automated_tests/adder)
+    Finished test [unoptimized + debuginfo] target(s) in 0.32s
+     Running target/debug/deps/second_integration_file-8e9ac4fba2a98530
+
+running 1 test
+test learning_testing ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+```
+
+#### Submodules in Integration Tests
+
+As integration tests get larger, you might want to break the testing files up into modules that house (helper) code.
+Each file in the `tests` directory gets compiled as an individual crate.
+
+This means the files in the `tests` directory don't behave like the files in the `src` directory regarding usage of modules.
+
+Imagine a function that's used across our tests and we want to extract it to a module.
+
+```rust
+pub fn setup() {
+    // setup code specific to your library's tests would go here
+}
+```
+
+If we place that in `tests/common.rs`, as described above,
+it's now its own crate that gets its own section in the testing output section.
+
+The relevant output when we run `cargo test`:
+
+```sh
+    Running target/debug/deps/common-7064e1b6d2e271be
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+```
+
+We don't want that, it contains no test functions and should not get an output section when we run `cargo test`.
+
+We'll use the other method to create a module.
+We'll make a file at: `tests/common/mod.rs`.
+`mod.rs` is the generic name for a module named after its parent folder.
+This reminds me of an `index.js` in javascript.
+
+This will create a module called `common`.
+Since it's not a top level file, it's not handled as a seperate integration test file with an own section.
+
+This naming for modules is also understood in `src`, you can use it if you don't like the top level modules.
+Especially useful if that module has nested modules of its own.
+
+The code in the `common` module can then be used as expected in tests.
+
+```rust
+use adder;
+
+mod common;
+
+#[test]
+fn it_adds_two() {
+    common::setup();
+    assert_eq!(4, adder::add_two(2));
+}
+```
+
+### Integration Tests for Binary Crates
+
+If the project is a binary crate and only contains `src/main.rs`, and no `src/lib.rs`,
+we can't create integration tests in the `tests` directory and bring functions from `src/main.rs` into scope.
+Only library crates expose functions that other crates can use.
+Integration tests are crates.
+
+Binary crates are meant to be run on their own.
+
+Many projects that provide a binary have a straightforward `src/main.rs` and house most of the logic under `src/lib.rs`.
+That logic can then be tested with integration tests.
+The `main.rs` then uses the logic from `lib.rs`.
