@@ -6395,3 +6395,81 @@ Binary crates are meant to be run on their own.
 Many projects that provide a binary have a straightforward `src/main.rs` and house most of the logic under `src/lib.rs`.
 That logic can then be tested with integration tests.
 The `main.rs` then uses the logic from `lib.rs`.
+
+## 12. An I/O Project: Building a Command Line Program
+
+Project time! This chapter of the book combines what we learned and guides us through building a CLI.
+
+We're going to be building a miniature version of `grep`, the real one uses regular expressions, this one won't.
+It takes as arguments a filename and a string.
+It reads that file, searches it for that string, and prints those lines.
+
+We'll start off by creating a new binary crate:
+
+```sh
+cargo new minigrep
+```
+
+## 12.1. Accepting Command Line Arguments
+
+We want the project to accept 2 command line arguments, a file, and a string to search for.
+Then we would be able to execute the resulting binary like so:
+
+```sh
+cargo run searchstring example-filename.txt
+```
+
+### Reading the Argument Values
+
+Rust's standard library has a function to read command line arguments: `std::env::args()`.
+It returns an iterator, so we `collect()` it into a vector.
+
+```rust
+use std::env;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    println!("{:?}", args);
+}
+```
+
+The book specifically notes `std::env::args` will panic if an argument contains invalid Unicode.
+You should use `std::env::args_os` then instead.
+The resulting iterator for that one produces `OsString` types instead of `String` types.
+
+The first item in our vector is `"target/debug/minigrep"`, that's where the binary ran from.
+
+> This matches the behavior of the arguments list in C, letting programs use the name by which they were invoked in their execution.
+> It’s often convenient to have access to the program name in case you want to print it in messages or change behavior of the program based on what command line alias was used to invoke the program.
+
+The next items are aguments we passed to it when executing the binary.
+
+For our example above, it would log: `["target/debug/minigrep", "searchstring", "example-filename.txt"]`.
+
+### Saving the Argument Values in Variables
+
+Adding the following line to store references to items in the vector in variables:
+
+```rust
+let query = &args[1];
+let filename = &args[2];
+```
+
+We decided that the first argument will be the string to search for.
+The second argument will be the file to seach in.
+
+Printing them out to see our progress:
+
+```rust
+println!("Searching for {}", query);
+println!("In file {}", filename);
+```
+
+```sh
+cargo run searchstring example-filename.txt
+   Compiling minigrep v0.1.0 (/home/nicky/projects/scrapyard/book/12_an_io_project/minigrep)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.33s
+     Running `target/debug/minigrep searchstring example-filename.txt`
+Searching for searchstring
+In file example-filename.txt
+```
