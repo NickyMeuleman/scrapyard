@@ -1,4 +1,5 @@
 use std::fs;
+use std::convert::TryInto;
 
 fn main() {
     let input = fs::read_to_string("./input.txt").unwrap();
@@ -7,7 +8,7 @@ fn main() {
     println!("part two answer: {}", part_two(&map));
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 enum Cell {
     Tree,
     Empty,
@@ -28,16 +29,15 @@ fn parse_char(c: char) -> Cell {
     }
 }
 
-fn traverse_map(map: &Vec<Vec<Cell>>, slope: (i32, i32)) -> i32 {
-    // TODO: overhaul all these i32 and usize types to avoid casting
+fn traverse_map(map: &Vec<Vec<Cell>>, slope: (usize, usize)) -> u32 {
     let map_height = map.len();
     let map_width = map[0].len();
     // the / operator gives the rounded down integer, if the result is 2.999999999 it will become 2
-    let steps = map_height as i32 / slope.1;
+    let steps: usize = map_height / slope.1;
     let mut count = 0;
     for num in 0..steps {
-        let column_idx = (num * slope.0) as usize % map_width;
-        let row_idx = num as usize * slope.1 as usize;
+        let column_idx: usize = (num * slope.0) % map_width;
+        let row_idx: usize = num * slope.1;
         let cell = &map[row_idx][column_idx];
         if *cell == Cell::Tree {
             count += 1;
@@ -46,17 +46,33 @@ fn traverse_map(map: &Vec<Vec<Cell>>, slope: (i32, i32)) -> i32 {
     count
 }
 
-fn part_one(map: &Vec<Vec<Cell>>) -> i32 {
+fn traverse_map_2(map: &Vec<Vec<Cell>>, slope: (usize, usize)) -> u32 {
+    let map_height = map.len();
+    let map_width = map[0].len();
+    // the / operator gives the rounded down integer, if the result is 2.999999999 it will become 2
+    let steps = map_height / slope.1;
+    (0..steps)
+        .map(|num| {
+            let column_idx = (num * slope.0) % map_width;
+            let row_idx = num * slope.1;
+            &map[row_idx][column_idx]
+        })
+        .filter(|&cell| *cell == Cell::Tree)
+        .count()
+        .try_into()
+        .unwrap()
+}
+
+fn part_one(map: &Vec<Vec<Cell>>) -> u32 {
     traverse_map(map, (3, 1))
 }
 
-fn part_two(map: &Vec<Vec<Cell>>) -> i64 {
-    let slopes: [(i32, i32); 5] = [(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
-    let mut trees_for_slopes: Vec<i32> = Vec::new();
-    for slope in &slopes {
-        let num_trees = traverse_map(map, *slope);
-        trees_for_slopes.push(num_trees);
-    }
+fn part_two(map: &Vec<Vec<Cell>>) -> u64 {
+    let slopes: [(usize, usize); 5] = [(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
     // overflowing i32, ohno
-    trees_for_slopes.iter().map(|num| *num as i64).product()
+    slopes
+        .iter()
+        .map(|&slope| traverse_map_2(map, slope))
+        .map(|num| u64::from(num))
+        .product()
 }
