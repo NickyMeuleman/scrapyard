@@ -21,8 +21,8 @@ fn find_2(nums: &Vec<i32>, target: i32) -> Option<(i32, i32)> {
 }
 
 fn find_3(nums: &Vec<i32>, target: i32) -> Option<(i32, i32, i32)> {
-    for num in nums.iter() {
-        if let Some(tuple) = find_2(&nums, TARGET - num) {
+    for num in nums {
+        if let Some(tuple) = find_2(nums, target - num) {
             let (one, two) = tuple;
             return Some((*num, one, two));
         }
@@ -36,7 +36,7 @@ fn part_one(nums: &Vec<i32>) -> i32 {
 }
 
 fn part_two(nums: &Vec<i32>) -> i32 {
-    let (one, two, three) = find_3(&nums, TARGET).unwrap();
+    let (one, two, three) = find_3(nums, TARGET).unwrap();
     one * two * three
 }
 
