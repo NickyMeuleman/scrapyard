@@ -4,7 +4,7 @@ use std::fs;
 
 fn main() {
     let input = fs::read_to_string("./input.txt").unwrap();
-    let passports = parse(input);
+    let passports = parse(&input);
     println!("part one answer: {}", part_one(passports.clone()));
     println!("part two answer: {}", part_two(passports));
 }
@@ -17,7 +17,7 @@ fn part_two(passports: Vec<HashMap<&str, &str>>) -> u32 {
     count_valid(passports, true)
 }
 
-fn parse(input: String) -> Vec<HashMap<&'static str, &'static str>> {
+fn parse<'a>(input: &'a String) -> Vec<HashMap<&'a str, &'a str>> {
     // forgive me, I'll clean up the names later
     let passport_str_blocks: Vec<&str> = input.split("\n\n").collect();
 
@@ -47,8 +47,7 @@ fn parse(input: String) -> Vec<HashMap<&'static str, &'static str>> {
         passports_final.push(passport_map);
     }
 
-    // ERROR: returns a value referencing data owned by the current function
-    passports_final.clone()
+    passports_final
 }
 
 fn count_valid(passports: Vec<HashMap<&str, &str>>, validate: bool) -> u32 {
