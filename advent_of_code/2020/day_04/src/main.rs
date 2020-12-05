@@ -17,7 +17,7 @@ fn part_two(passports: Vec<HashMap<&str, &str>>) -> u32 {
     count_valid(passports, true)
 }
 
-fn parse<'a>(input: &'a String) -> Vec<HashMap<&'a str, &'a str>> {
+fn parse(input: &str) -> Vec<HashMap<&str, &str>> {
     // forgive me, I'll clean up the names later
     let passport_str_blocks: Vec<&str> = input.split("\n\n").collect();
 
