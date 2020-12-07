@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 
 fn main() {
@@ -14,7 +14,7 @@ fn parse(input: &String) -> Vec<HashMap<&str, HashMap<&str, usize>>> {
 
 fn parse_line(line: &str) -> HashMap<&str, HashMap<&str, usize>> {
     let mut line: Vec<&str> = line.splitn(2, " contain ").collect();
-    let bag = line[0].trim_end_matches("bags");
+    let bag = line[0].trim_end_matches(" bags");
     line[1] = line[1].trim_end_matches(".");
     let contains = parse_contains(line[1]);
     let mut rules = HashMap::new();
@@ -23,7 +23,6 @@ fn parse_line(line: &str) -> HashMap<&str, HashMap<&str, usize>> {
 }
 
 fn parse_contains(input: &str) -> HashMap<&str, usize> {
-    // Vec<HashMap<&str, usize>>
     let parts: Vec<&str> = input.split(",").map(|part| part.trim()).collect();
     let mut rules: HashMap<&str, usize> = HashMap::new();
     for part in parts {
@@ -39,7 +38,45 @@ fn parse_contains(input: &str) -> HashMap<&str, usize> {
 }
 
 fn part_one(rules: &Vec<HashMap<&str, HashMap<&str, usize>>>) -> usize {
-    1
+    let mut lookup: Vec<&str> = vec!["shiny gold"];
+    let mut visited: HashSet<&str> = HashSet::new();
+
+    while lookup.len() > 0 {
+        let needle = lookup.pop().unwrap();
+
+        if visited.contains(needle) {
+            continue;
+        }
+
+        let line: &HashMap<&str, HashMap<&str, usize>> =
+            rules.iter().find(|map| map.contains_key(needle)).unwrap();
+
+        for (_, line_rules) in line {
+            for (&color, _) in line_rules {
+                lookup.push(color)
+            }
+        }
+
+        visited.insert(needle);
+    }
+    // I'm finding all the bags that CANT hold a shiny gold aren't I? _deep sigh_
+    // fine
+    let directly_holds_count = directly_holds_shiny(rules);
+    // all rules - shiny gold directly - visited - shiny gold in visited + directly holds shiny
+    rules.len() - 1 - visited.len() - 1 + directly_holds_count
+}
+
+fn directly_holds_shiny(rules: &Vec<HashMap<&str, HashMap<&str, usize>>>) -> usize {
+    let mut directly_holds_set = HashSet::new();
+    for rule in rules {
+        for (color, subrules) in rule {
+            if subrules.contains_key("shiny gold") {
+                dbg!(color, "directly holds");
+                directly_holds_set.insert(color);
+            }
+        }
+    }
+    directly_holds_set.len()
 }
 
 #[cfg(test)]
@@ -59,6 +96,6 @@ faded blue bags contain no other bags.
 dotted black bags contain no other bags."
             .to_owned();
         let rules = parse(&input);
-        assert_eq!(part_one(rules), 4);
+        assert_eq!(part_one(&rules), 4);
     }
 }
