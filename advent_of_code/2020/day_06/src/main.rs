@@ -8,110 +8,48 @@ fn main() {
     println!("part two answer: {}", part_two(&answers));
 }
 
-fn parse(input: &String) -> Vec<Vec<Vec<char>>> {
-    let blocks: Vec<&str> = input.split("\n\n").collect();
-    let mut parsed = Vec::new();
-    for block in blocks {
-        let block = parse_block(block);
-        parsed.push(block);
-    }
-    parsed
+fn parse(input: &String) -> Vec<(usize, HashMap<char, usize>)> {
+    input
+        .split("\n\n")
+        .map(|block| parse_block(block))
+        .collect()
 }
 
-fn parse_block(block: &str) -> Vec<Vec<char>> {
-    // TODO: rewrite with iterators
-    let lines: Vec<&str> = block.split("\n").collect();
-    let mut parsed_lines = Vec::new();
-    for line in lines {
-        let parsed_line = parse_line(line);
-        parsed_lines.push(parsed_line)
+fn parse_block(block: &str) -> (usize, HashMap<char, usize>) {
+    let block: Vec<HashSet<char>> = block.split("\n").map(|line| parse_line(line)).collect();
+    let mut map: HashMap<char, usize> = HashMap::new();
+    let mut num_lines = 0;
+    for line in block {
+        for c in line {
+            map.entry(c).and_modify(|val| *val += 1).or_insert(1);
+        }
+        num_lines += 1;
     }
-    parsed_lines
+    (num_lines, map)
 }
 
-fn parse_line(line: &str) -> Vec<char> {
+fn parse_line(line: &str) -> HashSet<char> {
     line.chars().collect()
 }
 
-fn part_one(answers: &Vec<Vec<Vec<char>>>) -> usize {
-    let mut num_ans_per_block: Vec<usize> = Vec::new();
-    // loop over blocks
-    for block in answers {
-        // for each block, create hashset
-        let mut block_answers = HashSet::new();
-        // loop over answers
-        for line in block {
-            // loop over answers in line
-            for c in line {
-                // add to hashset if not already present
-                block_answers.replace(c);
-            }
-        }
-        // count items in HashSet
-        // add to vec
-        num_ans_per_block.push(block_answers.len());
-    }
-    // sum answer count per block
-    num_ans_per_block.iter().sum()
+fn part_one(answers: &Vec<(usize, HashMap<char, usize>)>) -> usize {
+    answers.iter().map(|block| block.1.len()).sum()
 }
 
-fn part_two(answers: &Vec<Vec<Vec<char>>>) -> usize {
-    let mut num_ans_per_block: Vec<usize> = Vec::new();
-    // loop over blocks
-    for block in answers {
-        // for each block, create hashmap
-        let mut block_answers: HashMap<char, usize> = HashMap::new();
-        // loop over answers
-        for line in block {
-            // loop over answers in line
-            for c in line {
-                // add to block hashmap with count of occurrences
-                block_answers
-                    .entry(*c)
-                    .and_modify(|val| *val += 1)
-                    .or_insert(1);
-            }
-        }
-        let mut count = 0;
-        for (k, v) in block_answers {
-            if v == block.len() {
-                count+=1
-            }
-        }
-        num_ans_per_block.push(count);
-    }
-    num_ans_per_block.iter().sum()
+fn part_two(answers: &Vec<(usize, HashMap<char, usize>)>) -> usize {
+    answers.iter().map(|block| get_every(block.0, &block.1)).sum()
 }
-// fn part_two(answers: &Vec<Vec<Vec<char>>>) -> usize {
-//     let mut num_ans_per_block: Vec<usize> = Vec::new();
-//     // loop over blocks
-//     for block in answers {
-//         // for each block, create hashmap
-//         let mut block_answers: HashMap<char, usize> = HashMap::new();
-//         // loop over answers
-//         for line in block {
-//             // loop over answers in line
-//             for c in line {
-//                 // add to hashmap with count of occurrences
-//                 block_answers
-//                     .entry(*c)
-//                     .and_modify(|val| *val += 1)
-//                     .or_insert(1);
-//             }
-//         }
-//         // loop over hashmap
-//         // if item count equal to amound of lines, increment count
-//         let count = block_answers.iter().filter_map(|entry| {
-//             if *entry.1 == block.len() {
-//                 Some(entry.0)
-//             } else {
-//                 None
-//             }
-//         }).count();
-//         num_ans_per_block.push(count);
-//     }
-//     num_ans_per_block.iter().sum()
-// }
+
+fn get_every(line_num: usize, map: &HashMap<char, usize>) -> usize {
+    let mut count = 0;
+    for (_, v) in map {
+        if *v == line_num {
+            count += 1
+        }
+    }
+    dbg!(line_num,&map);
+    count
+}
 
 #[test]
 fn part1() {
