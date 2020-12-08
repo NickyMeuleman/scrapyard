@@ -6,6 +6,7 @@ fn main() {
     let input = fs::read_to_string("./input.txt").unwrap();
     let rules = parse(&input);
     println!("part one answer: {}", part_one(&rules));
+    println!("part two answer: {}", part_two(&rules));
 }
 
 fn parse(input: &String) -> Vec<HashMap<&str, HashMap<&str, usize>>> {
@@ -38,7 +39,7 @@ fn parse_contains(input: &str) -> HashMap<&str, usize> {
 }
 
 fn part_one(rules: &Vec<HashMap<&str, HashMap<&str, usize>>>) -> usize {
-    let mut lookup: Vec<&str> = vec!["shiny gold"];
+    let mut lookup: Vec<&str> = find_parents(rules, "shiny gold");
     let mut visited: HashSet<&str> = HashSet::new();
 
     while lookup.len() > 0 {
@@ -48,35 +49,55 @@ fn part_one(rules: &Vec<HashMap<&str, HashMap<&str, usize>>>) -> usize {
             continue;
         }
 
-        let line: &HashMap<&str, HashMap<&str, usize>> =
-            rules.iter().find(|map| map.contains_key(needle)).unwrap();
-
-        for (_, line_rules) in line {
-            for (&color, _) in line_rules {
-                lookup.push(color)
-            }
-        }
+        let mut parents = find_parents(rules, needle);
+        lookup.append(&mut parents);
 
         visited.insert(needle);
     }
-    // I'm finding all the bags that CANT hold a shiny gold aren't I? _deep sigh_
-    // fine
-    let directly_holds_count = directly_holds_shiny(rules);
-    // all rules - shiny gold directly - visited - shiny gold in visited + directly holds shiny
-    rules.len() - 1 - visited.len() - 1 + directly_holds_count
+    visited.len()
 }
 
-fn directly_holds_shiny(rules: &Vec<HashMap<&str, HashMap<&str, usize>>>) -> usize {
-    let mut directly_holds_set = HashSet::new();
+fn find_parents<'a>(
+    rules: &'a Vec<HashMap<&'a str, HashMap<&'a str, usize>>>,
+    child_color: &str,
+) -> Vec<&'a str> {
+    let mut parent_set: HashSet<&str> = HashSet::new();
     for rule in rules {
-        for (color, subrules) in rule {
-            if subrules.contains_key("shiny gold") {
-                dbg!(color, "directly holds");
-                directly_holds_set.insert(color);
+        for (&color, subrules) in rule {
+            if subrules.contains_key(child_color) {
+                parent_set.insert(color);
             }
         }
     }
-    directly_holds_set.len()
+    parent_set.into_iter().collect()
+}
+
+fn get_rule<'a>(
+    rules: &'a Vec<HashMap<&str, HashMap<&str, usize>>>,
+    color: &str,
+) -> &'a HashMap<&'a str, usize> {
+    let rule = rules
+        .into_iter()
+        .find(|&rule| rule.contains_key(color))
+        .unwrap();
+    rule.get(color).unwrap()
+}
+
+fn part_two(rules: &Vec<HashMap<&str, HashMap<&str, usize>>>) -> usize {
+    count_bags(rules, "shiny gold", 0)
+}
+
+fn count_bags(
+    rules: &Vec<HashMap<&str, HashMap<&str, usize>>>,
+    color: &str,
+    mut tally: usize,
+) -> usize {
+    let curr = tally;
+    let rule = get_rule(rules, color);
+    for (&color, &amount) in rule {
+        tally += amount + amount * count_bags(rules, color, curr);
+    }
+    tally
 }
 
 #[cfg(test)]
@@ -97,5 +118,35 @@ dotted black bags contain no other bags."
             .to_owned();
         let rules = parse(&input);
         assert_eq!(part_one(&rules), 4);
+    }
+
+    #[test]
+    fn solves_part_two() {
+        let input: String = "light red bags contain 1 bright white bag, 2 muted yellow bags.
+dark orange bags contain 3 bright white bags, 4 muted yellow bags.
+bright white bags contain 1 shiny gold bag.
+muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.
+shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.
+dark olive bags contain 3 faded blue bags, 4 dotted black bags.
+vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
+faded blue bags contain no other bags.
+dotted black bags contain no other bags."
+            .to_owned();
+        let rules = parse(&input);
+        assert_eq!(part_two(&rules), 32);
+    }
+
+    #[test]
+    fn alt_solves_part_two() {
+        let input: String = "shiny gold bags contain 2 dark red bags.
+dark red bags contain 2 dark orange bags.
+dark orange bags contain 2 dark yellow bags.
+dark yellow bags contain 2 dark green bags.
+dark green bags contain 2 dark blue bags.
+dark blue bags contain 2 dark violet bags.
+dark violet bags contain no other bags."
+            .to_owned();
+        let rules = parse(&input);
+        assert_eq!(part_two(&rules), 126);
     }
 }
