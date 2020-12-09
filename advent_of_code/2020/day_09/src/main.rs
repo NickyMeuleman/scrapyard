@@ -4,7 +4,7 @@ fn main() {
     let input = fs::read_to_string("./input.txt").unwrap();
     let numbers = parse(&input);
     println!("part one answer: {}", part_one(&numbers));
-    // println!("part two answer: {}", part_two(&rules));
+    println!("part two answer: {}", part_two(&numbers));
 }
 
 fn parse(input: &String) -> Vec<i128> {
@@ -39,7 +39,6 @@ fn find_invalid_number(input: &Vec<i128>, preamble_length: usize) -> i128 {
 fn has_sum(target: &i128, list: Vec<i128>) -> bool {
     for num in &list {
         let complement = target - num;
-        //  maybe still use set to avoid duplicates?
         if list.contains(&complement) && &complement != num {
             return true;
         } else {
@@ -47,6 +46,40 @@ fn has_sum(target: &i128, list: Vec<i128>) -> bool {
         }
     }
     false
+}
+
+fn part_two(input: &Vec<i128>) -> i128 {
+    find_encryption_weakness(input, 25)
+}
+
+fn find_encryption_weakness(input: &Vec<i128>, preamble_length: usize) -> i128 {
+    let invalid_number = find_invalid_number(input, preamble_length);
+    let sequence = find_sum_sequence(input, invalid_number);
+    let min = sequence.iter().min().unwrap();
+    let max = sequence.iter().max().unwrap();
+    min + max
+}
+
+fn find_sum_sequence(list: &Vec<i128>, target_sum: i128) -> Vec<i128> {
+    // initialize indexes to a contiguous sublist of the input at 0 and 1 (list length at least 2)
+    // sum the resulting list
+    // if the sum is correct, return that list
+    // if that sum is too small, increment the ending index
+    // if that sum is too big, increment the starting index
+    let mut start_idx = 0;
+    let mut stop_idx = 1;
+    loop {
+        let sum: i128 = list[start_idx..=stop_idx].iter().sum();
+        if sum == target_sum {
+            break list[start_idx..=stop_idx].to_vec();
+        } else if sum > target_sum {
+            start_idx += 1;
+            continue;
+        } else {
+            stop_idx += 1;
+            continue;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -79,5 +112,32 @@ mod tests {
         .to_string();
         let numbers = parse(&input);
         assert_eq!(find_invalid_number(&numbers, 5), 127);
+    }
+
+    #[test]
+    fn solves_part_two() {
+        let input = "35
+20
+15
+25
+47
+40
+62
+55
+65
+95
+102
+117
+150
+182
+127
+219
+299
+277
+309
+576"
+        .to_string();
+        let numbers = parse(&input);
+        assert_eq!(find_encryption_weakness(&numbers, 5), 62);
     }
 }
