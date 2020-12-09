@@ -30,6 +30,7 @@ fn execute(instructions: &Vec<(&str, i32)>) -> Result<i32, i32> {
     loop {
         // check for invalid index
         if curr_idx < 0 || curr_idx > instructions.len() as isize + 1 {
+            dbg!("oh noes");
             break Err(acc);
         }
         // check if instruction was already seen
