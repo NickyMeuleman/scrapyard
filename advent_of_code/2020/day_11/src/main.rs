@@ -62,36 +62,6 @@ fn is_within_bounds(bounds: (usize, usize), indexes: (i32, i32)) -> bool {
     }
 }
 
-// fn find_neighbours(seats: &Vec<Vec<Cell>>, seat_idx: (u32, u32)) -> Vec<(u32, u32)> {
-//     // take current seat grid and return vec of tuples with index of neighbours
-//     // from question: adjacent to a given seat (one of the eight positions immediately up, down, left, right, or diagonal from the seat).
-
-//     // edit: just realized, I way overcomplicated this, simple math would do it too. It works though.
-//     let mut neighbours: Vec<(u32, u32)> = Vec::new();
-//     for (line_idx, line) in seats.iter().enumerate() {
-//         // CHRISTMAS TREE NESTING VIBES ONLY
-//         if line_idx as u32 == seat_idx.0
-//             || line_idx as u32 == seat_idx.0 + 1
-//             || (seat_idx.0 as i32 - 1 > 0 && line_idx as u32 == seat_idx.0 - 1)
-//         {
-//             for (column_idx, _) in line.iter().enumerate() {
-//                 if column_idx as u32 == seat_idx.1
-//                     || column_idx as u32 == seat_idx.1 + 1
-//                     || (seat_idx.1 as i32 - 1 > 0 && column_idx as u32 == seat_idx.1 - 1)
-//                 {
-//                     let neighbour = (line_idx as u32, column_idx as u32);
-//                     neighbours.push(neighbour);
-//                 }
-//             }
-//         }
-//     }
-//     neighbours = neighbours
-//         .into_iter()
-//         .filter(|neighbour| *neighbour != seat_idx)
-//         .collect::<Vec<(u32, u32)>>();
-//     neighbours
-// }
-
 fn part_one(seats: &Vec<Vec<Cell>>) -> usize {
     find_final_seats(seats)
         .iter()
@@ -124,10 +94,9 @@ fn cycle_once(seats: &Vec<Vec<Cell>>) -> Result<Vec<Vec<Cell>>, Vec<Vec<Cell>>> 
             let new_seat = match seat {
                 Cell::Floor => Cell::Floor,
                 Cell::Empty => {
-                    if neighbours
-                        .iter()
-                        .all(|&(row, col)| seats[row][col] == Cell::Empty)
-                    {
+                    if neighbours.iter().all(|&(row, col)| {
+                        seats[row][col] == Cell::Empty || seats[row][col] == Cell::Floor
+                    }) {
                         is_changed = true;
                         Cell::Taken
                     } else {
@@ -158,5 +127,27 @@ fn cycle_once(seats: &Vec<Vec<Cell>>) -> Result<Vec<Vec<Cell>>, Vec<Vec<Cell>>> 
         Ok(new_seats)
     } else {
         Err(new_seats)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn solves_part_one() {
+        let input = "L.LL.LL.LL
+LLLLLLL.LL
+L.L.L..L..
+LLLL.LL.LL
+L.LL.LL.LL
+L.LLLLL.LL
+..L.L.....
+LLLLLLLLLL
+L.LLLLLL.L
+L.LLLLL.LL"
+            .to_owned();
+        let seats = parse(&input);
+        assert_eq!(part_one(&seats), 37);
     }
 }
