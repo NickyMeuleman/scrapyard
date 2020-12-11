@@ -106,34 +106,28 @@ fn is_within_bounds(bounds: (usize, usize), indexes: (i32, i32)) -> bool {
 }
 
 fn part_one(seats: &Vec<Vec<Cell>>) -> usize {
-    find_final_seats_part1(seats)
+    find_final_seats(seats, 1)
         .iter()
         .flatten()
         .filter(|&seat| *seat == Cell::Taken)
         .count()
 }
 fn part_two(seats: &Vec<Vec<Cell>>) -> usize {
-    find_final_seats_part2(seats)
+    find_final_seats(seats, 2)
         .iter()
         .flatten()
         .filter(|&seat| *seat == Cell::Taken)
         .count()
 }
 
-fn find_final_seats_part1(seats: &Vec<Vec<Cell>>) -> Vec<Vec<Cell>> {
-    match cycle_once_part1(seats) {
+fn find_final_seats(seats: &Vec<Vec<Cell>>, part: u8) -> Vec<Vec<Cell>> {
+    match cycle_once(seats, part) {
         Err(final_seats) => return final_seats,
-        Ok(new_seats) => find_final_seats_part1(&new_seats),
-    }
-}
-fn find_final_seats_part2(seats: &Vec<Vec<Cell>>) -> Vec<Vec<Cell>> {
-    match cycle_once_part2(seats) {
-        Err(final_seats) => return final_seats,
-        Ok(new_seats) => find_final_seats_part2(&new_seats),
+        Ok(new_seats) => find_final_seats(&new_seats, part),
     }
 }
 
-fn cycle_once_part1(seats: &Vec<Vec<Cell>>) -> Result<Vec<Vec<Cell>>, Vec<Vec<Cell>>> {
+fn cycle_once(seats: &Vec<Vec<Cell>>, part: u8) -> Result<Vec<Vec<Cell>>, Vec<Vec<Cell>>> {
     // take in old generation, run logic once, return new seat arrangement inside a Result
     // Ok for a changed arrangement, Err for unchanged
     let mut new_seats: Vec<Vec<Cell>> = Vec::new();
@@ -146,59 +140,12 @@ fn cycle_once_part1(seats: &Vec<Vec<Cell>>) -> Result<Vec<Vec<Cell>>, Vec<Vec<Ce
             // initialize column with a placeholder so it doesn't panic when we mutate this spot later
             new_seats[line_idx].push(Cell::Empty);
 
-            let neighbours = find_neighbours(seats, (line_idx, column_idx));
-            let new_seat = match seat {
-                Cell::Floor => Cell::Floor,
-                Cell::Empty => {
-                    if neighbours.iter().all(|&(row, col)| {
-                        seats[row][col] == Cell::Empty || seats[row][col] == Cell::Floor
-                    }) {
-                        is_changed = true;
-                        Cell::Taken
-                    } else {
-                        Cell::Empty
-                    }
-                }
-                Cell::Taken => {
-                    if neighbours
-                        .iter()
-                        .filter(|&(row, col)| seats[*row][*col] == Cell::Taken)
-                        .count()
-                        >= 4
-                    {
-                        is_changed = true;
-                        Cell::Empty
-                    } else {
-                        Cell::Taken
-                    }
-                }
+            let neighbours = match part {
+                1 => find_neighbours(seats, (line_idx, column_idx)),
+                2 => find_seen_neighbours(seats, (line_idx, column_idx)),
+                _ => panic!("invalid part configuration"),
             };
-            // insert new_seat
-            // this is where the error is happening: thread 'main' panicked at 'index out of bounds: the len is 0 but the index is 0',
-            // do I need to initialize the two dimensional new_seats vector?
-            new_seats[line_idx][column_idx] = new_seat;
-        }
-    }
-    if is_changed {
-        Ok(new_seats)
-    } else {
-        Err(new_seats)
-    }
-}
-fn cycle_once_part2(seats: &Vec<Vec<Cell>>) -> Result<Vec<Vec<Cell>>, Vec<Vec<Cell>>> {
-    // take in old generation, run logic once, return new seat arrangement inside a Result
-    // Ok for a changed arrangement, Err for unchanged
-    let mut new_seats: Vec<Vec<Cell>> = Vec::new();
-    let mut is_changed = false;
-    for (line_idx, line) in seats.iter().enumerate() {
-        // initialize line with a placeholder so it doesn't panic when we mutate this spot later
-        new_seats.push(Vec::new());
 
-        for (column_idx, seat) in line.iter().enumerate() {
-            // initialize column with a placeholder so it doesn't panic when we mutate this spot later
-            new_seats[line_idx].push(Cell::Empty);
-
-            let neighbours = find_seen_neighbours(seats, (line_idx, column_idx));
             let new_seat = match seat {
                 Cell::Floor => Cell::Floor,
                 Cell::Empty => {
@@ -216,7 +163,11 @@ fn cycle_once_part2(seats: &Vec<Vec<Cell>>) -> Result<Vec<Vec<Cell>>, Vec<Vec<Ce
                         .iter()
                         .filter(|&(row, col)| seats[*row][*col] == Cell::Taken)
                         .count()
-                        >= 5
+                        >= match part {
+                            1 => 4,
+                            2 => 5,
+                            _ => panic!("invalid part configuration")
+                        }
                     {
                         is_changed = true;
                         Cell::Empty
@@ -272,7 +223,13 @@ L.LLLLL.LL"
 ...#....."
             .to_owned();
         let seats = parse(&input);
-        assert_eq!(find_seen_neighbours(&seats, (4, 3)).iter().filter(|indexes| seats[indexes.0][indexes.1] == Cell::Taken).count(), 8);
+        assert_eq!(
+            find_seen_neighbours(&seats, (4, 3))
+                .iter()
+                .filter(|indexes| seats[indexes.0][indexes.1] == Cell::Taken)
+                .count(),
+            8
+        );
     }
     #[test]
     fn see_occupied_seats_2() {
@@ -285,7 +242,13 @@ L.LLLLL.LL"
 .##.##."
             .to_owned();
         let seats = parse(&input);
-        assert_eq!(find_seen_neighbours(&seats, (3, 3)).iter().filter(|indexes| seats[indexes.0][indexes.1] == Cell::Taken).count(), 0);
+        assert_eq!(
+            find_seen_neighbours(&seats, (3, 3))
+                .iter()
+                .filter(|indexes| seats[indexes.0][indexes.1] == Cell::Taken)
+                .count(),
+            0
+        );
     }
 
     #[test]
