@@ -3,10 +3,9 @@ use std::fs;
 
 fn main() {
     let input = fs::read_to_string("./input.txt").unwrap();
-    let mut adapters: Vec<u32> = parse(&input);
+    let adapters: Vec<u32> = parse(&input);
     println!("Part one answer: {}", part_one(&mut adapters.clone()));
     println!("Part two answer: {}", part_two(&adapters.clone()));
-    assert_eq!(198428693313536, part_two(&adapters))
 }
 
 fn parse(input: &str) -> Vec<u32> {
