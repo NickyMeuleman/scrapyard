@@ -1,7 +1,8 @@
 use std::fs;
 
+// TODO: remove duplication
+
 fn main() {
-    // make ship struct with: location, face degrees, move implementation
     // ship always turns in 90 degree increments
     let input = fs::read_to_string("./input.txt").unwrap();
     let instructions: Vec<(char, usize)> = parse(&input);
@@ -93,7 +94,6 @@ fn part_one(instructions: &Vec<(char, usize)>) -> usize {
         direction: 0,
     };
     for &instruction in instructions {
-        dbg!(&instruction, &ship);
         ship.action(instruction);
     }
     manhattan_distance(
@@ -105,11 +105,95 @@ fn part_one(instructions: &Vec<(char, usize)>) -> usize {
 }
 
 fn part_two(instructions: &Vec<(char, usize)>) -> usize {
-    1
+    // tup.0 is N-S position
+    // N is positive, S is negative
+    // tup.1 is E-W position
+    // E is positive, W is negative
+    let mut ship = Ship2 {
+        position: (0, 0),
+        waypoint: (1, 10),
+    };
+    for &instruction in instructions {
+        ship.action(instruction);
+    }
+    manhattan_distance(
+        0,
+        0,
+        ship.position.0.abs() as usize,
+        ship.position.1.abs() as usize,
+    )
 }
 
 fn manhattan_distance(x1: usize, y1: usize, x2: usize, y2: usize) -> usize {
     let x_diff = if x1 < x2 { x2 - x1 } else { x1 - x2 };
     let y_diff = if y1 < y2 { y2 - y1 } else { y1 - y2 };
     x_diff + y_diff
+}
+
+#[derive(Debug)]
+struct Ship2 {
+    position: (isize, isize),
+    waypoint: (isize, isize),
+}
+
+impl Ship2 {
+    fn action(&mut self, instruction: (char, usize)) {
+        match instruction {
+            ('N', _) => self.move_waypoint(instruction),
+            ('S', _) => self.move_waypoint(instruction),
+            ('E', _) => self.move_waypoint(instruction),
+            ('W', _) => self.move_waypoint(instruction),
+            ('L', _) => self.rotate_waypoint(instruction),
+            ('R', _) => self.rotate_waypoint(instruction),
+            ('F', num) => self.travel(num),
+            _ => panic!("Invalid instruction given to ship"),
+        }
+    }
+    fn travel(&mut self, amount: usize) {
+        // move to waypoint amount of times
+        self.position.0 += amount as isize * self.waypoint.0;
+        self.position.1 += amount as isize * self.waypoint.1;
+    }
+    fn move_waypoint(&mut self, instruction: (char, usize)) {
+        match instruction.0 {
+            'N' => self.waypoint.0 += instruction.1 as isize,
+            'S' => self.waypoint.0 -= instruction.1 as isize,
+            'E' => self.waypoint.1 += instruction.1 as isize,
+            'W' => self.waypoint.1 -= instruction.1 as isize,
+            _ => panic!("tried to move waypoint in invalid direction"),
+        }
+    }
+    fn rotate_waypoint(&mut self, instruction: (char, usize)) {
+        match instruction.0 {
+            'L' => {
+                match instruction.1 {
+                    90 => {
+                        self.waypoint = (self.waypoint.1, -self.waypoint.0);
+                    }
+                    270 => {
+                        self.waypoint = (-self.waypoint.1, self.waypoint.0);
+                    }
+                    180 => {
+                        self.waypoint = (-self.waypoint.0, -self.waypoint.1);
+                    }
+                    _ => panic!("tried to rotate waypoint invalid amount of degrees"),
+                };
+            }
+            'R' => {
+                match instruction.1 {
+                    90 => {
+                        self.waypoint = (-self.waypoint.1, self.waypoint.0);
+                    }
+                    270 => {
+                        self.waypoint = (self.waypoint.1, -self.waypoint.0);
+                    }
+                    180 => {
+                        self.waypoint = (-self.waypoint.0, -self.waypoint.1);
+                    }
+                    _ => panic!("tried to rotate waypoint invalid amount of degrees"),
+                };
+            }
+            _ => panic!("tried to rotate waypoint in invalid direction"),
+        }
+    }
 }
