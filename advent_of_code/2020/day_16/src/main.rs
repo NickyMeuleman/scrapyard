@@ -146,10 +146,9 @@ fn part_two(data: &Data) -> i128 {
     result_map.retain(|_, name| name.contains("departure"));
     let departure_indexes: Vec<usize> = result_map.keys().map(|n| *n).collect();
 
-    departure_indexes.iter().fold(1, |mut acc, i| {
-        acc *= data.my_ticket[*i] as i128;
-        acc
-    })
+    departure_indexes
+        .iter()
+        .fold(1, |acc, i| acc * data.my_ticket[*i] as i128)
 }
 
 fn is_valid(data: &Data, ticket: &Vec<i32>) -> bool {
