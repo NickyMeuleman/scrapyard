@@ -6,15 +6,15 @@ fn main() {
     let input = fs::read_to_string("./input.txt").unwrap();
     let data: Data = parse(&input);
     println!("Part one answer: {}", part_one(&data));
-    // println!("Part two answer: {}", part_two(&data));
+    println!("Part two answer: {}", part_two(&data));
 }
 
 fn part_one(data: &Data) -> i128 {
-    data.iter().map(|line| calculate(line.clone())).sum()
+    data.iter().map(|line| calculate(line.clone(), false)).sum()
 }
 
-fn part_two(data: &Data) -> i32 {
-    1
+fn part_two(data: &Data) -> i128 {
+    data.iter().map(|line| calculate(line.clone(), true)).sum()
 }
 
 fn parse(input: &str) -> Data {
@@ -28,7 +28,7 @@ fn parse(input: &str) -> Data {
         .collect()
 }
 
-fn calculate(input: String) -> i128 {
+fn calculate(input: String, precedence: bool) -> i128 {
     // if the input to this function is a number, no further calculation is needed, return the number
     if let Ok(num) = input.parse() {
         return num;
@@ -40,13 +40,18 @@ fn calculate(input: String) -> i128 {
     // and block is the same thing you passed into this function
     let (indexes, block) = get_first_deepest_block(&input);
     // turn that block without parentheses into a number
-    let num = evaluate_without_parenthesis(block);
+    let num = if precedence {
+        let new_block = do_addition(block);
+        evaluate_without_parenthesis(new_block)
+    } else {
+        evaluate_without_parenthesis(block)
+    };
     // create new string with that number instead of the parentheses block:
     // 1. indexes is None, the num is returned (as a String type)
     // 2. indexes is Some, the num replaces whatever is in the input at those indexes
     let new_input = replace_part(input, indexes, num);
     // recursively call calculate with a single block evaluated
-    calculate(new_input)
+    calculate(new_input, precedence)
 }
 
 fn get_first_deepest_block(input: &String) -> (Option<(usize, usize)>, String) {
@@ -70,6 +75,40 @@ fn get_first_deepest_block(input: &String) -> (Option<(usize, usize)>, String) {
         }
     }
     (None, input.clone())
+}
+
+fn do_addition(input: String) -> String {
+    let mut start_idx = 0;
+    // stop_idx is inclusive!
+    let mut stop_idx = input.len() - 1;
+    let mut operator_idx: Option<usize> = None;
+    // look for first +
+    for (idx, c) in input.chars().enumerate() {
+        // if none is found, return input
+        if operator_idx == None && idx == input.len() - 1 {
+            return input;
+        }
+        // set index of first + operator
+        if operator_idx == None && c == '+' {
+            operator_idx = Some(idx);
+        }
+        // set index to start, before first + operator is found
+        if operator_idx == None && (c == '*' || c == '+') {
+            start_idx = idx + 1;
+        }
+        // set index to stop, after first + operator
+        if operator_idx != None && idx > operator_idx.unwrap() && (c == '+' || c == '*') {
+            stop_idx = idx - 1;
+            break;
+        }
+    }
+    let lhs: i128 = input[start_idx..operator_idx.unwrap()].parse().unwrap();
+    let rhs: i128 = input[operator_idx.unwrap() + 1..=stop_idx].parse().unwrap();
+    let result = lhs + rhs;
+    let indexes = Some((start_idx, stop_idx));
+    // create new input with the resulting number replacing the first operation
+    let new_input = replace_part(input, indexes, result);
+    do_addition(new_input)
 }
 
 fn evaluate_without_parenthesis(input: String) -> i128 {
@@ -110,7 +149,6 @@ fn evaluate_without_parenthesis(input: String) -> i128 {
         _ => panic!("Unknown operator found"),
     };
     // create new input with the resulting number replacing the first operation
-    // TODO: get start_idx
     let indexes = Some((0, stop_idx.unwrap()));
     let new_input = replace_part(input, indexes, result);
     // recursively call calculate with a single operation evaluated
