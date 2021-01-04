@@ -25,6 +25,7 @@ const MONSTER_OFFSETS: [(usize, usize); 15] = [
     (2, 13),
     (2, 16),
 ];
+
 #[derive(Debug, PartialEq, Copy, Clone)]
 enum Cell {
     Occupied,
@@ -38,6 +39,13 @@ enum Direction {
     Bottom,
     Left,
 }
+
+#[derive(Debug, Clone)]
+struct Tile {
+    id: usize,
+    grid: Vec<Vec<Cell>>
+}
+
 // tileID, tile
 type Data = HashMap<usize, Vec<Vec<Cell>>>;
 
@@ -45,10 +53,6 @@ fn main() {
     let input = fs::read_to_string("./input.txt").unwrap();
     let data: Data = parse(&input);
     println!("Part one answer: {}", part_one(&data));
-    // part 2 gets the right answer about 10% of the time
-    // the bug is probably in the making of the puzzle
-    // as bandaid, it starts making the picture with the same tile every time.
-    // no clue why this works
     println!("Part two answer: {}", part_two(&data));
 }
 
@@ -110,42 +114,11 @@ fn part_two(data: &Data) -> usize {
     let mut picture: HashMap<(i32, i32), Tile> = HashMap::new();
     let mut available: Vec<Tile> = to_tile_vec(data);
     // get random tile and place it, pop removes it from the available pool
-    // Different starting tile affect if the right result is found. Why? I DONT KNOW
-    // broken:
-    // 2789, 3 sides
-    // 1481, 4 sides
-    // 2477, 4 sides
-    // 1483, 4 sides
-    // 1499, 4 sides
-    // 1543, 3 sides
-
-    // working:
-    // 3319, 3 sides,
-    // 2927, 3 sides
-    // 3167, 4 sides
-    // 3821, 4 sides
-
-    // conclusion: I thought that was it, turns out, it's still inconsistent in when it fails
-
-    // throwawy variable because it's not an Option so I can't make it be None.
-    let mut tile = Tile {
-        id: 1,
-        flipped: false,
-        grid: Vec::new(),
-        turns: 0,
-    };
-    if available.len() == 144 {
-        // WHY does 3821 work as starting tile and other tiles might not (about 1 in 15 by running it over and over)
-        let idx = available.iter().position(|x| x.id == 3821).unwrap();
-        tile = available.remove(idx);
-    } else {
-        tile = available.pop().unwrap();
-    }
+    let tile = available.pop().unwrap();
     picture.insert((0, 0), tile.clone());
     let mut to_search: Vec<((i32, i32), Tile)> = Vec::new();
     to_search.push(((0, 0), tile));
     let picture = make_picture(available, picture, to_search);
-
     // stitch together and remove edges
     // from q: The borders of each tile are not part of the actual image; start by removing them.
     let picture = stitch(picture);
@@ -157,7 +130,7 @@ fn part_two(data: &Data) -> usize {
         .count();
     let sea_monster_size = 15;
     let amount_of_monsters = count_monsters(picture);
-    // result = number of Occupied - (number of monsters * number of Occupied in a single monster)
+
     total - (amount_of_monsters * sea_monster_size)
 }
 
@@ -197,14 +170,6 @@ fn get_all_possible_borders(tile: &Vec<Vec<Cell>>) -> Vec<Vec<Cell>> {
     ]
 }
 
-#[derive(Debug, Clone)]
-struct Tile {
-    id: usize,
-    grid: Vec<Vec<Cell>>,
-    turns: usize,
-    flipped: bool,
-}
-
 fn make_picture(
     mut available: Vec<Tile>,
     mut picture: HashMap<(i32, i32), Tile>,
@@ -222,7 +187,7 @@ fn make_picture(
             let new_coords = get_coords(&coords, &direction);
             // check if those coords are already filled before continuing
             if !picture.contains_key(&new_coords) {
-                let border = get_border(&tile, &direction);
+                let border = get_border(&tile.grid, &direction);
                 // search all available tiles for that border
                 // to find a match, might need to rotate+flip the searched tile
                 let complement_direction = get_complement_direction(&direction);
@@ -260,8 +225,6 @@ fn to_tile_vec(data: &Data) -> Vec<Tile> {
         let tile = Tile {
             id: *item.0,
             grid: item.1.to_vec(),
-            flipped: false,
-            turns: 0,
         };
         result.push(tile);
     }
@@ -277,24 +240,24 @@ fn get_coords(coords: &(i32, i32), direction: &Direction) -> (i32, i32) {
     }
 }
 
-fn get_border(tile: &Tile, direction: &Direction) -> Vec<Cell> {
+fn get_border(grid: &Vec<Vec<Cell>>, direction: &Direction) -> Vec<Cell> {
     match direction {
-        Direction::Top => tile.grid[0].to_vec(),
+        Direction::Top => grid[0].to_vec(),
         Direction::Right => {
             let mut right = Vec::new();
-            for row in &tile.grid {
+            for row in grid {
                 for (col_idx, cell) in row.iter().enumerate() {
-                    if col_idx == tile.grid.len() - 1 {
+                    if col_idx == grid.len() - 1 {
                         right.push(*cell);
                     }
                 }
             }
             right
         }
-        Direction::Bottom => tile.grid[tile.grid.len() - 1].to_vec(),
+        Direction::Bottom => grid[grid.len() - 1].to_vec(),
         Direction::Left => {
             let mut left = Vec::new();
-            for row in &tile.grid {
+            for row in grid {
                 for (col_idx, cell) in row.iter().enumerate() {
                     if col_idx == 0 {
                         left.push(*cell);
@@ -314,19 +277,9 @@ fn search_tiles(border: &Vec<Cell>, direction: Direction, available: &Vec<Tile>)
         for side in borders.iter() {
             if side.iter().zip(border).all(|(a, b)| a == b) {
                 // the tile has a matching border
-                // idx corresponds to:
-                // top,
-                // top_reverse,
-                // right,
-                // right_reverse,
-                // bottom,
-                // bottom_reverse,
-                // left,
-                // left_reverse,
                 // transform tile until the border matches the direction passed in
-                // let rotated_tile = rotate_tile(item, &direction, idx);
-                let rotated_tile = rotate_tile(item, border, &direction);
-                return Some(rotated_tile);
+                let rotated_grid = rotate_tile(&item.grid, border, &direction);
+                return Some(Tile { grid: rotated_grid, ..*item});
             }
         }
     }
@@ -343,87 +296,23 @@ fn get_complement_direction(direction: &Direction) -> Direction {
     }
 }
 
-fn rotate_tile(tile: &Tile, target_border: &Vec<Cell>, target_direction: &Direction) -> Tile {
+fn rotate_tile(grid: &Vec<Vec<Cell>>, target_border: &Vec<Cell>, target_direction: &Direction) -> Vec<Vec<Cell>> {
     for num in 0..4 {
-        let tile = turn(&tile, num);
-        let border = get_border(&tile, target_direction);
+        let grid = turn_clockwise(grid, num);
+        let border = get_border(&grid, target_direction);
         if target_border.iter().zip(border).all(|(a, b)| *a == b) {
-            return tile.clone();
+            return grid.clone();
         }
     }
-    let tile = flip(&tile);
+    let grid = flip_vertical(grid);
     for num in 0..4 {
-        let tile = turn(&tile, num);
-        let border = get_border(&tile, target_direction);
+        let grid = turn_clockwise(&grid, num);
+        let border = get_border(&grid, target_direction);
         if target_border.iter().zip(border).all(|(a, b)| *a == b) {
-            return tile.clone();
+            return grid.clone();
         }
     }
     panic!("could not rotate tile to have a matching border");
-}
-
-fn turn(tile: &Tile, amount: usize) -> Tile {
-    if amount == 0 {
-        return tile.clone();
-    }
-    let n = tile.grid.len();
-    let mut result = tile.grid.clone();
-    for i in 0..10 {
-        for j in i..10 - i - 1 {
-            let temp = tile.grid[i][j];
-            result[i][j] = result[n - 1 - j][i];
-            result[n - 1 - j][i] = result[n - 1 - i][n - 1 - j];
-            result[n - 1 - i][n - 1 - j] = result[j][n - 1 - i];
-            result[j][n - 1 - i] = temp;
-        }
-    }
-    let new_tile = Tile {
-        id: tile.id,
-        grid: result,
-        flipped: tile.flipped,
-        turns: tile.turns + 1,
-    };
-    turn(&new_tile, amount - 1)
-}
-
-fn flip(tile: &Tile) -> Tile {
-    // flips the tile vertically
-    let grid = tile.grid.clone().into_iter().rev().collect();
-    Tile {
-        id: tile.id,
-        grid: grid,
-        flipped: !tile.flipped,
-        turns: tile.turns,
-    }
-}
-
-fn flip_h(tile: &Tile) -> Tile {
-    // flips the tile horizontally
-    let mut grid = Vec::new();
-    for row in tile.grid.clone() {
-        let flipped_row = row.into_iter().rev().collect();
-        grid.push(flipped_row);
-    }
-    Tile {
-        id: tile.id,
-        grid: grid,
-        flipped: !tile.flipped,
-        turns: tile.turns,
-    }
-}
-
-fn print_tile(tile: &Tile) {
-    let n = tile.grid.len();
-    for i in 0..n {
-        let result: Vec<char> = tile.grid[i]
-            .iter()
-            .map(|x| match x {
-                Cell::Empty => '.',
-                Cell::Occupied => '#',
-            })
-            .collect();
-        println!("{:?}", result);
-    }
 }
 
 fn stitch(picture: HashMap<(i32, i32), Tile>) -> Vec<Vec<Cell>> {
@@ -452,20 +341,6 @@ fn stitch(picture: HashMap<(i32, i32), Tile>) -> Vec<Vec<Cell>> {
     result.clone()
 }
 
-fn print_grid(grid: &Vec<Vec<Cell>>) {
-    let n = grid.len();
-    for i in 0..n {
-        let result: String = grid[i]
-            .iter()
-            .map(|x| match x {
-                Cell::Empty => '.',
-                Cell::Occupied => '#',
-            })
-            .collect();
-        println!("{:?}", result);
-    }
-}
-
 fn count_monsters(grid: Vec<Vec<Cell>>) -> usize {
     let orientations = get_all_orientations(&grid);
     let num_rows = grid.len();
@@ -477,7 +352,7 @@ fn count_monsters(grid: Vec<Vec<Cell>>) -> usize {
             for col in 0..num_cols {
                 // check if monster
                 // replace original Occupied tiles with Empty ones
-                // todo: replace with Monster tiles to support overlap and later check that not all tiles are Monster to avoid double counting
+                // todo if needed: replace with Monster tiles to support overlap and later check that not all tiles are Monster to avoid double counting
                 if is_monster((row, col), &grid) {
                     count += 1;
                     for offset in &MONSTER_OFFSETS {
@@ -494,45 +369,86 @@ fn count_monsters(grid: Vec<Vec<Cell>>) -> usize {
 }
 
 fn is_monster(coord: (usize, usize), grid: &Vec<Vec<Cell>>) -> bool {
-    let num_rows = grid.len();
-    let num_cols = grid[0].len();
-    if MONSTER_OFFSETS
-        .iter()
-        .all(|(x, y)| is_within_bounds((coord.0 + x, coord.1 + y), num_rows, num_cols))
-    {
-        if MONSTER_OFFSETS.iter().all(|(x, y)| {
-            let cell = grid.get(coord.0 + *x).unwrap().get(coord.1 + *y).unwrap();
-            match cell {
-                Cell::Empty => false,
-                Cell::Occupied => true,
-            }
-        }) {
-            return true;
+    MONSTER_OFFSETS
+    .iter()
+    .all(|(row_offset, col_offset)| {
+       let option = grid
+        .get(coord.0 + *row_offset)
+        .and_then(|row| row.get(coord.1 + *col_offset));
+        match option {
+            Some(cell) => {
+                match cell {
+                    Cell::Empty => false,
+                    Cell::Occupied => true,
+                }
+            },
+            None => false
         }
-    }
-    false
-}
-
-fn is_within_bounds(coord: (usize, usize), rows: usize, cols: usize) -> bool {
-    coord.0 < rows && coord.1 < cols
+    })
 }
 
 fn get_all_orientations(grid: &Vec<Vec<Cell>>) -> Vec<Vec<Vec<Cell>>> {
     let mut result = Vec::new();
-    let tile = Tile {
-        id: 1,
-        turns: 0,
-        flipped: false,
-        grid: grid.clone(),
-    };
     for num in 0..4 {
-        let tile = turn(&tile, num);
-        result.push(tile.grid);
+        let grid = turn_clockwise(grid, num);
+        result.push(grid);
     }
-    let tile = flip(&tile);
+    let grid = flip_vertical(grid);
     for num in 0..4 {
-        let tile = turn(&tile, num);
-        result.push(tile.grid);
+        let grid = turn_clockwise(&grid, num);
+        result.push(grid);
     }
     result
+}
+
+fn turn_clockwise(grid: &Vec<Vec<Cell>>, amount: usize) -> Vec<Vec<Cell>> {
+    if amount == 0 {
+        return grid.clone();
+    }
+    let n = grid.len();
+    let mut result = grid.clone();
+    for i in 0..n {
+        for j in i..n - i - 1 {
+            let temp = grid[i][j];
+            result[i][j] = grid[n - 1 - j][i];
+            result[n - 1 - j][i] = grid[n - 1 - i][n - 1 - j];
+            result[n - 1 - i][n - 1 - j] = grid[j][n - 1 - i];
+            result[j][n - 1 - i] = temp;
+        }
+    }
+    turn_clockwise(&result, amount - 1)
+}
+
+fn flip_vertical(grid: &Vec<Vec<Cell>>) -> Vec<Vec<Cell>> {
+    grid.clone().into_iter().rev().collect()
+}
+
+// Debugging helper functions:
+
+fn print_grid(grid: &Vec<Vec<Cell>>) {
+    let n = grid.len();
+    for i in 0..n {
+        let result: String = grid[i]
+            .iter()
+            .map(|x| match x {
+                Cell::Empty => '.',
+                Cell::Occupied => '#',
+            })
+            .collect();
+        println!("{:?}", result);
+    }
+}
+
+fn print_tile(tile: &Tile) {
+    let n = tile.grid.len();
+    for i in 0..n {
+        let result: Vec<char> = tile.grid[i]
+            .iter()
+            .map(|x| match x {
+                Cell::Empty => '.',
+                Cell::Occupied => '#',
+            })
+            .collect();
+        println!("{:?}", result);
+    }
 }
