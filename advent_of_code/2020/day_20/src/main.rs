@@ -107,7 +107,6 @@ fn part_one(data: &Data) -> usize {
             side_ids.push(*id);
         }
     }
-    dbg!(&side_ids);
     side_ids.iter().product()
 }
 
@@ -177,7 +176,6 @@ fn make_picture(
     mut to_search: Vec<((i32, i32), Tile)>,
 ) -> HashMap<(i32, i32), Tile> {
     if available.len() == 0 {
-        dbg!(to_search.len());
         return picture;
     }
     // IT'S THE SEASON OF TREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
@@ -327,10 +325,6 @@ fn stitch(picture: HashMap<(i32, i32), Tile>) -> Vec<Vec<Cell>> {
     // delta between min and max should be 12 for each (11 because 0 is also counted)
     // since the picture is square and 12x12 = 144 (the amount of given tiles)
     // end grid should be 96x96, 12 pieces of length 8 in both directions
-    dbg!(picture.get(&(*min_x,*min_y)).unwrap().id);
-    dbg!(picture.get(&(*min_x,*max_y)).unwrap().id);
-    dbg!(picture.get(&(*max_x,*min_y)).unwrap().id);
-    dbg!(picture.get(&(*max_x,*max_y)).unwrap().id);
     let mut result = Vec::new();
     for y in *min_y..=*max_y {
         // each item has 10 rows of its own

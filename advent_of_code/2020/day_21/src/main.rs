@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 
@@ -50,7 +49,8 @@ fn part_two(data: &Data) -> String {
     allergen_to_ingredient.sort_by(|(allergen_a, _), (allergen_b, _)| allergen_a.cmp(&allergen_b));
     allergen_to_ingredient
         .iter()
-        .map(|(_, ingredient)| ingredient)
+        .map(|(_, ingredient)| ingredient.clone())
+        .collect::<Vec<String>>()
         .join(",")
 }
 
