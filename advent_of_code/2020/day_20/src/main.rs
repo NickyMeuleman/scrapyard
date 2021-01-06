@@ -103,6 +103,7 @@ fn part_one(data: &Data) -> usize {
             side_ids.push(*id);
         }
     }
+    dbg!(&side_ids);
     side_ids.iter().product()
 }
 
@@ -138,6 +139,7 @@ fn part_two(data: &Data) -> usize {
         // WHY does 3821 work as starting tile and other tiles might not (about 1 in 15 by running it over and over)
         let idx = available.iter().position(|x| x.id == 3821).unwrap();
         tile = available.remove(idx);
+        // tile = available.pop().unwrap();
     } else {
         tile = available.pop().unwrap();
     }
@@ -211,6 +213,7 @@ fn make_picture(
     mut to_search: Vec<((i32, i32), Tile)>,
 ) -> HashMap<(i32, i32), Tile> {
     if available.len() == 0 {
+        dbg!(to_search.len());
         return picture;
     }
     // IT'S THE SEASON OF TREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
@@ -436,6 +439,10 @@ fn stitch(picture: HashMap<(i32, i32), Tile>) -> Vec<Vec<Cell>> {
     // delta between min and max should be 12 for each (11 because 0 is also counted)
     // since the picture is square and 12x12 = 144 (the amount of given tiles)
     // end grid should be 96x96, 12 pieces of length 8 in both directions
+    dbg!(picture.get(&(*min_x,*min_y)).unwrap().id);
+    dbg!(picture.get(&(*min_x,*max_y)).unwrap().id);
+    dbg!(picture.get(&(*max_x,*min_y)).unwrap().id);
+    dbg!(picture.get(&(*max_x,*max_y)).unwrap().id);
     let mut result = Vec::new();
     for y in *min_y..=*max_y {
         // each item has 10 rows of its own
@@ -444,7 +451,7 @@ fn stitch(picture: HashMap<(i32, i32), Tile>) -> Vec<Vec<Cell>> {
             for x in *min_x..=*max_x {
                 let grid = &picture.get(&(x, y)).unwrap().grid;
                 let to_add = grid[inner_row].clone();
-                row.append(&mut to_add[1..to_add.len() - 1].to_vec());
+                row.append(&mut to_add[1..9].to_vec());
             }
             result.push(row);
         }
@@ -501,7 +508,8 @@ fn is_monster(coord: (usize, usize), grid: &Vec<Vec<Cell>>) -> bool {
         .all(|(x, y)| is_within_bounds((coord.0 + x, coord.1 + y), num_rows, num_cols))
     {
         if MONSTER_OFFSETS.iter().all(|(x, y)| {
-            let cell = grid.get(coord.0 + *x).unwrap().get(coord.1 + *y).unwrap();
+            let cell = grid[coord.0 + x][coord.1 + y];
+            // let cell = grid.get(coord.0 + *x).unwrap().get(coord.1 + *y).unwrap();
             match cell {
                 Cell::Empty => false,
                 Cell::Occupied => true,
