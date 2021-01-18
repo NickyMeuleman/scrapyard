@@ -7365,3 +7365,452 @@ cargo run to poem.txt | tee  output.txt
 Are you nobody, too?
 How dreary to be somebody!
 ```
+
+## 13. Functional Language Features: Iterators and Closures
+
+Rust has lots of influences, including functional programming.
+Among other things, that means storing functions in variables to pass them around as values.
+
+> More specifically, we’ll cover:
+>
+> - Closures, a function-like construct you can store in a variable
+> - Iterators, a way of processing a series of elements
+> - How to use these two features to improve the I/O project in Chapter 12
+> - The performance of these two features (Spoiler alert: they’re faster than you might think!)
+
+## 13.1. Closures: Anonymous Functions that Can Capture Their Environment
+
+Closures in Rust are anonymous functions that can be stored in a variable (and passed as argument to other functions).
+Unlike functions, closures capture values from the scope in which they're defined.
+That's fancy speak for "you can access variables inside that closure from the place where you define the closure".
+
+### Creating an Abstraction of Behavior with Closures
+
+This chapter of the book explains closures and their features (like syntax, type information, and traits) through an example.
+In this hypothetical situation you are writing an app that generates a custom workout plan.
+The algorithm to do that, and the many factors it takes into account are not important, the use of closures is.
+We want to call the algorithm only when needed, because it takes a while to complete.
+
+The simulated algorithm lives in the function called `simulated_expensive_calculation`.
+It takes in the desired intensity of the workout, does some calculations simulated by waiting 2 seconds, and returns that intensity.
+In `src/main.rs`:
+
+```rust
+use std::thread;
+use std::time::Duration;
+
+fn simulated_expensive_calculation(intensity: u32) -> u32 {
+    println!("calculating slowly...");
+    thread::sleep(Duration::from_secs(2));
+    intensity
+}
+```
+
+In `main`, a function gets called that takes some inputs from the frontend.
+How they got there is irrelevant to this explanation of closures, so, hardcoding those values it is.
+In `src/main.rs`:
+
+```rust
+fn main() {
+    let simulated_user_specified_value = 10;
+    let simulated_random_number = 7;
+
+    generate_workout(simulated_user_specified_value, simulated_random_number);
+}
+```
+
+The `generate_workout` function does some logic during which the `simulated_expensive_calculation` is called.
+
+```rust
+fn generate_workout(intensity: u32, random_number: u32) {
+    if intensity < 25 {
+        println!(
+            "Today, do {} pushups!",
+            simulated_expensive_calculation(intensity)
+        );
+        println!(
+            "Next, do {} situps!",
+            simulated_expensive_calculation(intensity)
+        );
+    } else {
+        if random_number == 3 {
+            println!("Take a break today! Remember to stay hydrated!");
+        } else {
+            println!(
+                "Today, run for {} minutes!",
+                simulated_expensive_calculation(intensity)
+            );
+        }
+    }
+}
+```
+
+There are multiple calls to that function, and depending on the logic that gets executed, it gets called 0-2 times.
+We want to refactor this so the `simulated_expensive_calculation` only gets called once.
+
+### Refactoring Using Functions
+
+By extracting the result of `simulated_expensive_calculation(intensity)` to a variable it only gets called once.
+The trade-off is it also gets called even if it's not needed (in the case the function advises you to rest and stay hydrated).
+
+```rust
+fn generate_workout(intensity: u32, random_number: u32) {
+    let expensive_result = simulated_expensive_calculation(intensity);
+
+    if intensity < 25 {
+        println!("Today, do {} pushups!", expensive_result);
+        println!("Next, do {} situps!", expensive_result);
+    } else {
+        if random_number == 3 {
+            println!("Take a break today! Remember to stay hydrated!");
+        } else {
+            println!("Today, run for {} minutes!", expensive_result);
+        }
+    }
+}
+```
+
+### Refactoring with Closures to Store Code
+
+We'll keep the expensive logic in a closure that's stored in a variable inside the `generate_workout` function.
+We can take the entire body of the `simulated_expensive_calculation` function and move it into that closure.
+
+```rust
+let expensive_closure = |num| {
+        println!("calculating slowly...");
+        thread::sleep(Duration::from_secs(2));
+        num
+    };
+```
+
+The closure is assigned to the variable called `expensive_closure`.
+a pair of vertical pipes `|` enclose the parameters of that closure.
+Just like how a pair of parentheses would in a function.
+Multiple parameters are also seperated by a comma.
+A closure with 2 parameter would have a list like `|param1, param2|`.
+After the list of parameters is a body enclosed by curly brackets `{}`, just like in regular functions.
+If the closure body only contains a single expression, those brackets are optional.
+For example: `|x| x + 1`.
+
+What is stored in `expensive_closure` is the definition of an anonymous function, not the result, it still has to be called.
+Calling that logic is done in the same way as calling functions, by appending parentheses with (possible) arguments.
+
+Nearly identical to our first piece of code, but now the expensive logic is inside the `generate_workout` function, in a closure:
+
+```rust
+fn generate_workout(intensity: u32, random_number: u32) {
+    let expensive_closure = |num| {
+        println!("calculating slowly...");
+        thread::sleep(Duration::from_secs(2));
+        num
+    };
+
+    if intensity < 25 {
+        println!("Today, do {} pushups!", expensive_closure(intensity));
+        println!("Next, do {} situps!", expensive_closure(intensity));
+    } else {
+        if random_number == 3 {
+            println!("Take a break today! Remember to stay hydrated!");
+        } else {
+            println!(
+                "Today, run for {} minutes!",
+                expensive_closure(intensity)
+            );
+        }
+    }
+}
+```
+
+### Closure Type Inference and Annotation
+
+There aren't any type annotations on that closure, but there were in our first example when it was still a function.
+Closures don't require type annotations like `fn` functions do.
+
+This next explanation confused me, so I'm copying it here verbatim:
+> Defining this interface rigidly is important for ensuring that everyone agrees on what types of values a function uses and returns. But closures aren’t used in > an exposed interface like this: they’re stored in variables and used without naming them and exposing them to users of our library.
+
+That seems like a complicated way of saying they're used locally, so the types are probably inferred from how the closure is used.
+
+And the next paragraph confirms this: closures are usually short and relevant within a narrow context.
+Within this limited context, the compiler is reliably able to inter the types of the parameters and the returned type.
+
+We can annotate types if we want to.
+
+```rust
+let expensive_closure = |num: u32| -> u32 {
+    println!("calculating slowly...");
+    thread::sleep(Duration::from_secs(2));
+    num
+};
+```
+
+An example of a function, and the same logic in closures:
+
+```rust
+fn  add_one_v1   (x: u32) -> u32 { x + 1 }
+let add_one_v2 = |x: u32| -> u32 { x + 1 };
+let add_one_v3 = |x|             { x + 1 };
+let add_one_v4 = |x|               x + 1  ;
+```
+
+That last closure look very similar to the fat arrow, implicit return syntax from JavaScript.
+Calling the closure is required for `add_one_v3` and `add_one_v4` to compile.
+The types will then be inferred from their usage.
+
+Closures have one concrete type inferred for each parameter and the return value.
+So the following code, where we first pass a `String`, and then an `i32` will not compile:
+
+```rust
+// DOES NOT COMPILE
+let example_closure = |x| x;
+
+let s = example_closure(String::from("hello"));
+let n = example_closure(5);
+```
+
+The resulting compiler error tells you the type of parameter it received the second time the closure was called (`i32`),
+did not match the type that was inferred from the first usage (`String`):
+
+```
+$ cargo run
+   Compiling closure-example v0.1.0 (file:///projects/closure-example)
+error[E0308]: mismatched types
+ --> src/main.rs:5:29
+  |
+5 |     let n = example_closure(5);
+  |                             ^
+  |                             |
+  |                             expected struct `std::string::String`, found integer
+  |                             help: try using a conversion method: `5.to_string()`
+
+error: aborting due to previous error
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `closure-example`.
+
+To learn more, run the command again with --verbose.
+```
+
+### Storing Closures Using Generic Parameters and the Fn Traits
+
+Back to the workout app.
+We can create a struct that holds the closure and the result of calling that closure.
+The struct will only execute that close if the resulting value doesn't exist yet.
+This pattern is also known as memoization of lazy evaluation.
+
+A struct needs a type for its fields, so that closure has to have a type.
+Each close has its own unique anonymous type.
+Even two closures with the same signature will have different types.
+To define pieces of code like structs, enums, or function parameters that use closures,
+we use generics and trait bounds.
+
+There are 3 `Fn` traits, all closures implement at least one of them:
+1. `Fn`
+2. `FnMut`
+3. `FnOnce`
+
+Like the definition of a `Some(T)`,
+we add types to the `Fn` trait bound to represent the types of the parameters and the returned value 
+that are needed in order for a closure to match this trait bound.
+In this case, the single parameter is a `u32`, and so is the return value.
+The closure has a trait bound of: `Fn(u32) -> u32`.
+
+```rust
+struct Cacher<T>
+where
+    T: Fn(u32) -> u32,
+{
+    calculation: T,
+    value: Option<u32>,
+}
+```
+
+The `Cacher` struct holds a `calculation` that satisfies the trait bound `Fn(u32) -> u32`.
+That trait bound syntax is fairly similar to function definition syntax, the types of the parameters are in between the parentheses.
+The type of the returned value is after the skinny arrow `->`
+
+Functions can implements all three of the `Fn` traits too.
+If what we want to accomplish doesn't require using a value from the environment we can use a function rather than a closure.
+
+The `value` field of the struct is an `Option<u32>`.
+Before we execute the closure, it will be `None`, only to be replaced by the result of that closure wrapped in a `Some`.
+If the code asks for the `result` again, instead of executing the closure, it will return the result that was already there.
+
+The logic to make that behavior happen:
+
+```rust
+impl<T> Cacher<T>
+where
+    T: Fn(u32) -> u32,
+{
+    fn new(calculation: T) -> Cacher<T> {
+        Cacher {
+            calculation,
+            value: None,
+        }
+    }
+
+    fn value(&mut self, arg: u32) -> u32 {
+        match self.value {
+            Some(v) => v,
+            None => {
+                let v = (self.calculation)(arg);
+                self.value = Some(v);
+                v
+            }
+        }
+    }
+}
+```
+
+The fields of the `Cacher` struct are kept private, we want it to manage them and only let calling code access the `value()` method.
+Fun bonus: when doing this, the compiler warns you about needing a `new` method, otherwise there would be no way to instantiate an instance of `Cacher`.
+
+The first time we call the `value()` method, nothing is there.
+The closure in `calculation` gets called, and the resulting value is stored in `value` and returned.
+Every subsequent time we call the `value()` method, a `value` already exists and we get that directly.
+As a result, the closure is called a maximum of once. Exactly what we wanted.
+But there's a downside to this pattern too, only the first invocation matters now, regardless of the passed arguments in subsequent invocations.
+In our piece of code, this luckily doesn't matter.
+
+Using this, we can refactor the `generate_workout` function:
+
+```rust
+fn generate_workout(intensity: u32, random_number: u32) {
+    let mut expensive_result = Cacher::new(|num| {
+        println!("calculating slowly...");
+        thread::sleep(Duration::from_secs(2));
+        num
+    });
+
+    if intensity < 25 {
+        println!("Today, do {} pushups!", expensive_result.value(intensity));
+        println!("Next, do {} situps!", expensive_result.value(intensity));
+    } else {
+        if random_number == 3 {
+            println!("Take a break today! Remember to stay hydrated!");
+        } else {
+            println!(
+                "Today, run for {} minutes!",
+                expensive_result.value(intensity)
+            );
+        }
+    }
+}
+```
+
+Instead of storing the closure in a variable directly, we use it to instantiate an instance of `Cacher`.
+We then call `expensive_result.value(intensity)`.
+If we never call it, the closure never gets executed.
+If we do call it, it gets executed once, every subsequent call to `.value()` will directly return the cached value.
+
+### Limitations of the Cacher Implementation
+
+There are 2 problems with `Cacher`.
+The `Cacher` assumes it always gets the same value for the parameter of `arg` (and the closure is a pure function, meaning `value` would be identical then).
+
+This test would fail:
+
+```rust
+// FAILING TEST
+#[test]
+fn call_with_different_values() {
+    let mut c = Cacher::new(|a| a);
+
+    let v1 = c.value(1);
+    let v2 = c.value(2);
+
+    assert_eq!(v2, 2);
+}
+```
+
+`v1` will be `1`, but `v2` will also be `1`.
+That is because only the first call to `.value()` invokes the closure.
+So only the first invocation matters, the second call to `.value()` could have had a different value and `v2`` would still be `1`.
+
+A possible solution is modifying the `Cacher` to hold a hash map rather than a single value.
+The keys of the hash map would correspond to the arguments that are passed into `.value()`.
+
+The second problem is that `Cacher` only accepts closures with one parameter of type `u32`, and have a returned value of type `u32`.
+We might want to use the same logic for differently typed closures.
+To fix this, we could introduce genericy types parameters.
+
+### Capturing the Environment with Closures
+
+Closures can access variable from the scope they're defined in.
+
+```rust
+fn main() {
+    let x = 4;
+
+    let equal_to_x = |z| z == x;
+
+    let y = 4;
+
+    assert!(equal_to_x(y));
+}
+```
+
+The `equal_to_x` closure uses a variable from outside that closure's body, from the scope that closure is defined in.
+We can't do the same thing with functions, they'd refuse to compile.
+If we try to access a variable from the outside scope in a regular function,
+the compiler gives a nice hint about using closures instead.
+
+When a closure captures a value from its environment, it uses memory to store the values.
+In many cases, this is overhead cost we don't want to pay if we only want to execute code that doesn't capture its environment.
+Because functions are never allowed to capture their envorinment, using a function in those cases makes sure you never incur that overhead.
+
+Closures can capture values from their environment in three ways, those directly map to the three ways a function can take a parameter.
+It can take ownership, borrow mutably, or borrow immutably.
+That relates to the three existing `Fn` traits:
+
+`FnOnce` consumes the variables it captures.
+To consume the variables, it takes ownership of them, it "moves" them into the closure when it is defined,
+and they can no longer be used in the scope they came from.
+The "once" part of the name represents the fact represents the fact the closure can't take ownership more than once.
+
+`FnMut` can change the captured values because it mutably borrows them.
+
+`Fn` borrows the values immutably.
+
+The compiler infers which trait to use based on how the closure uses those values.
+All closures implement `FnOnce` because they can all be called at least once.
+Closures that don't move the captured values also implement `FnMut`.
+Closure that don't need mutable access to those values also implement `Fn`.
+
+That means a closure that immutably uses a value from the environment it's defined in will implement all three of those trait bounds,
+meaning it can be called almost everywhere.
+Something (struct, enum, ...) that requires a `FnOnce` trait bound means closures are limited to one invocation.
+A closure that immutably uses a value from its environment satisfies that trait bound and can be used there.
+
+If you want to force the closure to take ownership of the values it uses from its environment, you can use the `move` keyword.
+That keyword is placed before the parameter list.
+That technique is used a lot when working with threads to move data to a new thread.
+
+The following code example uses the `move` syntax, and does not compile:
+
+```rust
+// DOES NOT COMPILE
+fn main() {
+    let x = vec![1, 2, 3];
+
+    let equal_to_x = move |z| z == x;
+
+    println!("can't use x here: {:?}", x);
+
+    let y = vec![1, 2, 3];
+
+    assert!(equal_to_x(y));
+}
+```
+
+The `x` value moved into the closure when the closure was defined.
+The closure now has ownership of `x`
+
+We try to access it again afterwards in the call to `println!`.
+We tried to access something that's no longer there, that's a compiler error.
+Removing that line makes this example compile.
+
+Most of the time when specifying `Fn` trait bounds,
+you can start with `Fn` and the compiler will tell you
+when you are doing something inside that closure that requires you to use `FnMut` or `FnOnce` instead.
