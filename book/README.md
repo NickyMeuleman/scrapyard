@@ -8127,3 +8127,163 @@ fn using_other_iterator_trait_methods() {
 Because we skipped one item in the second iterator, `zip` only produces 4 pairs of items.
 The hypothetical fifth pair is never included in the iterator `zip` returns.
 It would be `(5, None)`, but `zip` returns `None` if either of the items in a pair is `None`.
+
+## 13.3. Improving Our I/O Project
+
+Let's use more features of iterators in the `minigrep` project from chapter 12.
+
+### Removing a clone Using an Iterator
+
+Currently, the `new` associated function on the `Config` struct calls `clone` on the items in the borrowed `args` slice.
+That way the `Config` instance owns those values.
+
+```rust
+impl Config {
+    pub fn new(args: &[String]) -> Result<Config, &'static str> {
+        if args.len() < 3 {
+            return Err("not enough arguments");
+        }
+
+        let query = args[1].clone();
+        let filename = args[2].clone();
+
+        let case_sensitive = env::var("CASE_INSENSITIVE").is_err();
+
+        Ok(Config {
+            query,
+            filename,
+            case_sensitive,
+        })
+    }
+}
+```
+
+We can change the function parameters to take ownership of an iterator containing the arguments instead of borrowing a slice.
+We'll use the iterator's `next` function to get at the values instead of indexing into a slice.
+
+#### Using the Returned Iterator Directly
+
+src/main.rs looks like this:
+
+```rust
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    let config = Config::new(&args).unwrap_or_else(|err| {
+        eprintln!("Problem parsing arguments: {}", err);
+        process::exit(1);
+    });
+
+    // --snip--
+}
+```
+
+We'll directly pass the iterator `env::args()` returns into the `Config::new` function instead of collecting it into a vector first.
+
+```rust
+fn main() {
+    let config = Config::new(env::args()).unwrap_or_else(|err| {
+        eprintln!("Problem parsing arguments: {}", err);
+        process::exit(1);
+    });
+
+    // --snip--
+}
+```
+
+Changing the signature of `new` to match this change:
+
+```rust
+ pub fn new(mut args: env::Args) -> Result<Config, &'static str>
+```
+
+The documentation for the `env::args` function states it returns an iterator with the type `std::env::Args`.
+That's the type of our `args` parameter now.
+Note it is marked as mutable, since we'll be mutating it by iterating over it.
+
+#### Using Iterator Trait Methods Instead of Indexing
+
+Next up: Replacing the spots where we indexed into the slice.
+By using the `next` method on the iterator.
+As a bonus: we replace the logic where we checked the length of the slice before.
+The errors are now returned from the function when a call to `next` returns `None` when there should be something there.
+
+```rust
+impl Config {
+    pub fn new(mut args: env::Args) -> Result<Config, &'static str> {
+        args.next();
+
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a query string"),
+        };
+
+        let filename = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a file name"),
+        };
+
+        let case_sensitive = env::var("CASE_INSENSITIVE").is_err();
+
+        Ok(Config {
+            query,
+            filename,
+            case_sensitive,
+        })
+    }
+}
+```
+
+The first value in `env::args` is the name of the program.
+We don't need it, so we call `args.next()` to advance the iterator without using the value it returns.
+
+### Making Code Clearer with Iterator Adaptors
+
+As a reminder, the `search` function looks like this:
+
+```rust
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    let mut results = Vec::new();
+
+    for line in contents.lines() {
+        if line.contains(query) {
+            results.push(line);
+        }
+    }
+
+    results
+}
+```
+
+Rewriting it to use iterator adaptors, and finally a consuming adaptor,
+allows us to avoid the creation of the intermediary `result` variable.
+
+```rust
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
+}
+```
+
+We create an iterator over all lines in `contents`,
+only keep the ones that contain the `query` by calling `filter`.
+Finally, we `collect` that iterator into a vector, the returned value for this function.
+
+## 13.4. Comparing Performance: Loops vs. Iterators
+
+Which version of `search` is faster?
+The explicit `for` loop, or the one with iterators?
+
+A benchmark shows they are very close, the iterators version is even a tiny bit faster.
+
+```
+test bench_search_for  ... bench:  19,620,300 ns/iter (+/- 915,700)
+test bench_search_iter ... bench:  19,234,900 ns/iter (+/- 657,200)
+```
+
+Iterators, although an abstraction, get compiler down to rougly the same code as if you'd write the lower-level code yourself.
+They are on of Rust's _zero-cost abstractions_.
+The language allows you to use that abstraction, without paying a performance penalty for using it.
+
