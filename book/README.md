@@ -26,7 +26,7 @@ rustc main.rs
 
 Build the executable file with `cargo build`.
 That will compile (starting at `src/main.rs`) into `target/debug/<name>`,
-where `<name>` is whatever is in the `name` field of `cargo.toml`.
+where `<name>` is whatever is in the `name` field of `Cargo.toml`.
 
 Running the file takes 2 step
 
@@ -950,7 +950,7 @@ More specifically, the [`rand` crate](https://crates.io/crates/rand).
 2. library crate - contains code to be used in other programs
 
 The `rand` crate is a library crate.
-Add it to the dependencies in `cargo.toml`.
+Add it to the dependencies in `Cargo.toml`.
 
 ```toml
 [dependencies]
@@ -2405,15 +2405,15 @@ It is also the root module of that crate.
 Comparing to JavaScript, it's the entrypoint.
 
 A package is one or more crates.
-A package has a `cargo.toml` file.
+A package has a `Cargo.toml` file.
 
 > A package must contain zero or one library crates, and no more.
 > It can contain as many binary crates as you’d like, but it must contain at least one crate (either library or binary).
 
 When you run `cargo new my-project` you create a new binary package.
-It's in a folder called `my-project` that has a `cargo.toml`.
+It's in a folder called `my-project` that has a `Cargo.toml`.
 The entrypoint is in `src/main.rs`.
-There is no mention of that in the `cargo.toml` file because it's a convention that file will be the crate root of a binary crate with the same name as the package.
+There is no mention of that in the `Cargo.toml` file because it's a convention that file will be the crate root of a binary crate with the same name as the package.
 
 If there is a `src/lib.rs`, cargo knows the package contains a library with the same name as the package and that file is treated as the crate root.
 
@@ -2686,7 +2686,7 @@ Reexporting lets your internal structure of code be different from the structure
 
 ### Using External Packages
 
-Use external packages in your code by adding them to `[dependencies]` in `cargo.toml`.
+Use external packages in your code by adding them to `[dependencies]` in `Cargo.toml`.
 
 ```toml
 [dependencies]
@@ -6917,7 +6917,7 @@ fn main() {
 We bring in `minigrep::Config` to be able to use `Config` directly.
 Another possibility would be to use `minigrep::Config` instead, similar to how we call `minigrep::run`.
 
-The `minigrep` part comes from the `cargo.toml` where the name of the crate is set to `minigrep`.
+The `minigrep` part comes from the `Cargo.toml` where the name of the crate is set to `minigrep`.
 
 > Let’s take advantage of this newfound modularity by doing something that would have been difficult with the old code but is easy with the new code: we’ll write some tests!
 
@@ -8307,11 +8307,11 @@ The `release` profile is used when you run `cargo build --release`.
 Cargo has some default settings for each, `dev` putting a bigger emphasis on faster builds,
 `release` optimizing the runtime performance of the code more, leading to longer build times.
 
-A corresponding `[profile.*]` section in `cargo.toml` is used to modify these defaults.
+A corresponding `[profile.*]` section in `Cargo.toml` is used to modify these defaults.
 If that section is missing completely, all default options will be used.
 
 For example, the following snipper sets the `opt-level` explicitly.
-The values specified in `cargo.toml` will take precedence over the defaults.
+The values specified in `Cargo.toml` will take precedence over the defaults.
 Here, the values happen to be the same ones as the default settings for this option.
 
 ```toml
@@ -8326,7 +8326,7 @@ The `opt-level` controls how much optimization will be applied to your code, wit
 If for example we would like our code when we run `cargo run` to execute a bit faster,
 we could set the `opt-level` of the `dev` profile a bit higher.
 This would also lead to increased compile times, that's the trade-off:
-In our `cargo.toml`:
+In our `Cargo.toml`:
 
 ```toml
 [profile.dev]
@@ -8335,7 +8335,7 @@ opt-level = 1
 
 ## 14.2. Publishing a Crate to Crates.io
 
-We've used a package in our code before (by adding it to the `[dependencies]` section in `cargo.toml`).
+We've used a package in our code before (by adding it to the `[dependencies]` section in `Cargo.toml`).
 We can also publish a package for others to use.
 The crate registry at [crates.io](https://crates.io/) distributes the source code of packages.
 As a result, it primarily hosts open source code.
@@ -8548,7 +8548,7 @@ The API token will be stored locally in `~/.cargo/credentials`.
 
 ### Adding Metadata to a New Crate
 
-Before publishing a crate, it needs some metadata in the `[package]` section of its `cargo.toml`.
+Before publishing a crate, it needs some metadata in the `[package]` section of its `Cargo.toml`.
 
 Your crate needs a unique name, one that's not taken already:
 
@@ -8582,7 +8582,7 @@ then use the `license-file` key to specify the name of that file instead of usin
 You can specify multiple license identifiers seperated by `OR`.
 Many people in the Rust community use a dual license of `MIT OR Apache-2.0`.
 
-A crate ready to publish might have a `cargo.toml` file like this:
+A crate ready to publish might have a `Cargo.toml` file like this:
 
 ```toml
 [package]
@@ -8616,7 +8616,7 @@ cargo publish
 
 ### Publishing a New Version of an Existing Crate
 
-If you made changes and want to release a new version, change the `version` in `cargo.toml`.
+If you made changes and want to release a new version, change the `version` in `Cargo.toml`.
 It is recommended you use [Semantic Versioning rules](http://semver.org/) to determine what that version number should be.
 Then run `cargo publish`.
 
@@ -8645,3 +8645,207 @@ cargo yank --vers 1.0.1 --undo
 
 Remember, a yank doesn't delete code.
 If you accidentally uploaded secrets, reset them immediately.
+
+## 14.3. Cargo Workspaces
+
+To split a package into multiple crates, cargo has the _workspaces_ feature.
+(_in the distance, you hear [@dayhaysoos](https://twitter.com/Dayhaysoos) yelling M O N O R E P O_)
+
+### Creating a Workspace
+
+A workspace is a set of packages that share the same `Cargo.lock` and output directory.
+
+This chapter will guide you through setting up a workspace with one binary and two libraries.
+The binary will depend on the libraries.
+Create a new folder called `add` and put a `Cargo.toml` file there with these contents:
+
+```toml
+[workspace]
+
+members = [
+    "adder",
+]
+```
+
+This file won't have a `[package]` section.
+Instead, it has a section called `[workspace]`.
+There, the `name` field lists all members of this workspace.
+We can add a member to the workspace by listing the path to the package there.
+In the example, we added the path to our soon-to-be binary crate called `adder` which will be a direct child in the workspace root, in the `add` directory.
+
+```sh
+cargo new adder
+```
+
+That package can be built with `cargo build` from the workspace root, the `add` directory.
+The workspace has a single `target` directory at the top level, `adder` doesn't have its own target directory.
+Even if we ran `cargo build` from inside the `adder` directory, the artefacts would end up in that top level directory.
+The crates in a workspace are meant to depend on each other.
+Only a single version of a dependency can be used across the different members of a workspace.
+They can all use the same dependency, but they should use the same _version_ of that dependency.
+Sharing a `target` directory prevents duplicate work when compiling packages.
+
+### Creating the Second Package in the Workspace
+
+Creating the first library crate called `add-one` as direct child of the `add` directory:
+
+```sh
+cargo new add-one --lib
+```
+
+Doing this produces a helpful message of what to do next:
+
+```sh
+cargo new add-one --lib
+warning: compiling this new crate may not work due to invalid workspace configuration
+
+current package believes it's in a workspace when it's not:
+current:   /home/nicky/projects/scrapyard/book/14_more_about_cargo/add/add-one/Cargo.toml
+workspace: /home/nicky/projects/scrapyard/book/14_more_about_cargo/add/Cargo.toml
+
+this may be fixable by adding `add-one` to the `workspace.members` array of the manifest located at: /home/nicky/projects/scrapyard/book/14_more_about_cargo/add/Cargo.toml
+Alternatively, to keep it out of the workspace, add the package to the `workspace.exclude` array, or add an empty `[workspace]` table to the package's manifest.s
+```
+
+Adding it as member in the workspace root `Cargo.toml`:
+
+```toml
+[workspace]
+
+members = [
+    "adder",
+    "add-one",
+]
+```
+
+The folder structure now looks like this:
+
+```
+├── Cargo.lock
+├── Cargo.toml
+├── add-one
+│   ├── Cargo.toml
+│   └── src
+│       └── lib.rs
+├── adder
+│   ├── Cargo.toml
+│   └── src
+│       └── main.rs
+└── target
+```
+
+Adding a public function to `add/add-one/src/lib.rs`:
+
+```rust
+pub fn add_one(x: i32) -> i32 {
+    x + 1
+}
+```
+
+To use that function in the binary `adder` crate, we need to add a path depencency to `adder/Cargo.toml`:
+
+```toml
+[dependencies]
+
+add-one = { path = "../add-one" }
+```
+
+While `add-one` is in the same workspace as `adder`, dependencies need to be made explicit.
+Instead of the familiar version number when adding a dependency from crates.io,
+the field in `[dependencies]` takes a relative path to the location of the crate in the workspace.
+
+We can now use the public API of `add-one` in `adder`.
+In `adder/src/main.rs`:
+
+```rust
+use add_one;
+
+fn main() {
+    let num = 10;
+    println!(
+        "Hello, world! {} plus one is {}!",
+        num,
+        add_one::add_one(num)
+    );
+}
+```
+
+Note, while the crate is named `add-one`, it is imported with `add_one`.
+
+To run the binary crate from the `add` directory, we can specify which package we want to run with the `-p` argument to `cargo run`:
+
+```sh
+cargo run -p adder
+```
+
+#### Depending on an External Package in a Workspace
+
+If we add an external package like `rand` to both `adder` and `add-one`,
+cargo will resolve both of those to one version and add a single version to the top-level `Cargo.lock`.
+
+In `add-one/Cargo.toml`:
+
+```toml
+[dependencies]
+rand = "0.5.5"
+```
+
+The `rand` crate can now be used in the `add-one` crate.
+Building the workspace in the `add` directory will download and compile the crate.
+
+If we also want to use `rand` in `adder`, we need to add it to the `[dependencies]` section of its `Cargo.toml`.
+No additional copies will be downloaded to the workspace, since it's the same version, and lives in the workspace root `target` directory.
+
+### Adding a Test to a Workspace
+
+Let's add a test in the `add-one` crate:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        assert_eq!(3, add_one(2));
+    }
+}
+```
+
+Running `cargo test` in the root of the workspace will run all tests in that workspace.
+We can run tests for a specific crate by passing the `-p` option to the `cargo test` command:
+
+```sh
+cargo test -p add-one
+```
+
+If you publish crates in the workspace to crates.io, each crate will need to be published seperately, as if it were a stand-alone crate.
+
+## 14.4. Installing Binaries from Crates.io with cargo install
+
+With `cargo install`, you can install binary crates locally.
+You can only install packages that have binary targets this way.
+In other words, runnable programs that have a `main.rs` that you can execute.
+
+The binaries installed this way are stored in the installation root's `bin` folder.
+If you installed Rust with rustup and didn't customize it, that directory will be `$HOME/.cargo/bin`.
+You'll be able to run programs you've installed directly via their names if they are in your `$PATH`, which should happen automatically.
+
+For example, there's a Rust based tool cool `ripgrep` that's an implementation of `grep`:
+
+```sh
+$ cargo install ripgrep
+    Updating crates.io index
+  Downloaded ripgrep v11.0.2
+  Downloaded 1 crate (243.3 KB) in 0.88s
+  Installing ripgrep v11.0.2
+--snip--
+   Compiling ripgrep v11.0.2
+    Finished release [optimized] target(s) in 3m 10s
+  Installing ~/.cargo/bin/rg
+   Installed package `ripgrep v11.0.2` (executable `rg`)
+```
+
+After installing it, it can be used with the name: `rg`.
+
+
