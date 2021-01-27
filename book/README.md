@@ -9101,3 +9101,246 @@ They don't have extra capabilities like other smart pointers.
 It is a smart pointer because it implements the `Deref`, and `Drop` traits.
 `Deref` allows boxes to be treated like references.
 When a `Box<T>` value goes out of scope, the data on the heap it points to is deallocated too because of the `Drop` implementation.
+
+## 15.2. Treating Smart Pointers Like Regular References with the Deref Trait
+
+The `Deref` trait allows you to customize the behavior of the dereference operator, `*`.
+You can implement the `Deref` trait so that you can treat the smart pointer (usually a struct) as a regular reference,
+not as a struct with a reference in a field.
+Then you can use code that works with regular references with those smart pointers.
+
+### Following the Pointer to the Value with the Dereference Operator
+
+A regular reference is a pointer.
+It _points_ to, or _refers_ to, a value that is stored somewhere else.
+You can think of it like an arrow to that value.
+
+The dereference operator follows that arrow to the value it is pointing to.
+
+```rust
+fn main() {
+    let x = 5;
+    let y = &x;
+
+    assert_eq!(5, x);
+    assert_eq!(5, *y);
+}
+```
+
+In this example, `x` holds the number `5` (an `i32` value) directly.
+`y` hold a reference to `x`.
+The first `assert_eq` confirms that `5` is equal to the value stored in `x`.
+In the second `assert_eq`, we dereference `y` first, we follow the arrow to the value it is pointing to.
+That value is equal to `5`.
+We couldn't directly compare `5` to `y` since they are different types.
+Trying to do that would result in a compiler error:
+
+```
+error[E0277]: can't compare `{integer}` with `&{integer}`
+  --> src/main.rs:19:5
+   |
+19 |     assert_eq!(5, y);
+   |     ^^^^^^^^^^^^^^^^^ no implementation for `{integer} == &{integer}`
+   |
+```
+The value `y` is pointing to and `5` are the same type, those can be compared.
+To get to the value `y` is pointing at, we dereference it with the star operator, `*`.
+
+### Using Box<T> Like a Reference
+
+We can put the value of `x` in a `Box` and store that in `y`.
+`y` can still be dereferenced with the `*`.
+
+```rust
+fn main() {
+    let x = 5;
+    let y = Box::new(x);
+
+    assert_eq!(5, x);
+    assert_eq!(5, *y);
+}
+```
+
+`y` is now a `Box` pointing to the copied value of `x`.
+Because the `Box` implements the `Deref` trait, we can dereference the `Box(x)` to follow the `Box`'s pointer to the value it points to.
+
+### Defining Our Own Smart Pointer
+
+We'll build our own smart pointer that's similar to the `Box<T>` the standard library provides.
+
+The `Box<T>` type is a tuple struct with one element.
+We'll define our own `MyBox<T>` in the same way:
+
+```rust
+struct MyBox<T>(T);
+
+impl<T> MyBox<T> {
+    fn new(x: T) -> MyBox<T> {
+        MyBox(x)
+    }
+}
+```
+
+The `<T>` is a generic parameter, because we want our `MyBox` type to be able to hold multiple types,
+those will then take the place of `T` when it is used.
+The `MyBox::new` associated function returns an instance of the `MyBox` tuple struct that holds the value that was passed to that function.
+
+If we try to use the code snippet where we used a `Box` above, it will fail.
+Rust doesn't know how to dereference a `MyBox`:
+
+```rust
+// DOES NOT COMPILE
+fn main() {
+    let x = 5;
+    let y = MyBox::new(x);
+
+    assert_eq!(5, x);
+    assert_eq!(5, *y);
+}
+```
+
+When we try to compile that code, Rust lets us know it does not know how to dereference the `MyBox`.
+The compiler shows us the exact location we tried to dereference it,
+at the point we tried to use the `*` operator.
+
+```
+error[E0614]: type `MyBox<{integer}>` cannot be dereferenced
+  --> src/main.rs:33:19
+   |
+33 |     assert_eq!(5, *y);
+   |                   ^^
+```
+
+### Treating a Type Like a Reference by Implementing the Deref Trait
+
+To implement a trait, we need to provide implementations for that trait's required methods.
+For `Deref`, that means implementing the `deref` method.
+It take a shared (so immutable) reference to `self`, and returns a shared reference to `T`.
+Translated to our `MyBox`: it takes a reference to the `MyBox` instance, and returns a reference to the thing that `MyBox` points to.
+So it turns a reference into another reference.
+
+```rust
+use std::ops::Deref;
+
+impl<T> Deref for MyBox<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.0
+    }
+}
+```
+
+Like when we talked about the `Iterator` trait, that `type Target` syntax is an associated type.
+It is used in the `Deref` trait implementation.
+
+The body of the method returns a reference to the first element of that tuple struct: `&self.0`.
+At that point, the compiler knows how to dereference that regular reference by following that pointer to a value.
+
+With that addition, tha piece of code where we tried to dereference a `MyBox` with the star operator, `*`, works!
+
+The compiler can only dereference `&` references.
+The `Deref` trait has a `deref` method.
+That gives the compiler the ability to turn a value that implements `Deref` into a regular reference by calling `deref` on it.
+Then, the compiler can dereference that `&` referene.
+
+When we wrote `*y` in our code, what happened under the hood was:
+```rust
+*(y.deref())
+```
+
+The compiler first turned the `MyBox<i32>` into an `&i32` by calling `deref` on `y`.
+Then, the `*` operator makes the compiler follow that reference to the value it is pointing at, which is an `i32`.
+
+This behavior happens automatically and is the reason we can use smart pointers in code written for regular pointers.
+
+`deref` returns a reference to `T`, instead of `T` itself because of the ownership system.
+If it returned `T`, the value would be moved out of `self` (here: out of `MyBox`).
+We don't want to take ownership of the value in most cases where we use the dereference operator.
+
+In my opinion, the `deref` method is incredibly confusing naming.
+`deref` doesn't dereference at all, it returns a reference.
+The compiler knows how to dereference _that_ reference.
+
+### Implicit Deref Coercions with Functions and Methods
+
+Deref coercion is a convenience Rust performs on arguments to functions.
+It works on types that implement the `Deref` trait.
+Deref coercion converts a type that implements `Deref` into a reference to another type.
+(it does this by calling the `deref` method)
+
+For example, deref conversion can convert `&String` to `&str`.
+`String` implements the `Deref` trait, their `Target` type is `str`.
+Deref coercion happens automatically when we pass a reference to a type into a function that doesn't match that type in its signature.
+A sequence of calls to `deref` converts the type that was passed in, to the type the function signature requires.
+If after that, the type still doesn't match you'll get a compiler error.
+
+Using deref conversion with our `MyBox<T>` type:
+
+```rust
+// --snip--
+fn hello(name: &str) {
+    println!("Hello, {}!", name);
+}
+
+fn main() {
+    let m = MyBox::new(String::from("Rust"));
+    hello(&m);
+}
+```
+
+This call to `hello` succeeds.
+We pass a reference to a `MyBox<String>` to the `hello` function,
+eventhough its signature expects a `&str`.
+
+- Because we implemented `Deref` for `MyBox<T>`, Rust calls the `deref` method.
+  - This turns the `&MyBox<String>` into a `&String`.
+- This still isn't the type the function signature expects.
+- Because `Deref` is implemented for `String`, Rust calls the `deref` method.
+  - This turns the `&String` into a `&str`
+- This is the type the function signature expects.
+
+This process happens automatically.
+If it didn't we'd have to convert our `MyBox<String>` to an `&str` manually.
+This would be the code we would write then:
+
+```rust
+fn main() {
+    let m = MyBox::new(String::from("Rust"));
+    hello(&(*m)[..]);
+}
+```
+
+The `(*m)` calls the `deref` method on `MyBox<T>`, and then the compilers follows the reference that method returns,
+turning the `MyBox<String>` into a `String`.
+We then take a slice of the full string with `&` and `[..]` to turn that `String` into an `&str`.
+So this code is equivalent, but much harder to read.
+
+The number of times `Deref::deref` needs to be called is resolved at compile time.
+There is no runtime cost for using deref conversion (since you'd manually have to convert it otherwise).
+
+### How Deref Coercion Interacts with Mutability
+
+- The `Deref` trait overrides the behavior of the `*` operator on immutable references.
+- The `DerefMut` trait overrides the behavior of the `*` operator on mutable references.
+
+> Rust does deref coercion when it finds types and trait implementations in three cases:
+
+> - From &T to &U when T: Deref<Target=U>
+> - From &mut T to &mut U when T: DerefMut<Target=U>
+> - From &mut T to &U when T: Deref<Target=U>
+
+- Rust can coerce an immutable reference to a type that implements `Deref` to an immutable reference of the `Target` type.
+- Rust can coerce a mutable reference to a type that implements `DerefMut` to a mutable reference of the `Target` type.
+- Rust can coerce a mutable reference to a type that implements `Deref` to an immutable reference of the `Target` type.
+
+The reverse of that last one is not possible.
+An immutable reference will never coerce to a mutable reference.
+This is because of the borrowing rules.
+A mutable reference must be the only reference to that data.
+
+Converting a mutable reference to an other mutable reference is always ok.
+Converting a mutable reference to an immutable reference is always ok.
+Converting an immutable reference to an other immutable reference is always ok.
+Converting an immutable reference to a mutable reference is _not_,
+that would require the initial immutable reference to be the only one that exist, and that can not be guaranteed by the compiler.
