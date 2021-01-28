@@ -9344,3 +9344,113 @@ Converting a mutable reference to an immutable reference is always ok.
 Converting an immutable reference to an other immutable reference is always ok.
 Converting an immutable reference to a mutable reference is _not_,
 that would require the initial immutable reference to be the only one that exist, and that can not be guaranteed by the compiler.
+
+## 15.3. Running Code on Cleanup with the Drop Trait
+
+The `Drop` trait is almost always implemented on smart pointers.
+It is included in the prelude, so you don't have to bring it into scope first.
+It lets you customize the code that executes when an owner of a value goes out of scope.
+It can be implemented on any type, and is used to release resources like network connections, files, and memory usage.
+
+An example usage: when the owner of a `Box<T>` goes out of scope,
+not only is the `Box` popped off the stack, the `T` that uses memory on the heap is deallocated.
+
+In some languages, the programmer must call code to free memory or resources. (eg. `free` in C)
+In Rust, the compiler will automatically insert the bit of code that needs to run when a value goes out of scope.
+You as the programmer can customize that bit of code by implementing the `Drop` trait.
+
+The `Drop` trait requires you to implement a method called `drop`.
+That method takes a mutable reference to `self` and returns the unit type, the empty tuple, `()`.
+
+Let's implement this trait for our own struct, `CustomSmartPointer`:
+
+```rust
+struct CustomSmartPointer {
+    data: String,
+}
+
+impl Drop for CustomSmartPointer {
+    fn drop(&mut self) {
+        println!("Dropping CustomSmartPointer with data `{}`!", self.data);
+    }
+}
+
+fn main() {
+    let c = CustomSmartPointer {
+        data: String::from("my stuff"),
+    };
+    let d = CustomSmartPointer {
+        data: String::from("other stuff"),
+    };
+    println!("CustomSmartPointers created.");
+}
+```
+
+Executing this file allows us to see when the code in the `drop` function is called.
+The `drop` function prints a line to the console when the owner (`self`) goes out of scope.
+In this example the following lines are printed, in this order:
+
+```
+CustomSmartPointers created.
+Dropping CustomSmartPointer with data `other stuff`!
+Dropping CustomSmartPointer with data `my stuff`!
+```
+
+First, the instances of `CustomSmartPointer` are created, this prints nothing to the console.
+The line `println!("CustomSmartPointers created.");` is reached and prints to the console.
+As the `main` function ends, the `d`, and `c` variables go out of scope and Rust automatically cals the `drop` method.
+Variables are dropped in reverse order of their creation,
+`d` is dropped before `c`.
+
+### Dropping a Value Early with std::mem::drop
+
+It's not straightforward to disable the automatic calling of `drop`.
+Occasionally, when you want to clean up a value early you might want to do that.
+Calling `drop` again automatically after manually calling `drop` could cause unwanted situations. (eg. you try to free the same memory twice.)
+This is known as -real bad-, alternatively it's called a -big no no-.
+
+An example where you might want to call `drop` early is when using smart pointers that manage locks.
+
+Sidenote: I didn't know what a lock was in this context.
+It's a think that manages exclusive access to a resource,
+if one variable holds the lock, no other variables can manipulate that resource.
+The variable that holds the lock can release that lock.
+Then an other variable can acquire that lock,
+and manipulate that resource.
+
+If the `drop` method releases the lock so other code in the same scope can acquire that lock.
+You might want to force the `drop` method to be called before that scope ends.
+Rust doesn't let you call the `Drop` trait's `drop` method manually.
+Trying to do so causes a compiler error: `explicit use of destructor method`.
+You have to call `std::mem::drop` from the standard library.
+
+To call `std::mem::drop`, pass the value you want to force to be dropped as an argument.
+The function is in the prelude, which means calling `drop` in your code calls `std::mem::drop`.
+Calling that function will call the `drop` method you implemented in the `Drop` trait to be called at that time,
+but not again when the thing you passed as an argument to `std::mem::drop` goes out of scope
+
+```rust
+fn main() {
+    let c = CustomSmartPointer {
+        data: String::from("some data"),
+    };
+    println!("CustomSmartPointer created.");
+    drop(c);
+    println!("CustomSmartPointer dropped before the end of main.");
+}
+```
+
+This prints:
+
+```
+CustomSmartPointer created.
+Dropping CustomSmartPointer with data `some data`!
+CustomSmartPointer dropped before the end of main.
+```
+
+An instance of `CustomSmartPointer` is created and is owned by `c`.
+The line `println!("CustomSmartPointer created.");` is reached and gets printed to the console.
+`drop(c);` is called, this executes the `drop` method we implemented in the `Drop` trait.
+That prints `Dropping CustomSmartPointer with data 'some data'!` to the console.
+The `main` function continues executing and the `println!("CustomSmartPointer dropped before the end of main.");` is reached.
+At the end of `main`, when `c` goes out of scope, the implementation of `drop` we specified on the `Drop` trait is not called again.
