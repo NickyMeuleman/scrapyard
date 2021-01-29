@@ -9454,3 +9454,195 @@ The line `println!("CustomSmartPointer created.");` is reached and gets printed 
 That prints `Dropping CustomSmartPointer with data 'some data'!` to the console.
 The `main` function continues executing and the `println!("CustomSmartPointer dropped before the end of main.");` is reached.
 At the end of `main`, when `c` goes out of scope, the implementation of `drop` we specified on the `Drop` trait is not called again.
+
+## 15.4. Rc, the Reference Counted Smart Pointer
+
+Remember when this book told you a value can have at most one owner?
+Yeah, nah.
+
+Most of the time, you know exactly which variable owns a given value.
+There are cases when a single value might have multiple owners.
+For example, a node in graph data structures.
+Multiple edges might point to the same node, that node is then conceptually owned by all those edges.
+A node shouldn't be cleaned up unless it has no edges pointing to it.
+
+Rust has a type called `Rc<T>` that enables multiple ownership.
+Rc is an abbreviation of reference counting.
+`Rc<T>` keeps track of the number of references there are to `T`.
+If there are zero left, the value can be cleaned up. (if the value would be cleaned up sooner, the existing references would become invalid.)
+
+An `Rc<T>` can be thought of as a light with a presence detector.
+When someone walks in the room, the light turns on.
+As long as at least one person remains in that room, the light stays on.
+It doesn't matter how many people join, or leave.
+Only when the last person leaves, the light turns off.
+
+`Rc<T>` allocates data on the heap.
+We use it when multiple parts of our program read that data,
+but we can't determine at compile time which part will finish using the data last.
+If we knew that, we would make that part the owner of the data,
+and the normal ownership rules would be enforced.
+`Rc<T>` is only for use in single-threaded scenarios.
+(It doesn't implement the `Sync`, and `Send` traits. More about those in the next chapter)
+
+### Using Rc<T> to Share Data
+
+Expanding on our cons list example.
+We want to create two lists that share ownership of a third list.
+
+![two cons lists share ownership of a thrid](trpl15-03.svg)
+
+- List `a` contains: `5, 10`.
+- List `b` contains: `3, 5, 10`.
+- List `c` contains: `4, 5, 10`.
+
+List `b` and `c` share ownership of the items in list `a`.
+
+Trying to implement this using the definition of `List` that uses `Box<T>` won't work:
+
+```rust
+// DOES NOT COMPILE
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+
+fn main() {
+    let a = Cons(5, Box::new(Cons(10, Box::new(Nil))));
+    let b = Cons(3, Box::new(a));
+    let c = Cons(4, Box::new(a));
+}
+```
+
+The compiler error is: `error[E0382]: use of moved value: `a``.
+The `Cons` variants own the data they hold.
+When we create `b`, we move ownership of `a` into `b`.
+When we try to create `c`, the `a` we try to use is no longer there.
+
+It's possible to build a recursive data type like our cons list with references.
+(note that then, the data would all be stored on the stack)
+To do that, we'd need to add lifetimes:
+
+```rust
+enum List<'a> {
+    Cons(u32, &'a List<'a>),
+    Nil,
+}
+
+use List::{Cons, Nil};
+
+fn main() {
+    let list = Cons(1, &Cons(2, &Cons(3, &Nil)));
+
+    println!("{:?}", list);
+}
+```
+
+The lifetime requirements make it incredibly restrictive and hard to use.
+The compiler even has to do a trick to make it compile in the first place.
+By specifying lifetime parameters in this way, we specify every element in the list will live at least as long as the entire list.
+That would be a problem for `Cons(3, &Nil)`.
+In older version of Rust, this wouldn't compile because of that problem.
+The `Nil` would be dropped before the `list` variable could be built, leading to a reference that points at nothing.
+References always need to be valid, so that's not allowed, and the code would fail to compile.
+However, in newer versions, that reference to the constant `Nil` value is promoted to a `'static` lifetime.
+This means the value is kept in a special part of the program's memory rather than treated as a temporary value.
+That reference is never invalid, so the code compiles.
+
+If that `Nil` was a non-constant expression, like the output of a function, this wouldn't work.
+The same problem happens, and we get the `temporary value dropped while borrowed` error.
+
+Information gathered from many places, including [Prince Wilson](https://twitter.com/maxcell) and [Chris Biscardi](https://twitter.com/chrisbiscardi) on Discord, [/u/zeta12ti](https://www.reddit.com/r/learnrust/comments/hehl0q/trouble_understanding_how_the_book_explains_rct/fvrv8dr/) on Reddit, and [Brent Kerby](https://stackoverflow.com/a/62368584) on StackOverflow.
+
+Instead of using references, we change our `List` to use `Rc<T>` in place of `Box<T>`.
+It also stores `T` on the heap, only keeping a small part of the `Rc` on the stack, which has a known size at compile time.
+Every instance of an `Rc` owns that data, and it is only dropped once no owners are left.
+
+Each `Cons` variant will hold a value and an `Rc` pointing to a `List`.
+
+Back to the code snippet that tried to share one list as a part of two other lists.
+When we create those two lists (`b`, and `c`) that contain the first one (`a`).
+When creating `b`, instead of transferring ownership of `a`, we clone the `Rc<List>` that `a` is holding.
+That increases the number of references pointing to that data from one to two and lets `a` and `b` both own the data in that `Rc<List>`.
+When creating `c`, we do the same thing, increasing the number of references from two to three.
+
+Every call to `Rc::clone`, the reference count to the `T` of the `Rc<T>` goes up by one.
+Every time an `Rc<T>` goes out of scope, that reference count goes down by one.
+If the reference count reaches zero, the `T` is dropped and the memory it occupied on the heap is deallocated.
+
+```rust
+use crate::List::{Cons, Nil};
+use std::rc::Rc;
+
+enum List {
+    Cons(i32, Rc<List>),
+    Nil,
+}
+
+fn main() {
+    let a = Rc::new(Cons(5, Rc::new(Cons(10, Rc::new(Nil)))));
+    let b = Cons(3, Rc::clone(&a));
+    let c = Cons(4, Rc::clone(&a));
+}
+```
+
+`Rc` implements the `Clone` trait.
+That trait implements the `clone` method.
+Inside that method is the logic to increment that reference count.
+It doesn't clone the data the `Rc` that `clone` takes as argument points to.
+The returned `Rc` will also point to that same data.
+It takes a reference to `self`, we when we call `Rc::clone`, we pass a reference to `a`.
+
+Note: `Rc` also implements the `Drop` trait.
+the logic to decrement that count is done in the `drop` method.
+
+We could have called `a.clone()` instead of `Rc::clone(&a)`.
+It would call the same `clone` method in the `Clone` trait, but it's convention to call it via `Rc::clone`.
+That also visually distinguishes `Rc::clone` from regular calls to `clone`, which make a deep copy, and can have a much larger performance impact.
+
+### Cloning an Rc<T> Increases the Reference Count
+
+Let's visualize the reference count to a value by printing out the count as `Rc`s are created, cloned, and dropped.
+
+```rust
+fn main() {
+    let a = Rc::new(Cons(5, Rc::new(Cons(10, Rc::new(Nil)))));
+    println!("count after creating a = {}", Rc::strong_count(&a));
+    let b = Cons(3, Rc::clone(&a));
+    println!("count after creating b = {}", Rc::strong_count(&a));
+    {
+        let c = Cons(4, Rc::clone(&a));
+        println!("count after creating c = {}", Rc::strong_count(&a));
+    }
+    println!("count after c goes out of scope = {}", Rc::strong_count(&a));
+}
+```
+
+We get the current reference count by calling the `Rc::strong_count` function.
+It's named `strong_count` because `Rc` also has a `weak_count`.
+
+The printed results:
+
+```
+count after creating a = 1
+count after creating b = 2
+count after creating c = 3
+count after c goes out of scope = 2
+```
+
+After we create `a`, the reference count to the data that `Rc` holds is 1.
+`b` is created, we call `clone` on `a` and that reference count is increased by 1.
+We enter a new scope, denoted by curly bois `{}` where we call `clone` on `a` again, making the count go up to 3.
+When that block ends, `drop` is called on `c`, and the reference count goes down by 1.
+When the `main` function scope ends, `drop` is called on variables in the reverse order they were created.
+So `drop` is called on `b` first, and the count goes down to 1.
+Immediately after, `a` is dropped, the count goes to 0, and the value `a` held is dropped from the heap.
+
+`Rc<T>` allows you to share data between multiple parts of your program for reading only.
+It allows multiple immutable references.
+If those references were mutable, they would break the borrow rules.
+Mutable references are also called exclusive references, because if a reference is mutable, the compiler guarantees it's the only one.
+The very next chapter describes a way to "break" this rule yet again, because apparently that's the overarching theme of smart pointers /s.
+The next chapter talks about `RefCell<T>`, a type that can be used to mutate the data it holds, even when used together with `Rc`.
