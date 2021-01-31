@@ -1,10 +1,11 @@
-use std::rc::Rc;
-use std::cell::RefCell;
 use crate::List::{Cons, Nil};
 use crate::List2::{Cons as Cons2, Nil as Nil2};
 use crate::List3::{Cons as Cons3, Nil as Nil3};
 use crate::List4::{Cons as Cons4, Nil as Nil4};
+use crate::List5::{Cons as Cons5, Nil as Nil5};
+use std::cell::RefCell;
 use std::ops::Deref;
+use std::rc::{Rc, Weak};
 
 #[derive(Debug)]
 enum List {
@@ -28,6 +29,21 @@ enum List3 {
 enum List4 {
     Cons(Rc<RefCell<i32>>, Rc<List4>),
     Nil,
+}
+
+#[derive(Debug)]
+enum List5 {
+    Cons(i32, RefCell<Rc<List5>>),
+    Nil,
+}
+
+impl List5 {
+    fn tail(&self) -> Option<&RefCell<Rc<List5>>> {
+        match self {
+            Cons5(_, item) => Some(item),
+            Nil5 => None,
+        }
+    }
 }
 
 struct MyBox<T>(T);
@@ -54,6 +70,13 @@ impl Drop for CustomSmartPointer {
     fn drop(&mut self) {
         println!("Dropping CustomSmartPointer with data `{}`!", self.data);
     }
+}
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    parent: RefCell<Weak<Node>>,
+    children: RefCell<Vec<Rc<Node>>>,
 }
 
 fn main() {
@@ -120,9 +143,73 @@ fn main() {
     println!("a after = {:?}", a);
     println!("b after = {:?}", b);
     println!("c after = {:?}", c);
+
+    println!("==== REFERENCE CYCLES ====");
+    let a = Rc::new(Cons5(5, RefCell::new(Rc::new(Nil5))));
+
+    println!("a initial rc count = {}", Rc::strong_count(&a));
+    println!("a next item = {:?}", a.tail());
+
+    let b = Rc::new(Cons5(10, RefCell::new(Rc::clone(&a))));
+
+    println!("a rc count after b creation = {}", Rc::strong_count(&a));
+    println!("b initial rc count = {}", Rc::strong_count(&b));
+    println!("b next item = {:?}", b.tail());
+
+    if let Some(link) = a.tail() {
+        *link.borrow_mut() = Rc::clone(&b);
+    }
+
+    println!("b rc count after changing a = {}", Rc::strong_count(&b));
+    println!("a rc count after changing a = {}", Rc::strong_count(&a));
+
+    // Uncomment the next line to see that we have a cycle;
+    // it will overflow the stack
+    // println!("a next item = {:?}", a.tail());
+
+    println!("---- graph ----");
+    let leaf = Rc::new(Node {
+        value: 3,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    });
+
+    println!(
+        "leaf strong = {}, weak = {}",
+        Rc::strong_count(&leaf),
+        Rc::weak_count(&leaf),
+    );
+
+    {
+        let branch = Rc::new(Node {
+            value: 5,
+            parent: RefCell::new(Weak::new()),
+            children: RefCell::new(vec![Rc::clone(&leaf)]),
+        });
+
+        *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
+
+        println!(
+            "branch strong = {}, weak = {}",
+            Rc::strong_count(&branch),
+            Rc::weak_count(&branch),
+        );
+
+        println!(
+            "leaf strong = {}, weak = {}",
+            Rc::strong_count(&leaf),
+            Rc::weak_count(&leaf),
+        );
+    }
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+    println!(
+        "leaf strong = {}, weak = {}",
+        Rc::strong_count(&leaf),
+        Rc::weak_count(&leaf),
+    );
 }
 
 fn hello(name: &str) {
     println!("Hello, {}!", name);
 }
-

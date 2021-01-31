@@ -10057,3 +10057,345 @@ c after = Cons(RefCell { value: 4 }, Cons(RefCell { value: 15 }, Nil))
 By using `RefCell<T>` we have an outwardly immutable `List`.
 We can use methods on that `RefCell` to get a mutable pointer to that value.
 The runtime checks make sure there are no data races.
+
+## 15.6. Reference Cycles Can Leak Memory
+
+The memory safety guarantees make it _difficult_ to use memory that is never cleaned up, not impossible.
+If that happens, that's a memory leak.
+Rust doesn't guarantee it doesn't leak memory in the same way it disallows data races at compile time.
+That means you can write a program that has a memory leak without ever using an `unsafe` block.
+
+We can create a memory leak by using `Rc<T>` and `RefCell<T>` together.
+By creating references where items refer to each other in a cycle.
+The reference count will never reach 0, and the used memory will never be deallocated.
+
+### Creating a Reference Cycle
+
+To demonstrate a reference cycle, let's create yet another version of our `List` enum.
+This version also defines a `tail` method to access the second item in a `Cons` variant.
+
+```rust
+use crate::List::{Cons, Nil};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+#[derive(Debug)]
+enum List {
+    Cons(i32, RefCell<Rc<List>>),
+    Nil,
+}
+
+impl List {
+    fn tail(&self) -> Option<&RefCell<Rc<List>>> {
+        match self {
+            Cons(_, item) => Some(item),
+            Nil => None,
+        }
+    }
+}
+```
+
+The `Cons` variant of this `List` enum now holds an `i32`, and a `RefCell<Rc<List>>`.
+That means that instead of having the ability to modify the `i32` like we did before,
+we want to modify the second value in the pair, the `List` that `Cons` is pointing to.
+
+In the following snippet, in the `main` function:
+This creates an `Rc` of a list in `a` and an `Rc` of a list in `b` that points to the list in `a`.
+
+```rust
+fn main() {
+    let a = Rc::new(Cons(5, RefCell::new(Rc::new(Nil))));
+
+    println!("a initial rc count = {}", Rc::strong_count(&a));
+    println!("a next item = {:?}", a.tail());
+
+    let b = Rc::new(Cons(10, RefCell::new(Rc::clone(&a))));
+
+    println!("a rc count after b creation = {}", Rc::strong_count(&a));
+    println!("b initial rc count = {}", Rc::strong_count(&b));
+    println!("b next item = {:?}", b.tail());
+
+    if let Some(link) = a.tail() {
+        *link.borrow_mut() = Rc::clone(&b);
+    }
+
+    println!("b rc count after changing a = {}", Rc::strong_count(&b));
+    println!("a rc count after changing a = {}", Rc::strong_count(&a));
+
+    // Uncomment the next line to see that we have a cycle;
+    // it will overflow the stack
+    // println!("a next item = {:?}", a.tail());
+}
+```
+
+The variable `a` contains an `Rc<List>`, the `List` value is a `Cons` variant that holds `5, Nil`.
+The variable `b` also contains an `Rc<List>`, the `List` is also a `Cons` variant.
+We create it with `10` as the `i32` and `RefCell::new(Rc::clone(&a))` as the second item in the pair.
+In other words, the list in `b` points to `a`.
+
+We then call `tail` on `a`.
+That uses Rust's automatic dereferencing functionality to turn the `Rc` into a reference of the `List`,
+and `tail` is then called on that `List`.
+
+Using the `if let` syntax, we take the reference to the `item` inside the `Some`.
+Inside the `if let` block,
+we call `borrow_mut` on that `item` (which is automatically turned into the `RefCell` it contains by Rust's dereferencing feature).
+Using the star operator to follow the `RefMut` we get back to the value it point to, we change that value to be an `Rc` that points to `b`.
+In other words: we changed the `Rc<List>` that holds `Nil` to the `Rc<List>` in `b`.
+
+`a` now points to `b`, and `b` points to `a`.
+And thus, a ~~merry go round~~ reference cycle is created.
+
+The code above, with that last `println` commented out, prints this:
+
+```
+$ cargo run
+   Compiling cons-list v0.1.0 (file:///projects/cons-list)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.53s
+     Running `target/debug/cons-list`
+a initial rc count = 1
+a next item = Some(RefCell { value: Nil })
+a rc count after b creation = 2
+b initial rc count = 1
+b next item = Some(RefCell { value: Cons(5, RefCell { value: Nil }) })
+b rc count after changing a = 2
+a rc count after changing a = 2
+```
+
+When `a` is created, it's `Rc` has a reference count of 1.
+After `b` is created, the value `a` points to has a reference count of 2 and the value `b` points to has a reference count of 1.
+After we make `a` point to `b`, the value `b` points to has a reference count of 2.
+
+At the end of `main`, Rust will drop `b` first, because it was declared last (variables are dropped in the reverse order they are declared).
+That will decrease the reference count by one, from 2 to 1.
+Because `a` is still referencing the `Rc<List>` in `b`, after `b` is dropped, the reference count of the `Rc<List>` it pointed to is still 1, not 0.
+The memory that the list in `b` occupies on the heap will sit there, forever.
+well, until every reference is dropped.
+In this case that's immediately because the very next thing that happens is `a` being dropped.
+
+![a reference cycle](trpl15-04.svg)
+
+Uncommenting the last line won't lead to a compiler error.
+However, when it runs, the stack will overflow and the program will exit.
+Rust will try to print the `tail` of `a`.
+But that points back to `a`, which in turn points to `b`, that points to `a` again, and, here we go again -insert gta:sa meme-, an infinite loop.
+
+The consequences of this reference cycle aren't very dire.
+In a program that uses a lot of memory in a cycle, that memory never gets freed, causing the program to use more and more memory as it runs and more cycles are created.
+That might overwhelm the system and cause it to run out of memory.
+
+Creating reference cycles is not easy, but not impossible.
+When using `RefCell<T>` values that contain `Rc<T>` values or similar nested combinations of types with interior mutability and reference counting,
+you must ensure you don't create cycles.
+
+A solution for avoiding reference cycles is reorganizing the data in a way that some references express ownership while others don't.
+As a result, you can still have cycles made up of some ownership relationships and some non-ownership relationships.
+In the cons list example, we always want `Cons` variants to own their list, so such a reorganization is not possible.
+Let's look at a graph next, where those two types of relationships do make sense.
+
+### Preventing Reference Cycles: Turning an Rc<T> into a Weak<T>
+
+`Rc::clone` increases the `strong_count` of an `Rc<T>`.
+That `T` is only dropped when the `strong_count` reaches 0.
+You can also create a _weak_ reference to the value in an `Rc<T>`,
+by calling `Rc::downgrade` and passing a reference to the `Rc<T>`.
+Calling `Rc::downgrade` returns a smart pointer of type `Weak<T>`.
+When calling `Rc::downgrade`, instead of increasing the `strong_count` in the `Rc<T>` by 1,
+you increase the `weak_count` in that `Rc<T>` by 1.
+The `weak_count` doesn't need to be 0 for a value to be dropped.
+
+Strong references are how you share ownership of an `Rc<T>`.
+Weak references don't express an ownership relation.
+They won't cause a reference cycle because the cycles involving weak references will be broken once the strong reference count drops to 0.
+
+Because of the possibility that the value a `Weak<T>` points to has been dropped, we can't access it directly.
+We have to make sure that `T` still exists first.
+This is done by calling the `upgrade` method on a `Weak<T>`.
+That method returns an `Option<Rc<T>>`.
+If the `T` has been dropped, you'll get a `None`.
+If it's still there, you get a `Some` with an `Rc<T>` inside.
+
+The goal is to build a graph where parent nodes own their child nodes,
+while child nodes have references to their parent node that doesn't express ownership.
+
+#### Creating a Tree Data Structure: a Node with Child Nodes
+
+To start, we'll build a tree with nodes that know about (and own) their children.
+The `Node` struct holds an `i32` as well as references to its children `Node` values:
+
+```rust
+use std::cell::RefCell;
+use std::rc::Rc;
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    children: RefCell<Vec<Rc<Node>>>,
+}
+```
+
+We want a `Node` to own its children.
+We also want to share ownership with variables so we can access the `Node` directly through that variable.
+To do this, we define the items inside the `Vec` to be of type `Rc<Node>`.
+We want to be able to modify which nodes are children of another node, so that vector is wrapped in a `RefCell`.
+
+We create one instance of `Node` with a `value` of 3, and no children.
+We store it in the `leaf` variable.
+We create another instance of `Node` with a `value` of 5, and `leaf` as one of its children.
+That instance is stored in the `branch` variable.
+
+```rust
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        children: RefCell::new(vec![]),
+    });
+
+    let branch = Rc::new(Node {
+        value: 5,
+        children: RefCell::new(vec![Rc::clone(&leaf)]),
+    });
+}
+```
+
+We used `Rc::clone(&leaf)` to add `leaf` as a child of `branch`.
+That means that `Node` now has two owners, `leaf`, and `branch` (the `strong_count` of the `Rc` is 2).
+We can get from `branch` to `leaf` through `branch.children`, but not from `leaf` to its parent, `branch`.
+`leaf` has no reference to `branch`, it doesn't even know it exists.
+
+#### Adding a Reference from a Child to Its Parent
+
+We want to add a `parent` field to our `Node` struct that holds a reference to the parent `Node`.
+We know we can't use an `Rc<T>`, that would create a reference cycle (parent <-> child).
+The `leaf.parent` would refer to the `branch`, and the `branch.children` would include a reference to `leaf` again.
+The `strong_count` would never reach 0 that way.
+
+Instead, only one relationship should express ownership.
+A parent should own its children.
+If a parent node is dropped, all child nodes should be dropped as well.
+A child node should not own its parent, dropping a child node should not also drop the parent node.
+This is a case for weak references.
+
+The type of the `parent` field on the `Node` struct will use a `Weak<Node>`.
+We want to be able to mutate that field, so we wrap it in a `RefCell` and use a `RefCell<Weak<Node>>`.
+
+```rust
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    parent: RefCell<Weak<Node>>,
+    children: RefCell<Vec<Rc<Node>>>,
+}
+```
+
+A `Node` will be able to refer to its parent node but doesn't own its parent.
+The updates `leaf` and `branch` variable creation:
+
+```rust
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    });
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+
+    let branch = Rc::new(Node {
+        value: 5,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![Rc::clone(&leaf)]),
+    });
+
+    *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+}
+```
+
+We create the `leaf` node with an empty `Weak<Node>` wrapped in a `RefCell` as parent.
+When we `println` what's inside that `parent` by calling `.upgrade()` on the `Weak`,
+we get a `None` variant back.
+Since that `Weak` doesn't point to anything yet.
+
+After the `branch` is created, the `leaf`'s `parent` field is updated to include a `Weak<Node>` that points to `branch` inside its `RefCell`.
+Now, when we `println` what's inside that `parent` by calling `.upgrade()` on the `Weak`, something is there.
+We get a `Some` back that holds `branch`.
+
+That last `println` doesn't overflow the stack like our cons example did.
+Eventhough it contains a cycle, `leaf` points to `branch`, and `branch` points to `leaf`!
+That last line prints:
+
+```
+leaf parent = Some(Node { value: 5, parent: RefCell { value: (Weak) }, children: RefCell { value: [Node { value: 3, parent: RefCell { value: (Weak) }, children: RefCell { value: [] } }] } })
+```
+
+This is because the `Weak<Node>` references are printed as `(Weak)` and don't kick off infinite cycles.
+
+#### Visualizing Changes to strong_count and weak_count
+
+Let's look at how the `strong_count` and `weak_count` of the `Rc<Node>` change.
+By moving the creation of `branch` to an inner scope (denoted by curly bois `{}`), 
+we can print what happens to those counts after `branch` is dropped.
+
+```rust
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    });
+
+    println!(
+        "leaf strong = {}, weak = {}",
+        Rc::strong_count(&leaf),
+        Rc::weak_count(&leaf),
+    );
+
+    {
+        let branch = Rc::new(Node {
+            value: 5,
+            parent: RefCell::new(Weak::new()),
+            children: RefCell::new(vec![Rc::clone(&leaf)]),
+        });
+
+        *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
+
+        println!(
+            "branch strong = {}, weak = {}",
+            Rc::strong_count(&branch),
+            Rc::weak_count(&branch),
+        );
+
+        println!(
+            "leaf strong = {}, weak = {}",
+            Rc::strong_count(&leaf),
+            Rc::weak_count(&leaf),
+        );
+    }
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+    println!(
+        "leaf strong = {}, weak = {}",
+        Rc::strong_count(&leaf),
+        Rc::weak_count(&leaf),
+    );
+}
+```
+
+After the creation of `leaf`, the `Rc<Node>` it contains has a strong count of 1 and a weak count of 0.
+We open a new scope.
+After the creation of `branch`, we add a `Weak` reference to it in `leaf.parent`.
+The `branch`'s `Rc` now has a strong count of 1 and a weak count of 1.
+The `leaf`'s `Rc` now has a strong count of 2 and a weak count of 0.
+(1 for the `leaf` variable, and 1 for the reference in `branch.children`).
+
+When the inner scope ends, `branch` goes out of scope and is dropped.
+The strong count of the `Rc<Node>` `branch` pointed to decreases to 0 and the `Node` is dropped.
+The weak count of 1 from `leaf.parent` doesn't influence this, it doesn't prevent the `Node` from being dropped.
+When we call `upgrade` on that `Weak` now, it will return a `None` variant.
+At the end of the `main` function, the `Rc` that `leaf` points to has a strong count of 1 (the dropping of `branch` made it go from 2 to 1),
+and a weak count of 0.
