@@ -79,6 +79,23 @@ struct Node {
     children: RefCell<Vec<Rc<Node>>>,
 }
 
+#[derive(Debug)]
+struct LLNode {
+    data: i32,
+    next: Option<Box<LLNode>>,
+}
+impl LLNode {
+    fn new(num: i32) -> Self {
+        LLNode {
+            data: num,
+            next: None,
+        }
+    }
+    fn set_next(&mut self, next: LLNode) {
+        self.next = Some(Box::new(next));
+    }
+}
+
 fn main() {
     let b = Box::new(5);
     println!("b = {}", b);
@@ -208,6 +225,16 @@ fn main() {
         Rc::strong_count(&leaf),
         Rc::weak_count(&leaf),
     );
+
+    println!("==== LINKED LIST ====");
+    let mut one = LLNode::new(1);
+    let two = LLNode::new(2);
+
+    one.set_next(two);
+
+    println!("{:?}", one);
+    println!("{}", one.data);
+    println!("{:?}", one.next);
 }
 
 fn hello(name: &str) {
