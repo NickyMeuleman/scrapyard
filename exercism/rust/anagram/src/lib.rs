@@ -15,7 +15,7 @@ pub fn anagrams_for<'a>(word: &str, possible_anagrams: &[&'a str]) -> HashSet<&'
     .copied()
     .filter(|&item| {
         let mut lowercase_item = lowercase_chars(item);
-        if lowercase_word == lowercase_item {
+        if lowercase_item.len() != lowercase_word.len() || lowercase_item == lowercase_word {
             false
         } else {
             lowercase_item.sort_unstable();
