@@ -12,7 +12,7 @@ fn get_primes(max: usize, nth: usize) -> Vec<usize> {
         if sieve[num] {
             // num is prime
             primes_found += 1;
-            if primes_found == nth + 1 {
+            if primes_found == nth {
                 break;
             }
             // mark all multiples as not prime
@@ -32,9 +32,9 @@ fn get_primes(max: usize, nth: usize) -> Vec<usize> {
         .collect()
 }
 
-pub fn nth(n: u32) -> u32 {
-    *get_primes(LARGEST_WANTED_PRIME, n as usize)
+pub fn nth(n: usize) -> usize {
+    *get_primes(LARGEST_WANTED_PRIME, n)
         .iter()
-        .nth(n as usize)
-        .unwrap() as u32
+        .nth(n)
+        .unwrap()
 }
