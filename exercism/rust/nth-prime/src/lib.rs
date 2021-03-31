@@ -12,7 +12,7 @@ fn get_primes(max: usize, nth: usize) -> Vec<usize> {
         if sieve[num] {
             // num is prime
             primes_found += 1;
-            if primes_found == nth {
+            if primes_found == nth + 1 {
                 break;
             }
             // mark all multiples as not prime
