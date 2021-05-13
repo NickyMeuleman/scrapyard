@@ -5,8 +5,6 @@
 // of "waiting..." and the program ends without timing out when running,
 // you've got it :)
 
-// I AM NOT DONE
-
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;

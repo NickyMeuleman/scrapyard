@@ -3,6 +3,7 @@
 // on strings to generate an object of the implementor type.
 // You can read more about it at https://doc.rust-lang.org/std/str/trait.FromStr.html
 use std::str::FromStr;
+use std::convert::TryFrom;
 
 #[derive(Debug)]
 struct Person {
@@ -23,6 +24,25 @@ struct Person {
 impl FromStr for Person {
     type Err = String;
     fn from_str(s: &str) -> Result<Person, Self::Err> {
+        if s.len() == 0 {
+            Err("Tried to parse an empty argument.".to_owned())
+        } else {
+            let parts: Vec<&str> = s.split(",").collect();
+            let name = parts[0];
+            if name.is_empty() {
+                Err("Tried to parse an empty name.".to_owned())
+            } else {
+                if parts.len() >= 2 {
+                    // why does this not work?
+                    // let age = usize::try_from(parts[1]).map_err(|e| e.to_string())?;
+                    
+                    let age = parts[1].parse::<usize>().map_err(|e| e.to_string())?;
+                    Ok(Person { name: name.to_owned(), age })
+                } else {
+                    Err("Pass 2 or more arguments.".to_owned())
+                }
+            }
+        }
     }
 }
 
@@ -82,5 +102,4 @@ mod tests {
     fn missing_name_and_invalid_age() {
         ",one".parse::<Person>().unwrap();
     }
-
 }
