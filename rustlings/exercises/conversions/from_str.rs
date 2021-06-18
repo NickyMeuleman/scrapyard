@@ -10,8 +10,6 @@ struct Person {
     name: String,
     age: usize,
 }
-
-// I AM NOT DONE
 // Steps:
 // 1. If the length of the provided string is 0, then return an error
 // 2. Split the given string on the commas present in it
@@ -33,9 +31,8 @@ impl FromStr for Person {
                 Err("Tried to parse an empty name.".to_owned())
             } else {
                 if parts.len() >= 2 {
-                    // why does this not work?
+                    // try_from doesn't work because of ownership, &str needs parse as it doesn't take ownership
                     // let age = usize::try_from(parts[1]).map_err(|e| e.to_string())?;
-                    
                     let age = parts[1].parse::<usize>().map_err(|e| e.to_string())?;
                     Ok(Person { name: name.to_owned(), age })
                 } else {
