@@ -16,7 +16,7 @@ pub fn encode(n: u64) -> String {
         13 => "thirteen".to_string(),
         15 => "fifteen".to_string(),
         18 => "eighteen".to_string(),
-        14..=19 => format!("{}teen", encode(n - 10)),
+        14 | 16 | 17 | 19 => format!("{}teen", encode(n - 10)),
         20 => "twenty".to_string(),
         30 => "thirty".to_string(),
         40 => "forty".to_string(),
