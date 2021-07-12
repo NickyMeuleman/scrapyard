@@ -1,0 +1,11 @@
+[package]
+name = "cd_ripping"
+version = "0.1.0"
+authors = ["Nicky Meuleman <nicky.dev@outlook.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = {version = "1.0.126", features = ["derive"] }
+csv = "1.1.6"
