@@ -1,7 +1,8 @@
-// Question suggested BTreeSet, why that instead of a HashSet?
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
-pub struct Triangle(usize);
+pub struct Triangle {
+    different_side_count: usize,
+}
 
 impl Triangle {
     pub fn build(sides: [u64; 3]) -> Option<Triangle> {
@@ -9,24 +10,26 @@ impl Triangle {
         // In a valid triangle: 2 * max(a, b, c) < a + b + c
         // bonus: if any side is 0, triangle_inequality will be false
         let triangle_inequality = 2 * sides.iter().max().unwrap() < sides.iter().sum();
-        match triangle_inequality {
-            true => {
-                let set: BTreeSet<&u64> = sides.iter().collect();
-                Some(Self(set.len()))
-            }
-            false => None,
+        if triangle_inequality {
+            let set: HashSet<u64> = sides.iter().copied().collect();
+            let triangle = Self {
+                different_side_count: set.len(),
+            };
+            Some(triangle)
+        } else {
+            None
         }
     }
 
     pub fn is_equilateral(&self) -> bool {
-        self.0 == 1
+        self.different_side_count == 1
     }
 
     pub fn is_scalene(&self) -> bool {
-        self.0 == 3
+        self.different_side_count == 3
     }
 
     pub fn is_isosceles(&self) -> bool {
-        self.0 == 2
+        self.different_side_count == 2
     }
 }
