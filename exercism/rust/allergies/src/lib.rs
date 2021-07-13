@@ -33,9 +33,10 @@ impl Allergies {
         // Peanuts is 2^1 = 2
         // Shellfish is 2^2 = 4
         let allergies = allergens.iter().fold(HashSet::new(), |mut acc, &allergen| {
-            if score % 2 == 1 {
+            if score % 2 != 0 {
                 acc.insert(allergen);
             }
+            // reduce the power of 2 by 1
             score /= 2;
             acc
         });
