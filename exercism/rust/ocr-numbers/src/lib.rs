@@ -1,3 +1,6 @@
+const CODE_WIDTH: usize = 3;
+const CODE_HEIGHT: usize = 4;
+
 #[derive(Debug, PartialEq)]
 pub enum Error {
     InvalidRowCount(usize),
@@ -7,41 +10,33 @@ pub enum Error {
 pub fn convert(input: &str) -> Result<String, Error> {
     let lines: Vec<&str> = input.lines().collect();
 
-    let rows = lines.len();
-    let cols = lines[0].len();
-
-    if rows % 4 != 0 {
-        return Err(Error::InvalidRowCount(rows));
-    } else if cols % 3 != 0 {
-        return Err(Error::InvalidColumnCount(cols));
+    match (lines.len(), lines[0].len()) {
+        (rows, _) if rows % CODE_HEIGHT != 0 => Err(Error::InvalidRowCount(rows)),
+        (_, cols) if cols % CODE_WIDTH != 0 => Err(Error::InvalidColumnCount(cols)),
+        (_, _) => Ok(lines
+            .chunks_exact(CODE_HEIGHT)
+            // the bottom line is always left blank, only take the lines above
+            .map(|chunk| &chunk[0..CODE_HEIGHT - 1])
+            // map each coded line-bundle into a String
+            .map(|coded| {
+                // step through each coded line-bundle a CODE_WIDTH at a time
+                // each step, create a single code, parse it to a char
+                (0..coded[0].len())
+                    .step_by(CODE_WIDTH)
+                    .map(|col_idx| {
+                        let code: Vec<_> = (0..coded.len())
+                            .map(|row_idx| &coded[row_idx][col_idx..col_idx + CODE_WIDTH])
+                            .collect();
+                        code_to_char(&code)
+                    })
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>()
+            .join(",")),
     }
-
-    let code_lines: Vec<Vec<&str>> = lines
-        .chunks_exact(4)
-        .into_iter()
-        .map(|chunk| chunk[0..3].to_vec())
-        .collect();
-
-    let mut result = String::new();
-
-    for code_line in code_lines.iter() {
-        for idx in (0..code_line[0].len()).step_by(3) {
-            let code: [&str; 3] = [
-                &code_line[0][idx..idx + 3],
-                &code_line[1][idx..idx + 3],
-                &code_line[2][idx..idx + 3],
-            ];
-            let parsed = parse_digit(code);
-            result.push(parsed);
-        }
-        result.push(',');
-    }
-
-    // delete last ","
-    Ok(result[0..result.len() - 1].to_string())
 }
 
-fn parse_digit(code: [&str; 3]) -> char {
+fn code_to_char(code: &[&str]) -> char {
     match code {
         [" _ ", "| |", "|_|"] => '0',
         ["   ", "  |", "  |"] => '1',
