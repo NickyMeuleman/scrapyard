@@ -21,7 +21,10 @@ pub fn answer(command: &str) -> Option<i32> {
                 lhs - rhs
             }
             "multiplied" => {
-                instructions.next_if_eq(&"by")?;
+                // version without peekable iter
+                if instructions.next()? != "by" { return None };
+                // version with peekable iter
+                // instructions.next_if_eq(&"by")?;
                 let rhs: i32 = instructions.next().and_then(|s| s.parse().ok())?;
                 lhs * rhs
             }
