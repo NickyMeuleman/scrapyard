@@ -20,16 +20,16 @@ pub fn annotate(minefield: &[&str]) -> Vec<String> {
 fn count_neighbours(input: &[&str], row: usize, col: usize) -> usize {
     input
         .iter()
-        // take one more than row, remember row is 0 indexed
-        .take(row + 2)
         // skip one less than row, ensure valid number
         .skip((row as isize - 1).max(0) as usize)
+        // take one more than row, remember row is 0 indexed
+        .take((row + 2).min(3))
         // end up with at most 3 rows, 1 before idx to 1 after idx
         // now do the same for cols to end up with at most a 3 by 3 section
         .flat_map(|line| {
             line.chars()
-                .take(col + 2)
                 .skip((col as isize - 1).max(0) as usize)
+                .take((col + 2).min(3))
         })
         .filter(|&c| c == '*')
         .count()
