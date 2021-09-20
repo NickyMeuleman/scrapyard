@@ -6,10 +6,10 @@ pub fn annotate(minefield: &[&str]) -> Vec<String> {
             row.chars()
                 .enumerate()
                 .map(|(col_idx, c)| match c {
-                    '*' => '*'.to_string(),
+                    '*' => '*',
                     _ => match count_neighbours(minefield, row_idx, col_idx) {
-                        0 => ' '.to_string(),
-                        count => count.to_string(),
+                        0 => ' ',
+                        count => std::char::from_digit(count as u32, 10).expect("number should be between 1 and 9"),
                     },
                 })
                 .collect()
