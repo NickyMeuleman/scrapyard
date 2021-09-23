@@ -3,9 +3,10 @@ use std::thread;
 
 pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
     if input.len() == 0 {
-        return HashMap::new()
+        return HashMap::new();
     }
-    input
+
+    let handles: Vec<_> = input
         .chunks((input.len() / worker_count).max(1))
         .map(|chunk| {
             let string = chunk.join("");
@@ -20,6 +21,10 @@ pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
                     })
             })
         })
+        .collect();
+
+    handles
+        .into_iter()
         .map(|handle| handle.join().unwrap())
         .reduce(|mut acc, map| {
             for (key, value) in map {
@@ -30,22 +35,33 @@ pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
         .expect("thread maps are not empty")
 }
 
-// I'm a bit sad the iterator version is so much slower.
-// They are supposed to be zero cost abstractions 😢
-// Iterator version bench results
+// Iterator version before fix bench results
 // test bench_large_parallel   ... bench:     819,007 ns/iter (+/- 204,413)
 // test bench_large_sequential ... bench:     474,953 ns/iter (+/- 40,738)
 // test bench_small_parallel   ... bench:     260,249 ns/iter (+/- 125,860)
 // test bench_small_sequential ... bench:      16,563 ns/iter (+/- 1,761)
 // test bench_tiny_parallel    ... bench:      74,991 ns/iter (+/- 10,403)
 // test bench_tiny_sequential  ... bench:          56 ns/iter (+/- 4)
-// Imperative version bench results
+// Iterator version above, after fix results:
+// test bench_large_parallel   ... bench:     316,377 ns/iter (+/- 26,063)
+// test bench_large_sequential ... bench:     477,191 ns/iter (+/- 106,096)
+// test bench_small_parallel   ... bench:     153,522 ns/iter (+/- 26,236)
+// test bench_small_sequential ... bench:      16,581 ns/iter (+/- 1,343)
+// test bench_tiny_parallel    ... bench:      77,122 ns/iter (+/- 12,552)
+// test bench_tiny_sequential  ... bench:          55 ns/iter (+/- 4)
+// Imperative version below bench results
 // test bench_large_parallel   ... bench:     304,838 ns/iter (+/- 16,081)
 // test bench_large_sequential ... bench:     476,711 ns/iter (+/- 53,785)
 // test bench_small_parallel   ... bench:     151,602 ns/iter (+/- 26,897)
 // test bench_small_sequential ... bench:      16,706 ns/iter (+/- 825)
 // test bench_tiny_parallel    ... bench:      74,920 ns/iter (+/- 7,201)
 // test bench_tiny_sequential  ... bench:          55 ns/iter (+/- 3)
+
+// The fix in iterative version mentioned:
+// before, I wasn't waiting to join the handles until all threads had been spawned
+// By collecting all joinHandles into a vector first, 
+// the code only starts joining once all threads have been spawned.
+// It's still slightly slower than the version below, but I'll take it
 
 // use std::collections::HashMap;
 // use std::thread;
