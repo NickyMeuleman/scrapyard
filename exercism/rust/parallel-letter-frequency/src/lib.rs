@@ -59,7 +59,7 @@ pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
 
 // The fix in iterative version mentioned:
 // before, I wasn't waiting to join the handles until all threads had been spawned
-// By collecting all joinHandles into a vector first, 
+// By collecting all joinHandles into a vector first,
 // the code only starts joining once all threads have been spawned.
 // It's still slightly slower than the version below, but I'll take it
 
@@ -91,4 +91,55 @@ pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
 //         }
 //         acc
 //     })
+// }
+
+// The version that spreads equal amounts of chars across threads is slightly slower,
+// than the one that spreads equal lengths of the given input array-slice
+// test bench_large_parallel   ... bench:     384,731 ns/iter (+/- 31,526)
+// test bench_large_sequential ... bench:     481,675 ns/iter (+/- 47,494)
+// test bench_small_parallel   ... bench:     153,132 ns/iter (+/- 14,640)
+// test bench_small_sequential ... bench:      16,618 ns/iter (+/- 1,167)
+// test bench_tiny_parallel    ... bench:      75,048 ns/iter (+/- 7,415)
+// test bench_tiny_sequential  ... bench:          55 ns/iter (+/- 5)
+// use std::collections::HashMap;
+// use std::thread;
+
+// pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
+//     let input = input.join("");
+//     if input.is_empty() {
+//         return HashMap::new();
+//     }
+//     let mut chars = input.chars();
+//     let handles: Vec<_> = (0..)
+//         .map(|_| {
+//             chars
+//                 .by_ref()
+//                 .take((input.len() / worker_count).max(1))
+//                 .collect()
+//         })
+//         .take_while(|s: &String| !s.is_empty())
+//         .into_iter()
+//         .map(|s| {
+//             thread::spawn(move || {
+//                 s.chars()
+//                     .filter(|c| c.is_alphabetic())
+//                     .map(|c| c.to_ascii_lowercase())
+//                     .fold(HashMap::<char, usize>::new(), |mut acc, c| {
+//                         *acc.entry(c).or_default() += 1;
+//                         acc
+//                     })
+//             })
+//         })
+//         .collect();
+
+//     handles
+//         .into_iter()
+//         .map(|handle| handle.join().unwrap())
+//         .reduce(|mut acc, map| {
+//             for (key, value) in map {
+//                 *acc.entry(key).or_default() += value;
+//             }
+//             acc
+//         })
+//         .expect("thread maps are not empty")
 // }
