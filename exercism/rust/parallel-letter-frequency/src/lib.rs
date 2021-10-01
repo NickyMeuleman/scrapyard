@@ -1,39 +1,84 @@
+// Channel version bench results
+// test bench_large_parallel   ... bench:     317,746 ns/iter (+/- 18,042)
+// test bench_large_sequential ... bench:     474,631 ns/iter (+/- 28,118)
+// test bench_small_parallel   ... bench:     149,051 ns/iter (+/- 16,816)
+// test bench_small_sequential ... bench:      16,439 ns/iter (+/- 909)
+// test bench_tiny_parallel    ... bench:      72,586 ns/iter (+/- 18,529)
+// test bench_tiny_sequential  ... bench:          53 ns/iter (+/- 7)
 use std::collections::HashMap;
+use std::mem;
+use std::sync::mpsc;
 use std::thread;
 
 pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
-    if input.len() == 0 {
-        return HashMap::new();
+    let (sender, receiver) = mpsc::channel();
+
+    for chunk in input.chunks((input.len() / worker_count).max(1)) {
+        let sender = sender.clone();
+        let string = chunk.join("");
+        thread::spawn(move || {
+            let map = string
+                .chars()
+                .filter(|c| c.is_alphabetic())
+                .map(|c| c.to_ascii_lowercase())
+                .fold(HashMap::<char, usize>::new(), |mut acc, c| {
+                    *acc.entry(c).or_default() += 1;
+                    acc
+                });
+            sender.send(map).unwrap();
+        });
     }
 
-    let handles: Vec<_> = input
-        .chunks((input.len() / worker_count).max(1))
-        .map(|chunk| {
-            let string = chunk.join("");
-            thread::spawn(move || {
-                string
-                    .chars()
-                    .filter(|c| c.is_alphabetic())
-                    .map(|c| c.to_ascii_lowercase())
-                    .fold(HashMap::<char, usize>::new(), |mut acc, c| {
-                        *acc.entry(c).or_default() += 1;
-                        acc
-                    })
-            })
-        })
-        .collect();
+    // drop the original sender, else the channel will remain open, causing the receiver to infinitely wait
+    mem::drop(sender);
 
-    handles
-        .into_iter()
-        .map(|handle| handle.join().unwrap())
+    receiver
+        .iter()
         .reduce(|mut acc, map| {
             for (key, value) in map {
                 *acc.entry(key).or_default() += value;
             }
             acc
         })
-        .expect("thread maps are not empty")
+        .expect("maps from channels are not empty")
 }
+
+// use std::collections::HashMap;
+// use std::thread;
+
+// pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
+//     if input.len() == 0 {
+//         return HashMap::new();
+//     }
+
+//     let handles: Vec<_> = input
+//         .chunks((input.len() / worker_count).max(1))
+//         .map(|chunk| {
+//             let string = chunk.join("");
+//             thread::spawn(move || {
+//                 string
+//                     .chars()
+//                     .filter(|c| c.is_alphabetic())
+//                     .map(|c| c.to_ascii_lowercase())
+//                     .fold(HashMap::<char, usize>::new(), |mut acc, c| {
+//                         *acc.entry(c).or_default() += 1;
+//                         acc
+//                     })
+//             })
+//         })
+//         .collect();
+
+//     handles
+//         .into_iter()
+//         .map(|handle| handle.join().unwrap())
+//         .reduce(|mut acc, map| {
+//             for (key, value) in map {
+//                 *acc.entry(key).or_default() += value;
+//             }
+//             acc
+//         })
+//         .expect("thread maps are not empty")
+// }
 
 // Iterator version before fix bench results
 // test bench_large_parallel   ... bench:     819,007 ns/iter (+/- 204,413)
