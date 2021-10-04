@@ -1,3 +1,80 @@
+// Mutex version bench results
+// test bench_large_parallel   ... bench:     305,535 ns/iter (+/- 141,551)
+// test bench_large_sequential ... bench:     486,663 ns/iter (+/- 42,248)
+// test bench_small_parallel   ... bench:     153,638 ns/iter (+/- 19,008)
+// test bench_small_sequential ... bench:      16,852 ns/iter (+/- 1,514)
+// test bench_tiny_parallel    ... bench:      78,343 ns/iter (+/- 15,128)
+// test bench_tiny_sequential  ... bench:          59 ns/iter (+/- 16)
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
+    let result = Arc::new(Mutex::new(HashMap::new()));
+    let mut handles: Vec<_> = Vec::new();
+
+    for chunk in input.chunks((input.len() / worker_count).max(1)) {
+        let string = chunk.join("");
+        let cloned_result = Arc::clone(&result);
+        let handle = thread::spawn(move || {
+            let mut map: HashMap<char, usize> = HashMap::new();
+            let iter = string
+                .chars()
+                .filter(|c| c.is_alphabetic())
+                .map(|c| c.to_ascii_lowercase());
+            for c in iter {
+                *map.entry(c).or_default() += 1;
+            }
+            let mut result = cloned_result.lock().unwrap();
+            for (k, v) in map {
+                *result.entry(k).or_default() += v;
+            }
+        });
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        handle.join().unwrap()
+    }
+
+    // get the HashMap from the Arc<Mutex<HashMap>>
+    Arc::try_unwrap(result).unwrap().into_inner().unwrap()
+}
+
+// This version blocks while a thread is trying to get the Mutex, effectively making it sequential with extra steps
+// all threads do their individual work before aquiring the mutex
+// use std::collections::HashMap;
+// use std::sync::{Arc, Mutex};
+// use std::thread;
+
+// pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
+//     let result = Arc::new(Mutex::new(HashMap::new()));
+//     let mut handles: Vec<_> = Vec::new();
+
+//     for chunk in input.chunks((input.len() / worker_count).max(1)) {
+//         let string = chunk.join("");
+//         let cloned_result = Arc::clone(&result);
+//         let handle = thread::spawn(move || {
+//             let mut result = cloned_result.lock().unwrap();
+//             let iter = string
+//                 .chars()
+//                 .filter(|c| c.is_alphabetic())
+//                 .map(|c| c.to_ascii_lowercase());
+//             for c in iter {
+//                 *result.entry(c).or_default() += 1;
+//             }
+//         });
+//         handles.push(handle);
+//     }
+
+//     for handle in handles {
+//         handle.join().unwrap()
+//     }
+
+//     // get the HashMap from the Arc<Mutex<HashMap>>
+//     Arc::try_unwrap(result).unwrap().into_inner().unwrap()
+// }
+// 
 // Channel version bench results
 // test bench_large_parallel   ... bench:     317,746 ns/iter (+/- 18,042)
 // test bench_large_sequential ... bench:     474,631 ns/iter (+/- 28,118)
@@ -5,44 +82,51 @@
 // test bench_small_sequential ... bench:      16,439 ns/iter (+/- 909)
 // test bench_tiny_parallel    ... bench:      72,586 ns/iter (+/- 18,529)
 // test bench_tiny_sequential  ... bench:          53 ns/iter (+/- 7)
-use std::collections::HashMap;
-use std::mem;
-use std::sync::mpsc;
-use std::thread;
+// use std::collections::HashMap;
+// use std::mem;
+// use std::sync::mpsc;
+// use std::thread;
 
-pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
-    let (sender, receiver) = mpsc::channel();
+// pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
+//     let (sender, receiver) = mpsc::channel();
 
-    for chunk in input.chunks((input.len() / worker_count).max(1)) {
-        let sender = sender.clone();
-        let string = chunk.join("");
-        thread::spawn(move || {
-            let map = string
-                .chars()
-                .filter(|c| c.is_alphabetic())
-                .map(|c| c.to_ascii_lowercase())
-                .fold(HashMap::<char, usize>::new(), |mut acc, c| {
-                    *acc.entry(c).or_default() += 1;
-                    acc
-                });
-            sender.send(map).unwrap();
-        });
-    }
+//     for chunk in input.chunks((input.len() / worker_count).max(1)) {
+//         let sender = sender.clone();
+//         let string = chunk.join("");
+//         thread::spawn(move || {
+//             let map = string
+//                 .chars()
+//                 .filter(|c| c.is_alphabetic())
+//                 .map(|c| c.to_ascii_lowercase())
+//                 .fold(HashMap::<char, usize>::new(), |mut acc, c| {
+//                     *acc.entry(c).or_default() += 1;
+//                     acc
+//                 });
+//             sender.send(map).unwrap();
+//         });
+//     }
 
-    // drop the original sender, else the channel will remain open, causing the receiver to infinitely wait
-    mem::drop(sender);
+//     // drop the original sender, else the channel will remain open, causing the receiver to infinitely wait
+//     mem::drop(sender);
 
-    receiver
-        .iter()
-        .reduce(|mut acc, map| {
-            for (key, value) in map {
-                *acc.entry(key).or_default() += value;
-            }
-            acc
-        })
-        .expect("maps from channels are not empty")
-}
+//     receiver
+//         .iter()
+//         .reduce(|mut acc, map| {
+//             for (key, value) in map {
+//                 *acc.entry(key).or_default() += value;
+//             }
+//             acc
+//         })
+//         .expect("maps from channels are not empty")
+// }
 
+// Iterator version that uses the internal type of the joinhandle bench results:
+// test bench_large_parallel   ... bench:     316,377 ns/iter (+/- 26,063)
+// test bench_large_sequential ... bench:     477,191 ns/iter (+/- 106,096)
+// test bench_small_parallel   ... bench:     153,522 ns/iter (+/- 26,236)
+// test bench_small_sequential ... bench:      16,581 ns/iter (+/- 1,343)
+// test bench_tiny_parallel    ... bench:      77,122 ns/iter (+/- 12,552)
+// test bench_tiny_sequential  ... bench:          55 ns/iter (+/- 4)
 // use std::collections::HashMap;
 // use std::thread;
 
@@ -87,27 +171,18 @@ pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
 // test bench_small_sequential ... bench:      16,563 ns/iter (+/- 1,761)
 // test bench_tiny_parallel    ... bench:      74,991 ns/iter (+/- 10,403)
 // test bench_tiny_sequential  ... bench:          56 ns/iter (+/- 4)
-// Iterator version above, after fix results:
-// test bench_large_parallel   ... bench:     316,377 ns/iter (+/- 26,063)
-// test bench_large_sequential ... bench:     477,191 ns/iter (+/- 106,096)
-// test bench_small_parallel   ... bench:     153,522 ns/iter (+/- 26,236)
-// test bench_small_sequential ... bench:      16,581 ns/iter (+/- 1,343)
-// test bench_tiny_parallel    ... bench:      77,122 ns/iter (+/- 12,552)
-// test bench_tiny_sequential  ... bench:          55 ns/iter (+/- 4)
-// Imperative version below bench results
+// The fix in iterative version mentioned:
+// before, I was using one big iterator chain and wasn't waiting to join the handles until all threads had been spawned
+// By collecting all joinHandles into a vector first,
+// the code only starts joining once all threads have been spawned.
+
+// Imperative version that uses the internal type of the joinhandle bench results
 // test bench_large_parallel   ... bench:     304,838 ns/iter (+/- 16,081)
 // test bench_large_sequential ... bench:     476,711 ns/iter (+/- 53,785)
 // test bench_small_parallel   ... bench:     151,602 ns/iter (+/- 26,897)
 // test bench_small_sequential ... bench:      16,706 ns/iter (+/- 825)
 // test bench_tiny_parallel    ... bench:      74,920 ns/iter (+/- 7,201)
 // test bench_tiny_sequential  ... bench:          55 ns/iter (+/- 3)
-
-// The fix in iterative version mentioned:
-// before, I wasn't waiting to join the handles until all threads had been spawned
-// By collecting all joinHandles into a vector first,
-// the code only starts joining once all threads have been spawned.
-// It's still slightly slower than the version below, but I'll take it
-
 // use std::collections::HashMap;
 // use std::thread;
 
@@ -138,7 +213,7 @@ pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
 //     })
 // }
 
-// The version that spreads equal amounts of chars across threads is slightly slower,
+// A version that spreads equal amounts of chars across threads is slightly slower,
 // than the one that spreads equal lengths of the given input array-slice
 // test bench_large_parallel   ... bench:     384,731 ns/iter (+/- 31,526)
 // test bench_large_sequential ... bench:     481,675 ns/iter (+/- 47,494)
