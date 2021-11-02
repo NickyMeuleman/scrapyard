@@ -35,5 +35,6 @@ opt-level = "s"
 
 # The "fix" to an error is to disable optimization, sucks, but at least it lets me follow along further than "hello-world"
 # https://github.com/rustwasm/wasm-pack/issues/864#issuecomment-647850921
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = false
+# After reinstalling wasm-pack this is no longer a problem? I don't know, WSL was missing some necessary plumbing I guess
+# [package.metadata.wasm-pack.profile.release]
+# wasm-opt = false

@@ -1,3 +1,5 @@
+Book at https://rustwasm.github.io/docs/book/
+
 .wat is webassembly text
 .wasm is binary webassembly
 
@@ -101,3 +103,146 @@ So `wasm-pack build` has to be ran if changes are made in Rust.
 
 Remember, `wasm-pack build` is ran in `wasm-game-of-life/`.
 `npm run start` is ran in `wasm-game-of-life/www`.
+
+---
+I reinstalled wasm-pack today, just because _C O M P U T E R S_.
+Uncommented the config in `Cargo.toml` that disabled `wasm-opt`.
+
+What do you know, it works now.
+I have no idea why, I hate this.
+My best guess is WSL was missing some necessary plumbing wasm-opt relies on that got installed too with
+```
+curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+```
+---
+
+## Implementing Conway's Game of Life
+
+The game is played on an infinite plane.
+Computers don't have infinite memory, so this guide chooses the field to be finite, and wrap around (off right edge, to left edge etc).
+
+### Interfacing Rust and JavaScript
+
+The self proclaimed "most important concepts of the book" are explained here, better pay attention.
+
+JavaScript's memory heap (that is garbage collected) is seperate from WebAssembly's linear memory, where our Rust stuff lives.
+
+- WASM has no direct access to that garbage collected heap (expected to change SOON:tm:).
+- JavaScript can read and write to the WASM linear memory space
+
+The way JS can read/write that memory is with an `ArrayBuffer` of scalar values (so, numbers).
+WASM functions take and return scalar values.
+
+Nicky: The things that get sent across the JS/WASM boundary are pointers to these scalar values.
+
+`wasm-bindgen` defines defines a common way to communicate across this boundary.
+It boxes Rust structs and wraps the pointer in a JavaScript class.
+Or it can index into a table of JS objects from Rust.
+
+Nicky: We write familiar Rust/JS data structures and wasm-bindgen converts it to those scalar values so JS/Rust can read what happened on the other side of the Rust/JS boundary.
+
+For communication between WASM and JS, we want to optimize for a few things.
+1. Minimizing copying into and out of the WebAssembly linear memory.
+2. Minimizing serializing and deserializing.
+
+Instead of serializing on one side, just to deserialize on the other.
+Many times we can pass opaque handles (what does opaque mean in this context, smart pointer?) across the boundary instead, avoiding that work.
+`wasm-bindgen` helps us define and work with opaque handles to JavaScript Objects or boxed Rust structures.
+
+Nicky: Minimize work, then things go faster. Radical idea, right?
+
+As a general rule of thumb, a good JavaScript↔WebAssembly interface design is often one where large, long-lived data structures are implemented as Rust types that live in the WebAssembly linear memory, and are exposed to JavaScript as opaque handles. 
+JavaScript calls exported WebAssembly functions that take these opaque handles, transform their data, perform heavy computations, query the data, and ultimately return a small, copy-able result.
+
+So, we don't want to copy the entire game of life universe into and out of WASM linear memory on every tick.
+We don't want to allocate objects for every cell in the universe.
+
+We can represent the (2D) universe as a flat array that lives in the WASM linear memory, the 2 states for a cell are represented by either a 0 or 1.
+One row laid out after another, no 2D array here, just a continuous array.
+
+We can calculate the index of a cell in this array with the row and column nr.
+```
+index(row, column, universe) = row * width(universe) + column
+```
+
+To start, we implement `std::fmt::Display` for `Universe`.
+This generates a Rust `String` that can be copied from the WASM linear memory into a JavaScript string that is stored in the JS garbage-collected heap.
+Then it can be set in HTML via the `textContent` method on a DOM element.
+
+The tutorial later changes this implementation to avoid copying between heaps and renders to a `<canvas>`.
+
+### Rust implementation
+
+Make a `Cell` enum
+
+```rust
+#[wasm_bindgen]
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Cell {
+    Dead = 0,
+    Alive = 1
+}
+```
+
+The `repr` attribute makes sure each cell is represented by a single byte.
+We set `Dead = 1`, and `Alive = 1` so we can count the number of alive neighbours by addition.
+
+The `Universe` struct has a height, a width, and a vector of cells.
+(that vector's length is width * height)
+```rust
+#[wasm_bindgen]
+pub struct Universe {
+    width: u32,
+    height: u32,
+    cells: Vec<Cell>,
+}
+```
+
+We implement a `get_index` method on the Univrse struct that takes a row and a col num, and return an index into the cells array at that point.
+
+We implement a `live_neighbour_count` function that count the number of neighbours that are alive with that wrapping logic.
+
+We implement a `tick` function that calculates the new cells in the universe and sets them.
+Because we want JS to call this function, we add `#[wasm_bindgen]` to the `impl` block for `Universe`, and make the `tick` method `pub`.
+
+We implement `Display` trait on `Universe` to get a human readable output of the `cells` vector.
+
+We implement a `pub` `new` associated function on `Universe` to generate an initial universe with a cool pattern.
+It's inside the `impl Universe` which has the `#[wasm_bindgen]` attribute, so it is exposed to JavaScript.
+
+We implement a `pub render` method that returns the stringified universe via the `to_string` method we implemented through adding the `Display` trait.
+
+### Rendering with JS
+
+We add a `pre` tag to `index.html` that'll get populated.
+Some styles to make it look less plain.
+
+In the `index.js` file in `www/` we now import our `Universe` struct from Rust, that WASM turned into a JS object we can use.
+
+It still has the methods we defined in Rust though, so we create a new instance by calling the `new` method on the `Universe` we imported.
+
+```js
+import { Universe } from "wasm-game-of-life";
+const pre = document.getElementById("game-of-life-canvas");
+const universe = Universe.new();
+
+const renderLoop = () => {
+  pre.textContent = universe.render();
+  universe.tick();
+
+  requestAnimationFrame(renderLoop);
+};
+requestAnimationFrame(renderLoop);
+```
+
+Rerun wasm-pack build, rerun npm run start, boom a game of life.
+
+### Rendering to canvas directly from memory
+
+Making a `String` in Rust (and storing it in the WASM linear memory) and then having wasm-bindgen convert it to a javascript string (which is stored in the JS memory) is expensive.
+The same thing is stored in 2 locations.
+It makes unnecessary copies of the universe's cells.
+
+As JS can read the WASM memory, we'll modify our `render` method to return a pointer to the start of the cells array.
+At the same time, we'll switch to a `<canvas>` HTML element to render the game of life.
