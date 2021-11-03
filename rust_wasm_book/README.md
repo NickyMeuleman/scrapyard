@@ -381,3 +381,76 @@ getrandom = { version = "0.2.3", features = ["js"] }
 ```
 
 The tutorial uses the `https://crates.io/crates/js-sys` crate and uses the JS `Math.random` through that instead.
+
+## Testing Conway's Game of Life
+
+Right now, the width and height are hardcoded.
+We'll add a way to set the width and height of a universe in our `impl Universe` block.
+
+We'll also create a new `impl Universe` block without the `#[wasm_bindgen]` attribute.
+For things that we need for testig, we don't need those to leave the Rust world at any point.
+
+Rust-generated WebAssembly functions cannot return borrowed references.
+If we return references in the impl block that has bindgen, we get errors.
+
+- We add a method to get a reference to the cells (the `FixedBitSet`).
+- We add a method to set cells at certain coordinates to be alive.
+
+We'll add the tests in `wasm_game_of_life/tests/web.rs`.
+
+There is already one test there that asserts `1 + 1` is equal to `2`.
+
+You can run them by running `wasm-pack test --chrome --headless` in the `wasm-game-of-life` directory.
+
+```
+  Running unittests (target/wasm32-unknown-unknown/debug/deps/wasm_game_of_life-d7f79f80a1a0d854.wasm)
+no tests to run!
+     Running tests/web.rs (target/wasm32-unknown-unknown/debug/deps/web-5a9c7d9313ab2625.wasm)
+Set timeout to 20 seconds...
+Running headless tests in Chrome on `http://127.0.0.1:43951/`
+Try find `webdriver.json` for configure browser's capabilities:
+Not found
+driver status: signal: 9                          
+driver stdout:
+    Starting ChromeDriver 95.0.4638.54 (d31a821ec901f68d0d34ccdbaea45b4c86ce543e-refs/branch-heads/4638@{#871}) on port 43951
+    Only local connections are allowed.
+    Please see https://chromedriver.chromium.org/security-considerations for suggestions on keeping ChromeDriver safe.
+    ChromeDriver was started successfully.
+
+Error: non-200 response code: 404                 
+{"value":{"error":"invalid session id","message":"invalid session id","stacktrace":"#0 0x562c19ea8f93 \u003Cunknown>\n#1 0x562c1998379f \u003Cunknown>\n#2 0x562c199ac67b \u003Cunknown>\n#3 0x562c199d69fc \u003Cunknown>\n#4 0x562c199d4742 \u003Cunknown>\n#5 0x562c199d3f77 \u003Cunknown>\n#6 0x562c1995b534 \u003Cunknown>\n#7 0x562c1995c3e0 \u003Cunknown>\n#8 0x562c19ed82be \u003Cunknown>\n#9 0x562c19eedba0 \u003Cunknown>\n#10 0x562c19ed9215 \u003Cunknown>\n#11 0x562c19eeefe8 \u003Cunknown>\n#12 0x562c19ecd9db \u003Cunknown>\n#13 0x562c1995b0ae \u003Cunknown>\n#14 0x7f6e3ffc60b3 \u003Cunknown>\n"}}
+error: test failed, to rerun pass '--test web'
+Error: Running Wasm tests with wasm-bindgen-test failed
+Caused by: failed to execute `cargo test`: exited with exit status: 1
+  full command: "cargo" "test" "--target" "wasm32-unknown-unknown"
+```
+
+Oh joy, so that didn't go as expected.
+I suspect it's because of WSL and how things run in linux get a URL you can open in Windows.
+So I try to run it without that `--headless` flag.
+It works, I need to click a link at `http://127.0.0.1:8000/` and a webpage with black text on a white background opens telling me the test passed!
+
+```
+running 1 test
+
+test web::pass ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored
+```
+
+That file has a bit of boilerplate, it's able to test if that code runs in different browsers via flags.
+For example, firefox is `wasm-pack test --firefox`.
+
+The link it spits out still opens in my default browser, which is Chrome at the mement.
+That's midly amusing to me.
+
+So the `wasm-pack test` command executes the functions that have the `#[wasm_bindgen_test]` attribute.
+I think it converts them to WASM first and runs them in the browser.
+
+We want to test our `tick` function.
+We do this by constructing a known initial state of the universe.
+Then manually calculating the state of that universe after one tick.
+
+We assert that the initial universe's state after one call to `tick` is the same as our manually calculated one.
+
+That is why we added those ways to set the width, the height, and a given array of bits earlier.
