@@ -330,3 +330,54 @@ drawGrid();
 drawCells();
 requestAnimationFrame(renderLoop);
 ```
+
+Each cell takes up a byte (8 bits) of space in memory (because of `#[repr(u8)]`).
+We can make that space smaller since each Cell is a 1 or a 0, a single bit.
+
+To do this, we can use the [fixedbitset crate](https://crates.io/crates/fixedbitset).
+
+A `FixedBitSet` is a contiguous block of memory with 1s or 0s.
+
+- Add it to `Cargo.toml`.
+- Import the `FixedBitSet` type in `lib.rs` with `use fixedbitset::FixedBitSet;`
+- Replace the `cells` field in `Universe` from a `Vec<Cell>` to a `FixedBitSet`
+- Follow the compiler warnings and make the required changes.
+
+The step where we get a raw pointer to the start of the cells is a bit weird.
+We convert the `FixedBitSet` to a slice first, then take a pointer to that.
+And it turns into a `*const u32` somehow?
+I don't get the `u32` part.
+
+In JavaScript, when we create the `Uint8Array`, it's 8 times smaller now, since a cell is no longer a byte, it's a bit.
+
+We need an extra step of logic to determine if a bit inside that `Uint8Array` is set.
+Previously, we indexed into it normally in JS.
+Now, we can no longer do that, because each cell is a single bit, and indexing into a `Uint8Array` happens per byte.
+So we make a `isBitSet` function to determine if a bit in that array is a 1.
+
+```js
+const isBitSet = (n, arr) => {
+  const byte = Math.floor(n / 8);
+  const mask = 1 << (n % 8);
+  return (arr[byte] & mask) === mask;
+};
+```
+
+The tutorial also tells you to implement a random pattern for alive/dead cells at initialization.
+For some reason, they don't use the `rand` crate, so I tried to use that.
+
+Apparently `rand` doesn't support the target `wasm-pack` uses to run, which is `wasm32-unknown-unknown`.
+```
+| /         compile_error!("the wasm32-unknown-unknown target is not supported by \
+220 | |                         default, you may need to enable the \"js\" feature. \
+221 | |                         For more information see: \
+222 | |                         https://docs.rs/getrandom/#webassembly-support");
+```
+
+This can be worked around by adding a direct dependency on `getrandom` to `Cargo.toml` and enabling the `"js"` feature.
+
+```
+getrandom = { version = "0.2.3", features = ["js"] }
+```
+
+The tutorial uses the `https://crates.io/crates/js-sys` crate and uses the JS `Math.random` through that instead.
