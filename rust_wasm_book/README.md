@@ -454,3 +454,63 @@ Then manually calculating the state of that universe after one tick.
 We assert that the initial universe's state after one call to `tick` is the same as our manually calculated one.
 
 That is why we added those ways to set the width, the height, and a given array of bits earlier.
+
+## Debugging
+
+### Panics
+
+Right now a panic displays a message with no useful information in the web console `RuntimeError: unreachable executed`.
+We'd like to see the information a regular rust panic shows.
+
+The `console_error_panic_hook` crate enables this and comes included with the template we used.
+In the `src/utils.rs` file is a function that optionally sets this up if a certain feature is enabled (`#[cfg(feature = "console_error_panic_hook")]`).
+We need to call this function in `lib.rs` somewhere, that way the panic hook gets set up if a feature is enabled.
+
+We call it in the `new` associated function for `Universe`.
+
+Introducing a panic in say our `new` function for `Universe` leads to a nice message with a stacktrace in the browser.
+Make sure to build the wasm with a debug build that includes debug symbols, or the useful information won't be there.
+
+`wasm-pack build --debug`.
+
+> If you don't have debug symbols enabled, then the "name" custom section won't be present in the compiled .wasm binary, and stack traces will have function names like wasm-function[42] rather than the Rust name of the function, like wasm_game_of_life::Universe::live_neighbor_count.
+
+### Logging
+
+Like in JavaScript, I'd like to `console.log` things.
+I tried `println!` and `dbg!`, but that didn't work.
+
+We can use `console.log` via WASM through the [`web-sys` crate](https://crates.io/crates/web-sys).
+We can call a function from that crate, and get logs in the browser console when the WASM runs!
+
+Adding that depenency is a bit weird, I don't know TOML all that well, but this gets added to `Cargo.toml`.
+
+```
+[dependencies.web-sys]
+version = "0.3.55"
+features = ["console"]
+```
+
+It uses a feature for each type that's defined in `web-sys`, so what we did added support for the JS console, and only the console.
+
+We make a `println!` style macro that uses the internal `web_sys::console::log_1` method, so we can call `log!("{}", thing)` from Rust.
+
+```
+use web_sys;
+
+macro_rules! log {
+    ( $( $t:tt )* ) => {
+        web_sys::console::log_1(&format!( $( $t )* ).into());
+    }
+}
+```
+
+### Debugger to pause between ticks
+
+The debugging story for WASM isn't all that good.
+
+We can use the `debugger` statement in our JS though.
+If we call it in our `renderLoop`, code execution in JS stops there, before it can call into our WASM again.
+
+Handy place to see each generation, hitting the "play" button in the browser resumes code execution.
+On the next loop of the renderloop, it'll hit the debugger statement again and pause.
