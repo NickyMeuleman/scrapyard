@@ -246,3 +246,87 @@ It makes unnecessary copies of the universe's cells.
 
 As JS can read the WASM memory, we'll modify our `render` method to return a pointer to the start of the cells array.
 At the same time, we'll switch to a `<canvas>` HTML element to render the game of life.
+
+To get the needed info into JS, we add a width and heigh getter in `lib.rs`.
+We add a `cells` method that returns a pointer to the `cells` vector.
+
+The `cells` method returns a raw pointer to the cells vector buffer, a `*const Cell`.
+This kinda scares me, as raw pointers scream DANGER to me.
+https://doc.rust-lang.org/std/vec/struct.Vec.html#method.as_ptr
+But apparently it being WASM ensures some of the invariants that have to be upheld (like the memory it points to not disappearing).
+
+If I understand correctly, that pointer points to the location in  memory where the cells vector starts, that's why it's `*const Cell`, because that vector is filled with `Cell`s.
+
+We change `<pre>` to `<canvas>`, access that DOM element in `index.js`.
+Set a width and height by calling the functions on `Universe`.
+
+Set the canvas size according to those values.
+Draw a grid on the canvas.
+Draw the cells on the canvas.
+Each render loop consists of those steps.
+1. calculate new state
+2. draw grid
+3. draw cells
+
+The drawing of the cells uses direct access of the WebAssembly linear memory.
+That is defined in that raw WASM module `wasm_game_of_life_bg` that `wasm-pack` generated inside the `wasm-game-of-life/pkg/` folder.
+We can access the memory directly by importing it in our `index.js`.
+
+We import `memory` from `wasm-game-of-life/wasm_game_of_life_bg`.
+Nicky: is that the `.wasm` file or the `.js` file with that name?
+I guess `.wasm` since I can't find a `memory` export from the js file.
+
+```js
+// Import the WebAssembly memory at the top of the file.
+import { memory } from "wasm-game-of-life/wasm_game_of_life_bg";
+
+// ...
+
+const getIndex = (row, column) => {
+  return row * width + column;
+};
+
+const drawCells = () => {
+  const cellsPtr = universe.cells();
+  const cells = new Uint8Array(memory.buffer, cellsPtr, width * height);
+
+  ctx.beginPath();
+
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const idx = getIndex(row, col);
+
+      ctx.fillStyle = cells[idx] === Cell.Dead
+        ? DEAD_COLOR
+        : ALIVE_COLOR;
+
+      ctx.fillRect(
+        col * (CELL_SIZE + 1) + 1,
+        row * (CELL_SIZE + 1) + 1,
+        CELL_SIZE,
+        CELL_SIZE
+      );
+    }
+  }
+
+  ctx.stroke();
+};
+```
+
+We get a pointer the the universe's cells via the `universe.cells()` method we defined in `lib.rs`.
+We construct a `Uint8Array` in our `index.js` with that pointer combined with the height and width.
+Remember, the cells vector is width * height long.
+Each item is a `Cell`, and we know each of those is exactly 1 byte big because we set `#[repr(u8)]`.
+
+We iterate over each cell that way, and render a square on the corresponding location on the canvas with the alive or dead color.
+
+By doing this we avoided copying so much memory across the boundary and storing the same thing in 2 locations.
+Now, instead of the whole `String` representation of the `Universe` being copied to a JS string, we clone the pointer to the exact point in WASM memory and iterate over the cells by knowing exactly how big each one is, and how long that array in  WASM memory goes on for.
+
+In `index.js` we set up the initial state of the gameworld and draw it to the canvas before kicking off our renderloop.
+
+```js
+drawGrid();
+drawCells();
+requestAnimationFrame(renderLoop);
+```
