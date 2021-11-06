@@ -1,5 +1,5 @@
-import { Universe } from "wasm-game-of-life";
-import { memory } from "wasm-game-of-life/wasm_game_of_life_bg";
+import { Universe } from "wasm-game-of-life-nmeuleman";
+import { memory } from "wasm-game-of-life-nmeuleman/wasm_game_of_life_nmeuleman_bg";
 
 const CELL_SIZE = 5; // px
 const GRID_COLOR = "#CCCCCC";
