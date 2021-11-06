@@ -6,7 +6,50 @@ const GRID_COLOR = "#CCCCCC";
 const DEAD_COLOR = "#FFFFFF";
 const ALIVE_COLOR = "#000000";
 
-const universe = Universe.new();
+class Fps {
+  constructor() {
+    this.fps = document.getElementById("fps");
+    this.frames = [];
+    this.lastFrameTimeStamp = performance.now();
+  }
+
+  render() {
+    // Convert the delta time since the last frame render into a measure
+    // of frames per second.
+    const now = performance.now();
+    const delta = now - this.lastFrameTimeStamp;
+    this.lastFrameTimeStamp = now;
+    const fps = (1 / delta) * 1000;
+
+    // Save only the latest 100 timings.
+    this.frames.push(fps);
+    if (this.frames.length > 100) {
+      this.frames.shift();
+    }
+
+    // Find the max, min, and mean of our 100 latest timings.
+    let min = Infinity;
+    let max = -Infinity;
+    let sum = 0;
+    for (const curr_fps of this.frames) {
+      sum += curr_fps;
+      min = Math.min(curr_fps, min);
+      max = Math.max(curr_fps, max);
+    }
+    let mean = sum / this.frames.length;
+
+    // Render the statistics.
+    this.fps.textContent = `
+Frames per Second:
+         latest = ${Math.round(fps)}
+avg of last 100 = ${Math.round(mean)}
+min of last 100 = ${Math.round(min)}
+max of last 100 = ${Math.round(max)}
+`.trim();
+  }
+}
+
+const universe = Universe.new(64, 64);
 const width = universe.width();
 const height = universe.height();
 
@@ -17,17 +60,51 @@ canvas.height = (CELL_SIZE + 1) * width + 1;
 
 const ctx = canvas.getContext("2d");
 
-const renderLoop = () => {
-  debugger;
-  universe.tick();
+canvas.addEventListener("click", (e) => {
+  const boundingRect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / boundingRect.width;
+  const scaleY = canvas.height / boundingRect.height;
 
-  drawGrid();
+  const canvasLeft = (e.clientX - boundingRect.left) * scaleX;
+  const canvasTop = (e.clientY - boundingRect.top) * scaleY;
+
+  const row = Math.min(Math.floor(canvasTop / (CELL_SIZE + 1)), height - 1);
+  const col = Math.min(Math.floor(canvasLeft / (CELL_SIZE + 1)), width - 1);
+
+  universe.toggle_cell(row, col);
   drawCells();
+});
 
-  requestAnimationFrame(renderLoop);
+let animationId = null;
+
+const renderLoop = () => {
+  fps.render();
+  universe.tick();
+  drawCells();
+  animationId = requestAnimationFrame(renderLoop);
 };
 
+const isPaused = () => animationId == null;
+
+const playPauseButton = document.getElementById("play-pause");
+
+const play = () => {
+  playPauseButton.textContent = "⏸";
+  renderLoop();
+};
+
+const pause = () => {
+  playPauseButton.textContent = "▶";
+  cancelAnimationFrame(animationId);
+  animationId = null;
+};
+
+playPauseButton.addEventListener("click", () => {
+  isPaused() ? play() : pause();
+});
+
 const drawGrid = () => {
+  console.log("drawing grid");
   ctx.beginPath();
   ctx.strokeStyle = GRID_COLOR;
 
@@ -65,12 +142,32 @@ const drawCells = () => {
 
   ctx.beginPath();
 
-  // draw each cell
+  // draw alive cells
+  ctx.fillStyle = ALIVE_COLOR;
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
       const idx = getIndex(row, col);
+      if (!isBitSet(idx, cells)) {
+        continue;
+      }
 
-      ctx.fillStyle = isBitSet(idx, cells) ? ALIVE_COLOR : DEAD_COLOR;
+      ctx.fillRect(
+        col * (CELL_SIZE + 1) + 1,
+        row * (CELL_SIZE + 1) + 1,
+        CELL_SIZE,
+        CELL_SIZE
+      );
+    }
+  }
+
+  // draw dead cells
+  ctx.fillStyle = DEAD_COLOR;
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const idx = getIndex(row, col);
+      if (isBitSet(idx, cells)) {
+        continue;
+      }
 
       ctx.fillRect(
         col * (CELL_SIZE + 1) + 1,
@@ -85,6 +182,7 @@ const drawCells = () => {
 };
 
 // start the infinite loop
+let fps = new Fps();
 drawGrid();
 drawCells();
-requestAnimationFrame(renderLoop);
+play();
