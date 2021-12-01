@@ -49,7 +49,7 @@ max of last 100 = ${Math.round(max)}
   }
 }
 
-const universe = Universe.new(64, 64);
+const universe = Universe.new(128, 128);
 const width = universe.width();
 const height = universe.height();
 
