@@ -1,35 +1,6 @@
-mod utils;
 use fixedbitset::FixedBitSet;
 use rand::Rng;
-use std::mem;
 use wasm_bindgen::prelude::*;
-use web_sys;
-
-// A macro to provide `println!(..)`-style syntax for `console.log` logging.
-// commented out because it's unused right now
-// macro_rules! log {
-//     ( $( $t:tt )* ) => {
-//         web_sys::console::log_1(&format!( $( $t )* ).into());
-//     }
-// }
-
-// commented out because it's unused right now
-// pub struct Timer<'a> {
-//     name: &'a str,
-// }
-
-// impl<'a> Timer<'a> {
-//     pub fn new(name: &'a str) -> Timer<'a> {
-//         web_sys::console::time_with_label(name);
-//         Timer { name }
-//     }
-// }
-
-// impl<'a> Drop for Timer<'a> {
-//     fn drop(&mut self) {
-//         web_sys::console::time_end_with_label(self.name);
-//     }
-// }
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -42,26 +13,31 @@ pub struct Universe {
     width: u32,
     height: u32,
     cells: FixedBitSet,
-    cells_2: FixedBitSet,
+    prev_cells: FixedBitSet,
+    // hot cells should be checked next tick
+    hot_cells: FixedBitSet,
 }
 
 #[wasm_bindgen]
 impl Universe {
     pub fn new(width: u32, height: u32) -> Self {
-        utils::set_panic_hook();
         let size = (width * height) as usize;
         let mut cells = FixedBitSet::with_capacity(size);
         let mut rng = rand::thread_rng();
         for i in 0..size {
             cells.set(i, rng.gen_bool(0.5));
         }
-        let cells_2 = cells.clone();
+        let prev_cells = cells.clone();
+        // mark every cell as hot
+        let mut hot_cells = FixedBitSet::with_capacity(size);
+        hot_cells.set_range(.., true);
 
         Self {
             width,
             height,
             cells,
-            cells_2,
+            prev_cells,
+            hot_cells,
         }
     }
 
@@ -72,9 +48,14 @@ impl Universe {
     /// Set the width of the universe.
     ///
     /// Resets all cells to the dead state.
+    /// Marks all cells as hot
     pub fn set_width(&mut self, width: u32) {
         self.width = width;
+        let size = (width * self.height) as usize;
         self.cells.clear();
+        self.cells.grow(size);
+        self.hot_cells.grow(size);
+        self.hot_cells.set_range(.., true);
     }
 
     pub fn height(&self) -> u32 {
@@ -84,9 +65,14 @@ impl Universe {
     /// Set the height of the universe.
     ///
     /// Resets all cells to the dead state.
+    /// Marks all cells as hot
     pub fn set_height(&mut self, height: u32) {
         self.height = height;
+        let size = (self.width * height) as usize;
         self.cells.clear();
+        self.cells.grow(size);
+        self.hot_cells.grow(size);
+        self.hot_cells.set_range(.., true);
     }
 
     // returning a raw pointer to the vector's buffer
@@ -95,70 +81,75 @@ impl Universe {
         self.cells.as_slice().as_ptr()
     }
 
-    fn get_index(&self, row: u32, col: u32) -> usize {
+    fn coords_to_idx(&self, row: u32, col: u32) -> usize {
         (row * self.width + col) as usize
     }
 
-    fn live_neighbour_count(&self, row: u32, column: u32) -> u8 {
-        let mut count = 0;
+    fn idx_to_coords(&self, idx: usize) -> (u32, u32) {
+        (idx as u32 / self.width, idx as u32 % self.width)
+    }
 
-        let north = if row == 0 { self.height - 1 } else { row - 1 };
-
-        let south = if row == self.height - 1 { 0 } else { row + 1 };
-        let west = if column == 0 {
-            self.width - 1
-        } else {
-            column - 1
-        };
-        let east = if column == self.width - 1 {
-            0
-        } else {
-            column + 1
-        };
-        let nw = self.get_index(north, west);
-        count += self.cells[nw] as u8;
-        let n = self.get_index(north, column);
-        count += self.cells[n] as u8;
-        let ne = self.get_index(north, east);
-        count += self.cells[ne] as u8;
-        let w = self.get_index(row, west);
-        count += self.cells[w] as u8;
-        let e = self.get_index(row, east);
-        count += self.cells[e] as u8;
-        let sw = self.get_index(south, west);
-        count += self.cells[sw] as u8;
-        let s = self.get_index(south, column);
-        count += self.cells[s] as u8;
-        let se = self.get_index(south, east);
-        count += self.cells[se] as u8;
-        count
+    fn neighbours(&self, row: u32, column: u32) -> impl Iterator<Item = usize> {
+        let mut indexes = Vec::with_capacity(8);
+        for row_offset in [self.height - 1, 0, 1].iter().cloned() {
+            for col_offset in [self.width - 1, 0, 1].iter().cloned() {
+                if row_offset == 0 && col_offset == 0 {
+                    continue;
+                }
+                let neighbor_row = (row + row_offset) % self.height;
+                let neighbor_col = (column + col_offset) % self.width;
+                let idx = self.coords_to_idx(neighbor_row, neighbor_col);
+                indexes.push(idx);
+            }
+        }
+        indexes.into_iter()
     }
 
     pub fn tick(&mut self) {
-        // calculate next cells in cells_2
-        for row in 0..self.height {
-            for col in 0..self.width {
-                let idx = self.get_index(row, col);
-                let cell = self.cells[idx];
-                let live_neighbours = self.live_neighbour_count(row, col);
-                let next_cell = match (cell, live_neighbours) {
-                    (true, x) if x < 2 => false,
-                    (true, 2) | (true, 3) => true,
-                    (true, x) if x > 3 => false,
-                    (false, 3) => true,
-                    (cell, _) => cell,
-                };
-                self.cells_2.set(idx, next_cell);
+        let cloned_hot_ones = self.hot_cells.clone();
+        self.hot_cells.clear();
+
+        // using prev_cells as starting point for calculation
+        // all outdated cells will be overwritten during this loop
+        for idx in cloned_hot_ones.ones() {
+            let cell = self.cells[idx];
+            let (row, col) = self.idx_to_coords(idx);
+            let live_neighbours = self
+                .neighbours(row, col)
+                .map(|idx| self.cells[idx])
+                .filter(|&bit| bit)
+                .count();
+            let next_cell = match (cell, live_neighbours) {
+                (true, x) if x < 2 => false,
+                (true, 2) | (true, 3) => true,
+                (true, x) if x > 3 => false,
+                (false, 3) => true,
+                (cell, _) => cell,
+            };
+            self.prev_cells.set(idx, next_cell);
+            if cell != next_cell {
+                // set self as hot
+                self.hot_cells.set(idx, true);
+                // set neighbours as hot
+                for neighbour_idx in self.neighbours(row, col) {
+                    self.hot_cells.set(neighbour_idx, true);
+                }
             }
         }
-        // swap the new state into the old state
-        mem::swap(&mut self.cells, &mut self.cells_2);
+
+        std::mem::swap(&mut self.cells, &mut self.prev_cells);
     }
 
     pub fn toggle_cell(&mut self, row: u32, col: u32) {
-        let idx = self.get_index(row, col);
+        let idx = self.coords_to_idx(row, col);
         let curr_bit = self.cells[idx];
         self.cells.set(idx, !curr_bit);
+        // mark curr idx and neigbours as hot
+        self.hot_cells.set(idx, true);
+        let neighbours = self.neighbours(row, col);
+        for neighbour_idx in neighbours {
+            self.hot_cells.set(neighbour_idx, true);
+        }
     }
 }
 
@@ -172,7 +163,7 @@ impl Universe {
     /// of each cell as an array.
     pub fn set_cells(&mut self, cells: &[(u32, u32)]) {
         for (row, col) in cells.iter().cloned() {
-            let idx = self.get_index(row, col);
+            let idx = self.coords_to_idx(row, col);
             self.cells.set(idx, true);
         }
     }
