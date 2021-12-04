@@ -32,29 +32,46 @@ impl Board {
     }
 
     fn check_win(&self) -> bool {
-        // TODO: use Prince's suggestion about cols not being eligible when a number in a row is unmarked
-        // check if a row is full
-        for row in &self.grid {
-            if row.iter().all(|(_, mark)| *mark) {
-                return true;
+        // this version doesn't do early returns
+        let mut row_candidates: HashSet<usize> = (0..5).collect();
+        let mut col_candidates: HashSet<usize> = (0..5).collect();
+
+        for row_idx in 0..5 {
+            for col_idx in 0..5 {
+                // remove invalid result from being eligible
+                let result = self.grid[row_idx][col_idx].1;
+                if result == false {
+                    row_candidates.remove(&row_idx);
+                    col_candidates.remove(&col_idx);
+                }
             }
         }
 
-        // make vec of cols. I know, very inefficient, I want to easily iterate through the cols 🤷‍♂️
-        let mut cols = Vec::new();
-        for col_idx in 0..5 {
-            let col: Vec<bool> = self.grid.iter().map(|row| row[col_idx].1).collect();
-            cols.push(col);
-        }
+        !row_candidates.is_empty() || !col_candidates.is_empty()
 
-        // check if a col is full
-        for col in cols {
-            if col.iter().all(|mark| *mark) {
-                return true;
-            }
-        }
+        // first implementation below:
+        // // check if a row is full
+        // for row in &self.grid {
+        //     if row.iter().all(|(_, mark)| *mark) {
+        //         return true;
+        //     }
+        // }
 
-        false
+        // // make vec of cols. I know, very inefficient, I want to easily iterate through the cols 🤷‍♂️
+        // let mut cols = Vec::new();
+        // for col_idx in 0..5 {
+        //     let col: Vec<bool> = self.grid.iter().map(|row| row[col_idx].1).collect();
+        //     cols.push(col);
+        // }
+
+        // // check if a col is full
+        // for col in cols {
+        //     if col.iter().all(|mark| *mark) {
+        //         return true;
+        //     }
+        // }
+
+        // false
     }
 
     fn sum_unmarked(&self) -> u32 {
@@ -71,35 +88,31 @@ impl Board {
 }
 
 fn parse(input: &str) -> Data {
-    // TODO: use nom to parse
     let (numbers, rest) = input.split_once("\n\n").unwrap();
     let numbers = numbers.split(",").filter_map(|s| s.parse().ok()).collect();
 
-    let boards: Vec<Vec<&str>> = rest
+    let boards = rest
         .split("\n\n")
-        .map(|s| s.split("\n").collect())
+        .enumerate()
+        .map(|(idx, block)| parse_block(idx, block))
         .collect();
-    let mut all_boards = Vec::new();
-    for (idx, board) in boards.iter().enumerate() {
-        let mut curr_board: Vec<Vec<(u8, bool)>> = Vec::new();
-        for line in board {
-            let row: Vec<(u8, bool)> = line
-                .split_whitespace()
-                .filter_map(|s| s.parse().ok())
-                .map(|num| (num, false))
-                .collect();
-            curr_board.push(row);
-        }
-        all_boards.push(Board {
-            idx,
-            grid: curr_board,
-        });
-    }
 
-    Data {
-        numbers,
-        boards: all_boards,
+    Data { numbers, boards }
+}
+
+fn parse_block(idx: usize, input: &str) -> Board {
+    Board {
+        idx,
+        grid: input.lines().map(parse_row).collect(),
     }
+}
+
+fn parse_row(input: &str) -> Vec<(u8, bool)> {
+    input
+        .split_whitespace()
+        .filter_map(|s| s.parse().ok())
+        .map(|num| (num, false))
+        .collect()
 }
 
 fn part_one(mut data: Data) -> u32 {
