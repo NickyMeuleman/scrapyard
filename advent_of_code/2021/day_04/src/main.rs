@@ -22,14 +22,20 @@ struct Board {
 
 impl Board {
     fn mark(&mut self, called_num: u8) {
-        for row in &mut self.grid {
-            for (num, marked) in row {
-                if called_num == *num {
-                    *marked = true;
-                }
-            }
+        if let Some(square) = self.grid.iter_mut().flatten().find(|(num, _)| *num == called_num) {
+            square.1 = true;
         }
     }
+    // initial solution below:
+    // fn mark(&mut self, called_num: u8) {
+    //     for row in &mut self.grid {
+    //         for (num, marked) in row {
+    //             if called_num == *num {
+    //                 *marked = true;
+    //             }
+    //         }
+    //     }
+    // }
 
     fn check_win(&self) -> bool {
         // this version doesn't do early returns
@@ -48,43 +54,54 @@ impl Board {
         }
 
         !row_candidates.is_empty() || !col_candidates.is_empty()
-
-        // first implementation below:
-        // // check if a row is full
-        // for row in &self.grid {
-        //     if row.iter().all(|(_, mark)| *mark) {
-        //         return true;
-        //     }
-        // }
-
-        // // make vec of cols. I know, very inefficient, I want to easily iterate through the cols 🤷‍♂️
-        // let mut cols = Vec::new();
-        // for col_idx in 0..5 {
-        //     let col: Vec<bool> = self.grid.iter().map(|row| row[col_idx].1).collect();
-        //     cols.push(col);
-        // }
-
-        // // check if a col is full
-        // for col in cols {
-        //     if col.iter().all(|mark| *mark) {
-        //         return true;
-        //     }
-        // }
-
-        // false
     }
+
+    // initial solution below:
+    // fn check_win(&self) -> bool {
+    //     // check if a row is full
+    //     for row in &self.grid {
+    //         if row.iter().all(|(_, mark)| *mark) {
+    //             return true;
+    //         }
+    //     }
+
+    //     // make vec of cols. I know, very inefficient, I want to easily iterate through the cols 🤷‍♂️
+    //     let mut cols = Vec::new();
+    //     for col_idx in 0..5 {
+    //         let col: Vec<bool> = self.grid.iter().map(|row| row[col_idx].1).collect();
+    //         cols.push(col);
+    //     }
+
+    //     // check if a col is full
+    //     for col in cols {
+    //         if col.iter().all(|mark| *mark) {
+    //             return true;
+    //         }
+    //     }
+
+    //     false
+    // }
 
     fn sum_unmarked(&self) -> u32 {
-        let mut sum: u32 = 0;
-        for row in &self.grid {
-            for (num, mark) in row {
-                if !*mark {
-                    sum += *num as u32;
-                }
-            }
-        }
-        sum
+        self.grid
+            .iter()
+            .flatten()
+            .filter_map(|(num, mark)| if *mark { None } else { Some(*num as u32) })
+            .sum()
     }
+
+    // initial solution below:
+    // fn sum_unmarked(&self) -> u32 {
+    //     let mut sum: u32 = 0;
+    //     for row in &self.grid {
+    //         for (num, mark) in row {
+    //             if !*mark {
+    //                 sum += *num as u32;
+    //             }
+    //         }
+    //     }
+    //     sum
+    // }
 }
 
 fn parse(input: &str) -> Data {
@@ -117,7 +134,7 @@ fn parse_row(input: &str) -> Vec<(u8, bool)> {
 
 fn part_one(mut data: Data) -> u32 {
     for num in data.numbers {
-        for board in data.boards.iter_mut() {
+        for board in &mut data.boards {
             board.mark(num);
             if board.check_win() {
                 return num as u32 * board.sum_unmarked();
