@@ -12,145 +12,64 @@ struct Point {
 fn main() {
     let input = fs::read_to_string("./input.txt").unwrap();
 
-    println!("Part one answer: {}", part_one(parse_part_one(&input)));
-    println!("Part two answer: {}", part_two(parse_part_two(&input)));
+    println!("Part one answer: {}", part_one(parse(&input, false)));
+    println!("Part two answer: {}", part_two(parse(&input, true)));
 }
 
-fn parse_part_one(input: &str) -> Data {
-    let mut result: HashMap<Point, usize> = HashMap::new();
-    let lines: Vec<Vec<Point>> = input.lines().map(|line| parse_line_part1(line)).collect();
-    for line in lines {
-        for point in line {
-            // increment point counter
-            let count = result.entry(point).or_default();
-            *count += 1;
-        }
-    }
-
-    result
+fn parse(input: &str, part2: bool) -> Data {
+    input
+        .lines()
+        .map(|line| parse_line(line, part2))
+        .fold(HashMap::new(), |mut acc, line| {
+            line.into_iter().for_each(|point| {
+                let count = acc.entry(point).or_default();
+                *count += 1;
+            });
+            acc
+        })
 }
 
-fn parse_part_two(input: &str) -> Data {
-    let mut result: HashMap<Point, usize> = HashMap::new();
-    let lines: Vec<Vec<Point>> = input.lines().map(|line| parse_line_part2(line)).collect();
-    for line in lines {
-        for point in line {
-            // increment point counter
-            let count = result.entry(point).or_default();
-            *count += 1;
-        }
-    }
-
-    result
-}
-
-fn parse_line_part1(input: &str) -> Vec<Point> {
-    // get all individual points from a line
-    // only conside horizontal or vertical lines
-    // LOTS of duplication, oh well
+fn parse_line(input: &str, part2: bool) -> Vec<Point> {
     let mut result = Vec::new();
 
     let (from, to) = input.split_once(" -> ").unwrap();
-    let (x, y) = from.split_once(",").unwrap();
-    let (xx, yy) = to.split_once(",").unwrap();
-    let x: usize = x.parse().unwrap();
-    let xx: usize = xx.parse().unwrap();
-    let y: usize = y.parse().unwrap();
-    let yy: usize = yy.parse().unwrap();
-    // check if horizontal
-    let horizontal = x == xx;
-    // check if vertical
-    let vertical = y == yy;
-    // calculate all points on that line
-    if horizontal || vertical {
-        if x <= xx && y <= yy {
-            for x_pos in x..=xx {
-                for y_pos in y..=yy {
-                    result.push(Point { x: x_pos, y: y_pos });
-                }
-            }
-        } else if x <= xx && y >= yy {
-            for x_pos in x..=xx {
-                for y_pos in yy..=y {
-                    result.push(Point { x: x_pos, y: y_pos });
-                }
-            }
-        } else if x >= xx && y <= yy {
-            for x_pos in xx..=x {
-                for y_pos in y..=yy {
-                    result.push(Point { x: x_pos, y: y_pos });
-                }
-            }
-        } else if x >= xx && y >= yy {
-            for x_pos in xx..=x {
-                for y_pos in yy..=y {
-                    result.push(Point { x: x_pos, y: y_pos });
-                }
+    let (x, y) = from
+        .split_once(",")
+        .map(|(x, y)| (x.parse().unwrap(), y.parse().unwrap()))
+        .unwrap();
+    let (xx, yy) = to
+        .split_once(",")
+        .map(|(x, y)| (x.parse().unwrap(), y.parse().unwrap()))
+        .unwrap();
+
+    let (x_min, x_max) = if x <= xx { (x, xx) } else { (xx, x) };
+    let (y_min, y_max) = if y <= yy { (y, yy) } else { (yy, y) };
+
+    // calculate all points on a line
+    // for horizontal or vertical lines
+    if x == xx || y == yy {
+        for x_pos in x_min..=x_max {
+            for y_pos in y_min..=y_max {
+                let point = Point { x: x_pos, y: y_pos };
+                result.push(point);
             }
         }
     }
-    result
-}
-
-fn parse_line_part2(input: &str) -> Vec<Point> {
-    // get all individual points from a line
-    // also consider diagonals
-    // LOTS of duplication, oh well
-    let mut result = Vec::new();
-
-    let (from, to) = input.split_once(" -> ").unwrap();
-    let (x, y) = from.split_once(",").unwrap();
-    let (xx, yy) = to.split_once(",").unwrap();
-    let x: usize = x.parse().unwrap();
-    let xx: usize = xx.parse().unwrap();
-    let y: usize = y.parse().unwrap();
-    let yy: usize = yy.parse().unwrap();
-    // check if horizontal
-    let horizontal = x == xx;
-    // check if vertical
-    let vertical = y == yy;
-    // calculate all points on that line
-    if horizontal || vertical {
-        if x <= xx && y <= yy {
-            for x_pos in x..=xx {
-                for y_pos in y..=yy {
-                    result.push(Point { x: x_pos, y: y_pos });
-                }
-            }
-        } else if x <= xx && y >= yy {
-            for x_pos in x..=xx {
-                for y_pos in yy..=y {
-                    result.push(Point { x: x_pos, y: y_pos });
-                }
-            }
-        } else if x >= xx && y <= yy {
-            for x_pos in xx..=x {
-                for y_pos in y..=yy {
-                    result.push(Point { x: x_pos, y: y_pos });
-                }
-            }
-        } else if x >= xx && y >= yy {
-            for x_pos in xx..=x {
-                for y_pos in yy..=y {
-                    result.push(Point { x: x_pos, y: y_pos });
-                }
-            }
-        }
-    } else {
-        //  I'M SO SORRY FOR THIS
-        // must be diagonal, at an exact 45 deg angle per the question
-        let (y_min, y_max) = if y <= yy { (y, yy) } else { (yy, y) };
+    // for diagonal lines
+    else if part2 {
         let delta_x = (xx as isize - x as isize).signum();
         let delta_y = (yy as isize - y as isize).signum();
-        // magnitude should be identical if I used x_max and x_min instead of y_max and y_min
+        // magnitude should be identical if I used x_max and x_min instead of y_max and y_min because of the strict 45deg angle
         let magnitude = y_max - y_min;
         for step in 0..=magnitude {
-            result.push(Point {
+            let point = Point {
                 x: (x as isize + (delta_x * step as isize)) as usize,
                 y: (y as isize + (delta_y * step as isize)) as usize,
-            })
+            };
+            result.push(point);
         }
     }
+
     result
 }
 
@@ -178,7 +97,7 @@ mod test {
 0,0 -> 8,8
 5,5 -> 8,2";
 
-        let data = parse_part_one(input);
+        let data = parse(input, false);
         assert_eq!(part_one(data), 5);
     }
 
@@ -196,7 +115,7 @@ mod test {
 0,0 -> 8,8
 5,5 -> 8,2";
 
-        let data = parse_part_two(input);
+        let data = parse(input, true);
         assert_eq!(part_two(data), 12);
     }
 }
