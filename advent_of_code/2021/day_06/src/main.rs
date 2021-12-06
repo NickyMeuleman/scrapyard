@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::fs;
 use std::str::FromStr;
 
@@ -47,13 +46,12 @@ impl FromStr for Data {
     }
 }
 
-struct Population(VecDeque<usize>);
+struct Population([usize; 9]);
 
 impl Population {
     fn tick(&mut self) {
-        let new = self.0.pop_front().unwrap();
-        self.0.push_back(new);
-        self.0[6] += new;
+        self.0.rotate_left(1);
+        self.0[6] += self.0[8];
     }
 
     fn size(&self) -> usize {
@@ -63,7 +61,7 @@ impl Population {
 
 impl Default for Population {
     fn default() -> Self {
-        Self(VecDeque::from([0; 9]))
+        Self([0; 9])
     }
 }
 
