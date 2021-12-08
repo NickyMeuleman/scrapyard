@@ -84,8 +84,10 @@ impl FromStr for Data {
 }
 
 fn main() {
-    let input = fs::read_to_string("./input.txt").unwrap();
+        let input = fs::read_to_string("./input.txt").unwrap();
+        dbg!(input.len());
     let data: Data = input.parse().unwrap();
+    dbg!(data.distances[data.distances.len() -1]);
     println!("Part one answer: {}", data.part_one());
     println!("Part two answer: {}", data.part_two());
 }
