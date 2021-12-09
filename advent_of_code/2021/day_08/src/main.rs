@@ -34,7 +34,6 @@ impl Data {
 
     fn part_two(&self) -> usize {
         // # Steps for each individual line, for each pair in self.pairs:
-        
         // every digit is represented in the pair.combinations list.
         // each digit is a BTreeSet
         // The goal is to figure out which set corresponds to which displayed digit
@@ -69,90 +68,68 @@ impl Data {
             let mut todo = pair.combinations.clone();
             let mut map: HashMap<u8, &Combination> = HashMap::new();
 
+            // len 2 -> display 1
             let one = todo.iter().find(|set| set.len() == 2).unwrap().clone();
             map.insert(1, &one);
             todo.remove(&one);
 
+            // len 3 -> display 7
             let seven = todo.iter().find(|set| set.len() == 3).unwrap().clone();
             map.insert(7, &seven);
             todo.remove(&seven);
 
+            // len 4 -> display 4
             let four = todo.iter().find(|set| set.len() == 4).unwrap().clone();
             map.insert(4, &four);
             todo.remove(&four);
 
+            // len 7 -> display 8
             let eight = todo.iter().find(|set| set.len() == 7).unwrap().clone();
             map.insert(8, &eight);
             todo.remove(&eight);
 
-            let nine = {
-                let len_six = todo
-                    .iter()
-                    .filter(|set| set.len() == 6)
-                    .collect::<Vec<&Combination>>()
-                    .clone();
-                let four = map.get(&4).unwrap();
-                len_six
-                    .into_iter()
-                    .find(|set| set.is_superset(four))
-                    .unwrap()
-                    .clone()
-            };
+            // len 6 and superset of 4-set -> display 9
+            let nine = todo
+                .iter()
+                .find(|set| set.len() == 6 && set.is_superset(map.get(&4).unwrap()))
+                .unwrap()
+                .clone();
             map.insert(9, &nine);
             todo.remove(&nine);
 
-            let three = {
-                let len_five = todo
-                    .iter()
-                    .filter(|set| set.len() == 5)
-                    .collect::<Vec<&Combination>>()
-                    .clone();
-                let one = map.get(&1).unwrap();
-                len_five
-                    .into_iter()
-                    .find(|set| set.is_superset(one))
-                    .unwrap()
-                    .clone()
-            };
+            // len 5 and superset of 1-set -> display 3
+            let three = todo
+                .iter()
+                .find(|set| set.len() == 5 && set.is_superset(map.get(&1).unwrap()))
+                .unwrap()
+                .clone();
             map.insert(3, &three);
             todo.remove(&three);
 
-            let zero = {
-                let len_six = todo
-                    .iter()
-                    .filter(|set| set.len() == 6)
-                    .collect::<Vec<&Combination>>()
-                    .clone();
-                let one = map.get(&1).unwrap();
-                len_six
-                    .into_iter()
-                    .find(|set| set.is_superset(one))
-                    .unwrap()
-                    .clone()
-            };
+            // len 6 and superset of 1-set -> display 0
+            let zero = todo
+                .iter()
+                .find(|set| set.len() == 6 && set.is_superset(map.get(&1).unwrap()))
+                .unwrap()
+                .clone();
             map.insert(0, &zero);
             todo.remove(&zero);
 
+            // len 6 -> display 6
             let six = todo.iter().find(|set| set.len() == 6).unwrap().clone();
             map.insert(6, &six);
             todo.remove(&six);
 
-            let five = {
-                let len_five = todo
-                    .iter()
-                    .filter(|set| set.len() == 5)
-                    .collect::<Vec<&Combination>>()
-                    .clone();
-                let six = map.get(&6).unwrap();
-                len_five
-                    .into_iter()
-                    .find(|set| set.is_subset(six))
-                    .unwrap()
-                    .clone()
-            };
+            // len 5 and is subset of 6-set -> display 5
+            let five = todo
+                .iter()
+                .find(|set| set.len() == 5 && set.is_subset(map.get(&6).unwrap()))
+                .unwrap()
+                .clone();
             map.insert(5, &five);
             todo.remove(&five);
 
+            // len 5 -> 2
             let two = todo.iter().find(|set| set.len() == 5).unwrap().clone();
             map.insert(2, &two);
             todo.remove(&two);
@@ -163,7 +140,13 @@ impl Data {
             let num: usize = pair
                 .digits
                 .iter()
-                .map(|set| map.iter().find(|(_, &map_set)| set == map_set).unwrap().0.to_string())
+                .map(|set| {
+                    map.iter()
+                        .find(|(_, &map_set)| set == map_set)
+                        .unwrap()
+                        .0
+                        .to_string()
+                })
                 .collect::<String>()
                 .parse()
                 .unwrap();
