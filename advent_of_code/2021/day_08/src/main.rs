@@ -17,60 +17,52 @@ struct Data {
 
 impl Data {
     fn part_one(&self) -> usize {
-        let mut result = 0;
-        // create HashMap with <Combination, possible digits>
-        for pair in &self.pairs {
-            let mut possibilities_map: HashMap<Combination, HashSet<u8>> = HashMap::new();
-            let combinations = &pair.combinations;
-            for combination in combinations {
-                // each combination starts off with all 10 possibilities: 0,1,2,3,4,5,6,7,8,9
-                let all_options: HashSet<u8> = (0..=9).collect();
-                possibilities_map.insert(combination.clone(), all_options);
-            }
-            // eliminate possibilities
-            // first round of eliminations: check length of Combination, some digits are eliminated (1 only has 2 letters etc)
-            for mut entry in &mut possibilities_map {
-                let len = entry.0.len();
-                match len {
-                    2 => {
-                        // has to be a 1
-                        entry.1.retain(|&k| k == 1);
-                    }
-                    3 => {
-                        // has to be a 7
-                        entry.1.retain(|&k| k == 7);
-                    }
-                    4 => {
-                        // has to be a 4
-                        entry.1.retain(|&k| k == 4);
-                    }
-                    7 => {
-                        // has to be a 8
-                        entry.1.retain(|&k| k == 8);
-                    }
-                    _ => {}
-                }
-            }
+        // each output digit is a BTreeSet
+        // iterate over each one and count the length of that set
+        // len 7 -> display 8
+        // len 3 -> display 7
+        // len 2 -> display 1
+        // len 4 -> display 4
+        // count the amount of occurrences of these numbers
 
-            let one_four_seven_eight: HashSet<Combination> = possibilities_map
-                .into_iter()
-                .filter(|(_, possibilities)| possibilities.len() == 1)
-                .map(|(combinations, _)| combinations)
-                .collect();
-
-            let digits = &pair.digits;
-
-            for digit in digits {
-                if one_four_seven_eight.contains(digit) {
-                    result += 1;
-                }
-            }
-        }
-
-        result
+        self.pairs
+            .iter()
+            .flat_map(|pair| pair.digits.iter().map(|digit| digit.len()))
+            .filter(|num| [7, 3, 2, 4].contains(num))
+            .count()
     }
 
     fn part_two(&self) -> usize {
+        // # Steps for each individual line, for each pair in self.pairs:
+        
+        // every digit is represented in the pair.combinations list.
+        // each digit is a BTreeSet
+        // The goal is to figure out which set corresponds to which displayed digit
+
+        // the length of the set gives a hint to which displayed digit the set represents
+        // len 7 -> display 8
+        // len 3 -> display 7
+        // len 2 -> display 1
+        // len 4 -> display 4
+
+        // Then, in order, that means:
+        // len 6 and superset of 4-set -> display 9
+        // len 5 and superset of 1-set -> display 3
+        // len 6 and superset of 1-set -> display 0
+        // len 6 -> display 6
+        // len 5 and is subset of 6-set -> display 5
+        // len 5 -> 2
+
+        // at this point you can translate from set <-> number
+
+        // loop over the 4 given numbers in pair.digits
+        // each number is a BTreeSet
+        // for each set, translate it to a number
+        // concatenate all these numbers (1 + 2 + 3 + 4 = 1234) to get a result for a single pair
+
+        // add each result for a pair to a total result
+        // that total is the solution to part2
+
         let mut total = 0;
 
         for pair in &self.pairs {
@@ -171,8 +163,7 @@ impl Data {
             let num: usize = pair
                 .digits
                 .iter()
-                .map(|set| *map.iter().find(|(_, &map_set)| set == map_set).unwrap().0)
-                .map(|n| n.to_string())
+                .map(|set| map.iter().find(|(_, &map_set)| set == map_set).unwrap().0.to_string())
                 .collect::<String>()
                 .parse()
                 .unwrap();
