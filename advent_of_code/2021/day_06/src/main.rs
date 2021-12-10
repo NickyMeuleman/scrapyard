@@ -41,7 +41,7 @@ impl FromStr for Data {
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         Ok(Self {
-            timers: input.split(",").filter_map(|s| s.parse().ok()).collect(),
+            timers: input.trim().split(",").filter_map(|s| s.parse().ok()).collect(),
         })
     }
 }
