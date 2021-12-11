@@ -6,10 +6,10 @@ use std::fs;
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
-struct Data {
-    map: HashMap<Point, usize>,
-    rows: usize,
-    cols: usize,
+pub struct Data {
+    map: HashMap<Point, u8>,
+    rows: u8,
+    cols: u8,
 }
 
 impl fmt::Display for Data {
@@ -22,8 +22,8 @@ impl fmt::Display for Data {
                 let num = *self
                     .map
                     .get(&Point {
-                        row: row_idx,
-                        col: col_idx,
+                        row: row_idx as u8,
+                        col: col_idx as u8,
                     })
                     .unwrap();
                 line.push(char::from_digit(num as u32, 10).unwrap());
@@ -39,8 +39,8 @@ impl fmt::Display for Data {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 struct Point {
-    row: usize,
-    col: usize,
+    row: u8,
+    col: u8,
 }
 
 impl Point {
@@ -62,8 +62,8 @@ impl Point {
             // ugly casting because the offsets can be negative, but the final result can not
             // as a result, this can overflow, but it's fiiiiiiiiiiiiiine
             // the better option is saturing_add_negative(), but that's nightly only
-            let row = (self.row as isize + row_offset as isize) as usize;
-            let col = (self.col as isize + col_offset as isize) as usize;
+            let row = (self.row as i8 + row_offset as i8) as u8;
+            let col = (self.col as i8 + col_offset as i8) as u8;
 
             let point = Point { row, col };
             if point.within_bounds(data.rows - 1, data.cols - 1) {
@@ -74,25 +74,25 @@ impl Point {
         neighbours
     }
 
-    fn within_bounds(&self, max_row: usize, max_col: usize) -> bool {
+    fn within_bounds(&self, max_row: u8, max_col: u8) -> bool {
         self.row <= max_row && self.col <= max_col
     }
 }
 
 impl Data {
-    fn part_one(&self) -> usize {
+    pub fn part_one(&self) -> u16 {
         let mut data = self.clone();
         (0..100).map(|_| data.tick()).sum()
     }
 
-    fn part_two(&self) -> usize {
+    fn part_two(&self) -> u16 {
         let mut data = self.clone();
 
         (1..)
-            .find_map(|idx| {
-                data.tick();
-                if data.map.iter().all(|(_, energy)| *energy == 0) {
-                    Some(idx)
+            .find_map(|step| {
+                // if they all flashed, stop
+                if data.tick() == (data.rows as u16 * data.cols as u16) {
+                    Some(step)
                 } else {
                     None
                 }
@@ -101,7 +101,7 @@ impl Data {
     }
 
     /// function that performs one tick and returns the amount of resulting flashes
-    fn tick(&mut self) -> usize {
+    fn tick(&mut self) -> u16 {
         let mut flashes = 0;
         let mut queue: VecDeque<Point> = VecDeque::new();
         let mut visited: HashSet<Point> = HashSet::new();
@@ -155,18 +155,18 @@ impl FromStr for Data {
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         let input = input.trim();
-        let rows = input.lines().count();
-        let cols = input.lines().nth(0).unwrap().len();
+        let rows = input.lines().count() as u8;
+        let cols = input.lines().nth(0).unwrap().len() as u8;
 
         let map = input
             .lines()
             .enumerate()
             .flat_map(|(row_idx, line)| {
                 line.chars().enumerate().map(move |(col_idx, c)| {
-                    let num = c.to_digit(10).unwrap() as usize;
+                    let num = c.to_digit(10).unwrap() as u8;
                     let point = Point {
-                        row: row_idx,
-                        col: col_idx,
+                        row: row_idx as u8,
+                        col: col_idx as u8,
                     };
                     (point, num)
                 })
