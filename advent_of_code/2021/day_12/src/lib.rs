@@ -13,42 +13,43 @@ impl Data {
         // create all paths that start at Start, end at End, and only visit Small caves once
         let mut do_not_visit: HashSet<Cave> = HashSet::new();
         do_not_visit.insert(Cave::Start);
-        self.count_from(&Cave::Start, &mut do_not_visit)
+        self.count_from(&Cave::Start, do_not_visit)
     }
 
     pub fn part_two(&self) -> usize {
         1
     }
 
-    fn count_from(&self, from: &Cave, do_not_visit: &mut HashSet<Cave>) -> usize {
+    fn count_from(&self, from: &Cave, do_not_visit: HashSet<Cave>) -> usize {
         // goal: get to the end, if we do, total + 1
-        let options = self.connections.get(from).unwrap();
-        let mut total = 0;
-
-        for option in options {
-            match option {
-                Cave::Small(_) if !do_not_visit.contains(option) => {
-                    // add option to do_not_visit
-                    do_not_visit.insert(option.clone());
-                    // not yet, recurse
-                    self.count_from(option, do_not_visit);
+        self.connections
+            .get(from)
+            .unwrap()
+            .iter()
+            .map(|option| {
+                let mut do_not_visit = do_not_visit.clone();
+                match option {
+                    Cave::Small(_) if !do_not_visit.contains(option) => {
+                        // add option to do_not_visit
+                        do_not_visit.insert(option.clone());
+                        // not yet, recurse
+                        self.count_from(option, do_not_visit)
+                    }
+                    Cave::Big(_) => {
+                        // not yet, recurse
+                        self.count_from(option, do_not_visit)
+                    }
+                    Cave::End => {
+                        // found the end
+                        1
+                    }
+                    _ => {
+                        // invalid
+                        0
+                    }
                 }
-                Cave::Big(_) => {
-                    // not yet, recurse
-                    self.count_from(option, do_not_visit);
-                }
-                Cave::End => {
-                    // found the end
-                    total += 1;
-                    continue;
-                }
-                _ => {
-                    // invalid
-                    continue;
-                }
-            };
-        }
-        total
+            })
+            .sum()
     }
 }
 
