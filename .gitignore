@@ -12,3 +12,5 @@
 Cargo.lock
 
 playground/*
+
+*.txt
