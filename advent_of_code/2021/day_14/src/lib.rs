@@ -57,10 +57,10 @@ impl State {
         letter_counts
     }
 
-    fn min_max(self, last_letter: char) -> (u64, u64) {
+    fn min_max(&self, last_letter: char) -> (u64, u64) {
         let letter_counts = self.count_letters(last_letter);
-        let min = letter_counts.clone().into_values().min().unwrap();
-        let max = letter_counts.into_values().max().unwrap();
+        let min = *letter_counts.values().min().unwrap();
+        let max = *letter_counts.values().max().unwrap();
 
         (min, max)
     }
