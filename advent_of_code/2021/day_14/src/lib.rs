@@ -24,17 +24,37 @@ struct State {
 }
 
 impl State {
+    fn tick(self, rules: &HashMap<[char; 2], char>) -> Self {
+        // build up a new hashmap of pair counts
+        // loop over every old pair and apply the relevant rule
+        // Both new pairs a rule creates occur "count before the rule" amount of times, so increment the count for the new pair with that
+        let pair_counts =
+            self.pair_counts
+                .into_iter()
+                .fold(HashMap::new(), |mut acc, ([left, right], count)| {
+                    let mid = rules.get(&[left, right]).unwrap();
+                    *acc.entry([left, *mid]).or_default() += count;
+                    *acc.entry([*mid, right]).or_default() += count;
+                    acc
+                });
+
+        Self { pair_counts }
+    }
+
     fn count_letters(&self, last_letter: char) -> HashMap<char, u64> {
         // count amount of times a letter occurs
-        // pairs overlap, so only increment the count for the first letter in a pair
+        // pairs overlap, so only increment the count for the first letter in a pair, or you end up counting letters twice
+        let mut letter_counts =
+            self.pair_counts
+                .iter()
+                .fold(HashMap::new(), |mut acc, ([first, _], count)| {
+                    *acc.entry(*first).or_default() += count;
+                    acc
+                });
         // this doesn't consider the last letter, so we increment the count of the last letter by 1 at the end
-        let mut final_counts = HashMap::new();
-        for ([first, _], count) in &self.pair_counts {
-            *final_counts.entry(*first).or_default() += count;
-        }
-        *final_counts.entry(last_letter).or_default() += 1;
+        *letter_counts.entry(last_letter).or_default() += 1;
 
-        final_counts
+        letter_counts
     }
 
     fn min_max(self, last_letter: char) -> (u64, u64) {
@@ -48,35 +68,23 @@ impl State {
 
 impl Data {
     pub fn part_one(&self) -> u64 {
-        let pair_counts = (0..10).fold(self.initial_pairs(), |curr_pairs, _| self.tick(curr_pairs));
+        let initial_state = State { pair_counts: self.initial_pairs()};
+        let final_state = (0..10).fold(initial_state, |acc, _| acc.tick(&self.rules));
 
         let last_letter = self.template.iter().last().unwrap();
-        let state = State { pair_counts };
-        let (min, max) = state.min_max(*last_letter);
+        let (min, max) = final_state.min_max(*last_letter);
 
         max - min
     }
 
     pub fn part_two(&self) -> u64 {
-        let pair_counts = (0..40).fold(self.initial_pairs(), |curr_pairs, _| self.tick(curr_pairs));
+        let initial_state = State { pair_counts: self.initial_pairs()};
+        let final_state = (0..40).fold(initial_state, |acc, _| acc.tick(&self.rules));
 
         let last_letter = self.template.iter().last().unwrap();
-        let state = State { pair_counts };
-        let (min, max) = state.min_max(*last_letter);
+        let (min, max) = final_state.min_max(*last_letter);
 
         max - min
-    }
-
-    fn tick(&self, pairs: HashMap<[char; 2], u64>) -> HashMap<[char; 2], u64> {
-        let mut new_counts = HashMap::new();
-        for ([left, right], count) in pairs {
-            let mid = self.rules.get(&[left, right]).unwrap();
-            // each newly created pair gets incremented by the count of the pair we're looping over
-            *new_counts.entry([left, *mid]).or_default() += count;
-            *new_counts.entry([*mid, right]).or_default() += count;
-        }
-
-        new_counts
     }
 }
 
