@@ -1,0 +1,17 @@
+[package]
+name = "day_15"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+pathfinding = "3.0.4"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "my_benchmark"
+path = "bench/my_benchmark.rs"
+harness = false
