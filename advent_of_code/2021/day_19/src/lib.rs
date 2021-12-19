@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use hashbrown::HashSet;
 use std::{convert::Infallible, str::FromStr};
 
 #[derive(Debug, Clone)]
@@ -12,22 +12,14 @@ struct Scan {
 }
 
 impl Scan {
-    fn rotations(&self) -> Vec<Self> {
-        let mut rotations = Vec::new();
-
-        for idx in 0..24 {
-            // rotate every point in the scan the same way
-            let mut rotated_scan: Scan = Default::default();
-
-            for point in &self.grid {
-                let rotated_point = point.rotate(idx);
-                rotated_scan.grid.insert(rotated_point);
+    fn rotations(&self) -> impl Iterator<Item = Self> + '_ {
+        // create an iterator of rotated scans
+        (0..24).map(|idx| {
+            // create a scan where every point is rotated the same way
+            Scan {
+                grid: self.grid.iter().map(|point| point.rotate(idx)).collect(),
             }
-
-            rotations.push(rotated_scan);
-        }
-
-        rotations
+        })
     }
 
     fn try_merge(&mut self, other: &Scan) -> Option<Point> {
@@ -81,7 +73,7 @@ impl Point {
         Self { x, y, z }
     }
 
-    fn rotate(&self, idx: usize) -> Self {
+    fn rotate(&self, idx: u8) -> Self {
         let x = self.x;
         let y = self.y;
         let z = self.z;
