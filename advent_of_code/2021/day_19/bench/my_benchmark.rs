@@ -8,13 +8,18 @@ const INPUT: &'static str = include_str!("../input.txt");
 
 fn criterion_benchmark(c: &mut Criterion) {
     let data: Data = black_box(INPUT.parse().unwrap());
-    c.bench_function("part1", |b| {
+    let mut group = c.benchmark_group("reduces-sample-size");
+    group.sample_size(10);
+
+    group.bench_function("part1", |b| {
         b.iter(|| data.clone().part_one())
     });
 
-    c.bench_function("part2", |b| {
+    group.bench_function("part2", |b| {
         b.iter(|| data.part_two())
     });
+
+    group.finish();
 }
 
 criterion_group!(benches, criterion_benchmark);

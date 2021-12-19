@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use std::collections::HashSet;
 use std::{convert::Infallible, str::FromStr};
 
@@ -37,8 +36,8 @@ impl Scan {
             let distances = self
                 .grid
                 .iter()
-                .cartesian_product(&rotation.grid)
-                .map(|(a, b)| Point::new(a.x - b.x, a.y - b.y, a.z - b.z));
+                .flat_map(|p1| rotation.grid.iter().map(move |p2| (p1, p2)))
+                .map(|(p1, p2)| Point::new(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z));
 
             for point in distances {
                 let dx = point.x;
@@ -157,8 +156,16 @@ impl Data {
 
         distances
             .iter()
-            .tuple_combinations()
-            .map(|(a, b)| a.manhattan(b))
+            .enumerate()
+            .flat_map(|(i, d1)| {
+                distances.iter().enumerate().filter_map(move |(j, d2)| {
+                    if i != j {
+                        Some(d1.manhattan(d2))
+                    } else {
+                        None
+                    }
+                })
+            })
             .max()
             .unwrap()
     }
@@ -479,7 +486,6 @@ mod test {
 -652,-548,-490
 30,-46,-14";
         let data: Data = input.parse().unwrap();
-        // passes but the full input doesn't, QQ
-        assert_eq!(data.part_two(), 362);
+        assert_eq!(data.part_two(), 3621);
     }
 }
