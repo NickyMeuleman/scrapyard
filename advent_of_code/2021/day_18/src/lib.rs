@@ -1,140 +1,159 @@
-use std::collections::VecDeque;
-use std::iter;
-use std::ops::Add;
+// https://github.com/vodik/aoc/blob/main/aoc-2021/src/day18.rs
+// yay learning nom!
+
+use nom::{
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::digit1,
+    combinator::{map, map_res},
+    sequence::{delimited, separated_pair},
+    IResult,
+};
 use std::{convert::Infallible, str::FromStr};
 
-// modified from:
-// https://github.com/ephemient/aoc2021/blob/main/rs/src/day18.rs
+#[derive(Debug)]
+pub enum Expr {
+    Pair(Box<Expr>, Box<Expr>),
+    Value(u8),
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct SnailNumber(Vec<(u8, usize)>);
+
+impl SnailNumber {
+    fn parse(n: &Expr) -> Self {
+        let mut sn = SnailNumber::default();
+
+        fn push(n: &Expr, depth: usize, sn: &mut SnailNumber) {
+            match n {
+                Expr::Pair(a, b) => {
+                    push(a, depth + 1, sn);
+                    push(b, depth + 1, sn);
+                }
+                Expr::Value(v) => {
+                    sn.0.push((*v, depth));
+                }
+            }
+        }
+
+        push(n, 0, &mut sn);
+        sn
+    }
+
+    fn add(&mut self, other: &SnailNumber) {
+        self.0.extend_from_slice(&other.0);
+        self.0.iter_mut().for_each(|(_, c)| *c += 1);
+    }
+
+    fn explode(&mut self, hint: usize) -> Option<usize> {
+        self.0[hint..].iter().position(|&(_, d)| d == 5).map(|pos| {
+            let pos = pos + hint;
+
+            let newhint = if pos > 0 {
+                self.0[pos - 1].0 += self.0[pos].0;
+                pos - 1
+            } else {
+                0
+            };
+
+            if pos + 2 < self.0.len() {
+                self.0[pos + 2].0 += self.0[pos + 1].0;
+            }
+
+            self.0.remove(pos);
+            self.0[pos].0 = 0;
+            self.0[pos].1 -= 1;
+
+            newhint
+        })
+    }
+
+    fn split(&mut self, hint: usize) -> Option<usize> {
+        self.0[hint..]
+            .iter()
+            .position(|&(v, _)| v >= 10)
+            .map(|pos| {
+                let pos = pos + hint;
+                let cell = &mut self.0[pos];
+
+                let left = cell.0 / 2;
+                let right = cell.0 - left;
+                let depth = cell.1 + 1;
+
+                *cell = (left, depth);
+                self.0.insert(pos + 1, (right, depth));
+
+                pos
+            })
+    }
+
+    fn reduce(&mut self) {
+        let mut hint = 0;
+        while let Some(newhint) = self.explode(hint) {
+            hint = newhint;
+        }
+
+        if let Some(mut hint) = self.split(0) {
+            loop {
+                if let Some(newhint) = self.explode(hint) {
+                    hint = newhint;
+                }
+
+                if let Some(newhint) = self.split(hint) {
+                    hint = newhint
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
+    fn magnitude(&self) -> u64 {
+        let mut numbers: Vec<_> = self.0.iter().map(|&(v, d)| (v.into(), d)).collect();
+
+        for depth in (1..5).rev() {
+            let mut left = 0;
+            while left < numbers.len() {
+                if numbers[left].1 == depth {
+                    let mut right = left + 1;
+                    while numbers[right].1 == 0 {
+                        right += 1;
+                    }
+
+                    numbers[left].0 = numbers[left].0 * 3 + numbers[right].0 * 2;
+                    numbers[left].1 -= 1;
+                    numbers[right].1 = 0;
+
+                    left = right;
+                }
+                left += 1;
+            }
+        }
+
+        numbers[0].0
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Data {
-    // numbers is a vector of lines
-    // each line is a vecdeque of tokens
-    numbers: Vec<Tokens>,
-}
-
-#[derive(Debug, Clone)]
-struct Tokens {
-    tokens: VecDeque<SnailfishToken>,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum SnailfishToken {
-    Open,
-    Close,
-    Value(u32),
-}
-
-impl Tokens {
-    fn magnitude(&mut self) -> u32 {
-        match self.tokens.pop_front().unwrap() {
-            SnailfishToken::Open => {
-                // not the end of a snailfish number yet, we need to go deeper -Leonardo DiCaprio squinting-
-
-                // keep recursing until you get the magnitude of a number, the left number
-                let lhs = self.magnitude();
-                // keep recursing until you get the magnitude of a second number, the right number,
-                let rhs = self.magnitude();
-
-                // check if there is still something left in tokens
-                match self.tokens.pop_front().unwrap() {
-                    // at this point, the next token is a closing token, we are at the end of a snailfish number, return the magnitude
-                    SnailfishToken::Close => 3 * lhs + 2 * rhs,
-                    _ => unreachable!("Expected snailfish number to end, but it didn't"),
-                }
-            }
-            // the magnitude of a regular number is just that number
-            SnailfishToken::Value(num) => num,
-            // a closing enum as first value? Nope
-            SnailfishToken::Close => unreachable!("Found closing bracket as first value"),
-        }
-    }
-}
-
-impl Add for Tokens {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        // TODO: comment this
-        let mut vec: Vec<SnailfishToken> = iter::once(SnailfishToken::Open)
-            .chain(self.tokens)
-            .chain(other.tokens)
-            .chain(iter::once(SnailfishToken::Close))
-            .collect();
-
-        'outer: loop {
-            let mut depth = 0;
-            for (i, window) in vec[..].windows(4).enumerate() {
-                // do we need to go boom?
-                if depth > 3 {
-                    // watch me explooooooooooooooooooooooode
-                    if let [SnailfishToken::Open, SnailfishToken::Value(x), SnailfishToken::Value(y), SnailfishToken::Close] =
-                        *window
-                    {
-                        vec.splice(i..i + 4, iter::once(SnailfishToken::Value(0)));
-                        if let Some(t) = vec.iter_mut().take(i).rev().find_map(|t| match t {
-                            SnailfishToken::Value(t) => Some(t),
-                            _ => None,
-                        }) {
-                            *t += x;
-                        }
-                        if let Some(t) = vec.iter_mut().skip(i + 1).find_map(|t| match t {
-                            SnailfishToken::Value(t) => Some(t),
-                            _ => None,
-                        }) {
-                            *t += y;
-                        }
-                        // During reduction, at most one action applies, after which the process returns to the top of the list of actions.
-                        // this exploded, jump to the next iteration of the outer infinite loop
-                        continue 'outer;
-                    }
-                }
-                match window[0] {
-                    SnailfishToken::Open => depth += 1,
-                    SnailfishToken::Close => depth -= 1,
-                    _ => {}
-                }
-            }
-            // do we need to split?
-            if let Some((i, t)) = vec.iter_mut().enumerate().find_map(|(i, t)| match t {
-                SnailfishToken::Value(t) => Some((i, *t)).filter(|(_, t)| *t > 9),
-                _ => None,
-            }) {
-                vec.splice(
-                    i..=i,
-                    [
-                        SnailfishToken::Open,
-                        SnailfishToken::Value(t / 2),
-                        SnailfishToken::Value((t + 1) / 2),
-                        SnailfishToken::Close,
-                    ],
-                );
-                // During reduction, at most one action applies, after which the process returns to the top of the list of actions.
-                // this split, jump to the next iteration of the outer infinite loop
-                // because it's the end of this codeblock, an explicit continue statement isn't needed, but it can be present
-                continue 'outer;
-            } else {
-                // done, return the result
-                break Tokens {
-                    // vec isn't a vecdeque from the start because that doesn't have a windows method for some reason
-                    tokens: vec.into_iter().collect(),
-                };
-            }
-        }
-    }
+    numbers: Vec<SnailNumber>,
 }
 
 impl Data {
-    pub fn part_one(&self) -> u32 {
+    pub fn part_one(&self) -> u64 {
         self.numbers
             .clone()
             .into_iter()
-            .reduce(|acc, number| acc + number)
+            .reduce(|mut acc, number| {
+                acc.add(&number);
+                acc.reduce();
+                acc
+            })
             .unwrap()
             .magnitude()
     }
 
-    pub fn part_two(&self) -> u32 {
+    pub fn part_two(&self) -> u64 {
         let numbers = self.numbers.clone();
 
         numbers
@@ -145,7 +164,12 @@ impl Data {
                     .iter()
                     .enumerate()
                     .filter(move |(rhs_idx, _)| lhs_idx != *rhs_idx)
-                    .map(|(_, rhs)| (lhs.clone() + rhs.clone()).magnitude())
+                    .map(|(_, rhs)| {
+                        let mut result = lhs.clone();
+                        result.add(rhs);
+                        result.reduce();
+                        result.magnitude()
+                    })
             })
             .max()
             .unwrap()
@@ -156,22 +180,35 @@ impl FromStr for Data {
     type Err = Infallible;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        let numbers = input
-            .trim()
-            .lines()
-            .map(|line| Tokens {
-                tokens: line
-                    .chars()
-                    .filter_map(|c| match c {
-                        '[' => Some(SnailfishToken::Open),
-                        ']' => Some(SnailfishToken::Close),
-                        _ => c.to_digit(10).map(SnailfishToken::Value),
-                    })
-                    .collect(),
-            })
-            .collect();
+        fn pair(input: &str) -> IResult<&str, Expr> {
+            delimited(
+                tag("["),
+                map(
+                    separated_pair(snail_number, tag(","), snail_number),
+                    |(left, right)| Expr::Pair(Box::new(left), Box::new(right)),
+                ),
+                tag("]"),
+            )(input)
+        }
 
-        Ok(Self { numbers })
+        fn number<T: FromStr>(input: &str) -> IResult<&str, T> {
+            map_res(digit1, FromStr::from_str)(input)
+        }
+        fn value(input: &str) -> IResult<&str, Expr> {
+            map(number, Expr::Value)(input)
+        }
+        fn snail_number(input: &str) -> IResult<&str, Expr> {
+            alt((pair, value))(input)
+        }
+
+        Ok(Self {
+            numbers: input
+                .trim()
+                .lines()
+                .filter_map(|line| snail_number(line).ok())
+                .map(|(_, expr)| SnailNumber::parse(&expr))
+                .collect(),
+        })
     }
 }
 
