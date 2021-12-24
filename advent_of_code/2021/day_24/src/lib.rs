@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use hashbrown::HashMap;
 use std::{convert::Infallible, str::FromStr};
-
+// Find modelnum and solve logic from u/supersmurfen, thanks!
+// https://github.com/AxlLind/AdventOfCode2021/blob/main/src/bin/24.rs
 #[derive(Debug, Clone)]
 pub struct Data {
     instructions: Vec<Instruction>,
@@ -205,30 +206,44 @@ fn find_modelnum(
     z: i64,
     range: &[i64; 9],
 ) -> Option<i64> {
+    // early return if the memo has an entry
+    // the memo object has a key of the final alu.z value and the current block
+    // the entire alu-state does not have to be stored, only alu.z is significant
     if let Some(&answer) = memo.get(&(z, block)) {
         return answer;
     }
 
     for &digit in range {
+        // initialize an ALU with w set to the current digit and z set to the z-parameter
         let mut alu = ALU::new(0, 0, z, digit);
+
+        // execute all instructions in the current block
         for inst in &blocks[block] {
             alu.execute(inst)
         }
 
+        // if entered: all instructions for a modelnumber were executed
         if block + 1 == blocks.len() {
             if alu.z == 0 {
+                // the modelnumber was valid,add it to the memo and return the current digit
                 memo.insert((alu.z, block), Some(digit));
                 return Some(digit);
+            } else {
+                // the modelnumber wasn't valid, check the next one
+                continue;
             }
-            continue;
         }
 
+        // recurse using the next block of instructions and the z parameter set to the current z register in the ALU
         if let Some(best) = find_modelnum(memo, blocks, block + 1, alu.z, range) {
+            // that had a result, add it to the memo
+            // multiply the result by 10 and add the current digit to it (like concatenating a string, but with numbers)
             memo.insert((alu.z, block), Some(best * 10 + digit));
             return Some(best * 10 + digit);
         }
     }
 
+    // no result was found, add the relevant entry to the memo and return
     memo.insert((z, block), None);
     None
 }
@@ -239,6 +254,9 @@ fn solve(blocks: &[Vec<Instruction>], biggest: bool) -> String {
     } else {
         [1, 2, 3, 4, 5, 6, 7, 8, 9]
     };
+    // the answer will have as much digits are there are blocks.
+    // in this input size, that's 14, the length of a modelnumber
     let answer = find_modelnum(&mut HashMap::new(), &blocks, 0, 0, &range).unwrap();
+
     answer.to_string().chars().rev().collect()
 }

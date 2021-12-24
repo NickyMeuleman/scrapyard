@@ -4,10 +4,18 @@
 
 ```
 part1
-time:   [919.86 us 922.85 us 926.10 us]
-Found 8 outliers among 100 measurements (8.00%)
-2 (2.00%) low mild
-6 (6.00%) high severe
+time:   [1.0652 s 1.0787 s 1.0928 s]
+```
+
+after using [hashbrown](https://crates.io/crates/hashbrown) as `HashMap` instead of `std::collections::HashMap`:
+
+```
+part1
+time:   [832.79 ms 833.96 ms 835.21 ms]
+change: [-23.696% -22.690% -21.693%] (p = 0.00 < 0.05)
+Performance has improved.
+Found 2 outliers among 100 measurements (2.00%)
+2 (2.00%) high mild
 ```
 
 ## Part 2
@@ -16,8 +24,19 @@ Found 8 outliers among 100 measurements (8.00%)
 
 ```
 part2
-time:   [2.0614 ms 2.0697 ms 2.0790 ms]
-Found 5 outliers among 100 measurements (5.00%)
-3 (3.00%) high mild
-2 (2.00%) high severe
+time:   [129.81 ms 131.72 ms 133.74 ms]
+Found 1 outliers among 100 measurements (1.00%)
+1 (1.00%) high mild
+```
+
+after using [hashbrown](https://crates.io/crates/hashbrown) as `HashMap` instead of `std::collections::HashMap`:
+
+```
+part2
+time:   [94.425 ms 94.793 ms 95.208 ms]
+change: [-29.156% -28.036% -26.934%] (p = 0.00 < 0.05)
+Performance has improved.
+Found 6 outliers among 100 measurements (6.00%)
+5 (5.00%) high mild
+1 (1.00%) high severe
 ```
