@@ -22,7 +22,7 @@ Found 15 outliers among 100 measurements (15.00%)
 11 (11.00%) high severe
 ```
 
-use u8 instead of usize for coordinated for a tiny speedup, but decent memory savings
+use u8 instead of usize for coordinates for a tiny speedup, but decent memory savings
 
 ```
 part1
