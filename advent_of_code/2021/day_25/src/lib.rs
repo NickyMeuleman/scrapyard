@@ -1,16 +1,16 @@
 use hashbrown::HashMap;
+use std::convert::TryInto;
 use std::fmt;
 use std::{convert::Infallible, str::FromStr};
 
 #[derive(Debug, Clone)]
 pub struct Data {
-    rows: usize,
-    cols: usize,
+    rows: u8,
+    cols: u8,
     map: HashMap<Point, Cucumber>,
 }
 
 impl Data {
-    // with mutation
     fn turn(&mut self, direction: &Cucumber) -> bool {
         let can_move: Vec<_> = self
             .map
@@ -51,50 +51,6 @@ impl Data {
         !can_move.is_empty()
     }
 
-    // sans mutation
-    // fn turn(&self, direction: &Cucumber) -> Option<HashMap<Point, Cucumber>> {
-    //     let mut changed = false;
-    //     let mut map: HashMap<Point, Cucumber> = HashMap::new();
-
-    //     for (point, cucumber) in &self.map {
-    //         match (point, cucumber) {
-    //             (point, cucumber) if cucumber == direction => {
-    //                 let new_point = match direction {
-    //                     Cucumber::Right => Point {
-    //                         row: point.row,
-    //                         col: (point.col + 1) % self.cols,
-    //                     },
-    //                     Cucumber::Down => Point {
-    //                         row: (point.row + 1) % self.rows,
-    //                         col: point.col,
-    //                     },
-    //                 };
-    //                 if !self.map.contains_key(&new_point) {
-    //                     // move
-    //                     changed = true;
-    //                     map.insert(new_point, *cucumber);
-    //                 } else {
-    //                     // stay
-    //                     map.insert(*point, *cucumber);
-    //                 }
-    //             }
-    //             (point, cucumber) => {
-    //                 // stay
-    //                 map.insert(*point, *cucumber);
-    //             }
-    //         }
-    //     }
-
-    //     if changed {
-    //         Some(map)
-    //     } else {
-    //         None
-    //     }
-    // }
-}
-
-impl Data {
-    // avec mutation
     pub fn part_one(&mut self) -> usize {
         let mut steps = 0;
 
@@ -109,30 +65,6 @@ impl Data {
 
         steps
     }
-
-    // without mutation
-    // pub fn part_one(&mut self) -> usize {
-    //     let mut steps = 0;
-
-    //     loop {
-    //         let mut moved_right = false;
-    //         let mut moved_down = false;
-    //         if let Some(map) = self.turn(&Cucumber::Right) {
-    //             self.map = map;
-    //             moved_right = true;
-    //         }
-    //         if let Some(map) = self.turn(&Cucumber::Down) {
-    //             self.map = map;
-    //             moved_down = true;
-    //         }
-    //         steps += 1;
-    //         if !moved_right && !moved_down {
-    //             break;
-    //         }
-    //     }
-
-    //     steps
-    // }
 }
 
 impl fmt::Display for Data {
@@ -170,8 +102,8 @@ enum Cucumber {
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 struct Point {
-    row: usize,
-    col: usize,
+    row: u8,
+    col: u8,
 }
 
 impl FromStr for Data {
@@ -191,7 +123,10 @@ impl FromStr for Data {
                     };
 
                     if let Some(cucumber) = cucumber {
-                        let point = Point { row, col };
+                        let point = Point {
+                            row: row.try_into().unwrap(),
+                            col: col.try_into().unwrap(),
+                        };
                         Some((point, cucumber))
                     } else {
                         None
@@ -202,11 +137,84 @@ impl FromStr for Data {
 
         Ok(Self {
             map,
-            rows: input.lines().count(),
-            cols: input.lines().next().unwrap().chars().count(),
+            rows: input.lines().count().try_into().unwrap(),
+            cols: input
+                .lines()
+                .next()
+                .unwrap()
+                .chars()
+                .count()
+                .try_into()
+                .unwrap(),
         })
     }
 }
+
+// solution without mutation:
+// impl Data {
+// fn turn(&self, direction: &Cucumber) -> Option<HashMap<Point, Cucumber>> {
+//     let mut changed = false;
+//     let mut map: HashMap<Point, Cucumber> = HashMap::new();
+
+//     for (point, cucumber) in &self.map {
+//         match (point, cucumber) {
+//             (point, cucumber) if cucumber == direction => {
+//                 let new_point = match direction {
+//                     Cucumber::Right => Point {
+//                         row: point.row,
+//                         col: (point.col + 1) % self.cols,
+//                     },
+//                     Cucumber::Down => Point {
+//                         row: (point.row + 1) % self.rows,
+//                         col: point.col,
+//                     },
+//                 };
+//                 if !self.map.contains_key(&new_point) {
+//                     // move
+//                     changed = true;
+//                     map.insert(new_point, *cucumber);
+//                 } else {
+//                     // stay
+//                     map.insert(*point, *cucumber);
+//                 }
+//             }
+//             (point, cucumber) => {
+//                 // stay
+//                 map.insert(*point, *cucumber);
+//             }
+//         }
+//     }
+
+//     if changed {
+//         Some(map)
+//     } else {
+//         None
+//     }
+// }
+
+// pub fn part_one(&mut self) -> usize {
+//     let mut steps = 0;
+
+//     loop {
+//         let mut moved_right = false;
+//         let mut moved_down = false;
+//         if let Some(map) = self.turn(&Cucumber::Right) {
+//             self.map = map;
+//             moved_right = true;
+//         }
+//         if let Some(map) = self.turn(&Cucumber::Down) {
+//             self.map = map;
+//             moved_down = true;
+//         }
+//         steps += 1;
+//         if !moved_right && !moved_down {
+//             break;
+//         }
+//     }
+
+//     steps
+// }
+// }
 
 #[cfg(test)]
 mod test {
