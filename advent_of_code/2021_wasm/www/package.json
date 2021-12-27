@@ -1,0 +1,27 @@
+{
+  "name": "create-wasm-app",
+  "version": "0.1.0",
+  "description": "Advent of Code  2021 solver",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "start": "webpack-dev-server"
+  },
+  "keywords": [
+    "webassembly",
+    "wasm",
+    "rust",
+    "webpack"
+  ],
+  "author": "Nicky Meuleman <nicky.dev@outlook.com>",
+  "license": "(MIT OR Apache-2.0)",
+  "dependencies": {
+    "aoc2021": "file:../pkg"
+  },
+  "devDependencies": {
+    "webpack": "^4.29.3",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.5",
+    "copy-webpack-plugin": "^5.0.0"
+  }
+}
