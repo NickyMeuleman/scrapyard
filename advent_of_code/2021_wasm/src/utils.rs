@@ -1,9 +1,13 @@
+use crate::{day_01, day_02, day_03, day_04};
 use std::fs;
-
-use crate::{day_01, day_02, day_03};
 
 pub fn get_input(day: u8) -> String {
     let input_path = format!("inputs/day{:02}.txt", day);
+    fs::read_to_string(input_path).unwrap()
+}
+
+pub fn get_sample_input(day: u8) -> String {
+    let input_path = format!("inputs/day{:02}_sample.txt", day);
     fs::read_to_string(input_path).unwrap()
 }
 
@@ -27,15 +31,16 @@ pub trait AoCData {
     fn part_2(&self) -> String;
 }
 
-pub const DAYS: u8 = 3;
+pub const DAYS: u8 = 4;
 
 pub fn run(day: u8, input: &str) -> (String, String) {
-       match day {
-           1 => run_day::<day_01::Data>(input),
-           2 => run_day::<day_02::Data>(input),
-           3 => run_day::<day_03::Data>(input),
-           _ => todo!("not implemented yet"),
-       }
+    match day {
+        1 => run_day::<day_01::Data>(input),
+        2 => run_day::<day_02::Data>(input),
+        3 => run_day::<day_03::Data>(input),
+        4 => run_day::<day_04::Data>(input),
+        _ => todo!("not implemented yet"),
+    }
 }
 
 fn run_day<T: AoCData>(input: &str) -> (String, String) {

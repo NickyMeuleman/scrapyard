@@ -75,30 +75,19 @@ impl AoCData for Data {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::utils;
 
     #[test]
     fn part_1() {
-        let input = "forward 5
-down 5
-forward 8
-up 3
-down 8
-forward 2";
-
-        let data = Data::new(input);
+        let input = utils::get_sample_input(2);
+        let data = Data::new(&input);
         assert_eq!(data.part_1(), "150");
     }
 
     #[test]
     fn part_2() {
-        let input = "forward 5
-down 5
-forward 8
-up 3
-down 8
-forward 2";
-
-        let data = Data::new(input);
-        assert_eq!(data.part_2(), "900");
+        let input = utils::get_sample_input(2);
+        let data = Data::new(&input);
+        assert_eq!(data.part_1(), "150");
     }
 }

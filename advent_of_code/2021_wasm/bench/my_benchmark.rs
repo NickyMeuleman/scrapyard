@@ -1,5 +1,5 @@
 use aoc2021::{
-    day_01, day_02, day_03,
+    day_01, day_02, day_03, day_04,
     utils::{self, AoCData},
 };
 use criterion::{criterion_group, criterion_main, Criterion};
@@ -42,6 +42,7 @@ fn run(c: &mut Criterion, num: u8) {
         1 => run_day::<day_01::Data>(c, num, input),
         2 => run_day::<day_02::Data>(c, num, input),
         3 => run_day::<day_03::Data>(c, num, input),
+        4 => run_day::<day_04::Data>(c, num, input),
         _ => todo!("not implemented yet"),
     }
 

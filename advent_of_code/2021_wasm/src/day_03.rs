@@ -17,6 +17,14 @@ fn get_digit_bias(values: &[Vec<u8>], idx: usize) -> i64 {
     })
 }
 
+/// return only the candidates with the given bit at a the given index
+fn filter_candidates(candidates: Vec<Vec<u8>>, idx: usize, wanted: u8) -> Vec<Vec<u8>> {
+    candidates
+        .into_iter()
+        .filter(|val| val[idx] == wanted)
+        .collect()
+}
+
 impl AoCData for Data {
     fn new(input: &str) -> Self {
         Self {
@@ -71,21 +79,13 @@ impl AoCData for Data {
             |(mut o2_candidates, mut co2_candidates), idx| {
                 if o2_candidates.len() > 1 {
                     let bias = get_digit_bias(&o2_candidates, idx);
-                    let want_char = if bias >= 0 { 1 } else { 0 };
-                    o2_candidates = o2_candidates
-                        .iter()
-                        .filter(|val| val[idx] == want_char)
-                        .cloned()
-                        .collect();
+                    let wanted = if bias >= 0 { 1 } else { 0 };
+                    o2_candidates = filter_candidates(o2_candidates, idx, wanted);
                 }
                 if co2_candidates.len() > 1 {
                     let bias = get_digit_bias(&co2_candidates, idx);
-                    let want_char = if bias >= 0 { 0 } else { 1 };
-                    co2_candidates = co2_candidates
-                        .iter()
-                        .filter(|val| val[idx] == want_char)
-                        .cloned()
-                        .collect();
+                    let wanted = if bias >= 0 { 0 } else { 1 };
+                    co2_candidates = filter_candidates(co2_candidates, idx, wanted);
                 }
                 (o2_candidates, co2_candidates)
             },
@@ -99,42 +99,19 @@ impl AoCData for Data {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::utils;
 
     #[test]
     fn part_1() {
-        let input = "00100
-11110
-10110
-10111
-10101
-01111
-00111
-11100
-10000
-11001
-00010
-01010";
-
-        let data = Data::new(input);
+        let input = utils::get_sample_input(3);
+        let data = Data::new(&input);
         assert_eq!(data.part_1(), "198");
     }
 
     #[test]
     fn part_2() {
-        let input = "00100
-11110
-10110
-10111
-10101
-01111
-00111
-11100
-10000
-11001
-00010
-01010";
-
-        let data = Data::new(input);
+        let input = utils::get_sample_input(3);
+        let data = Data::new(&input);
         assert_eq!(data.part_2(), "230");
     }
 }
