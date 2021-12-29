@@ -69,3 +69,57 @@ time:   [207.48 us 212.46 us 218.10 us]
 ```
 time:   [677.47 us 694.06 us 713.34 us]
 ```
+
+## Day 05
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [4.2040 ms 4.3197 ms 4.4431 ms]
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [7.8825 ms 8.0998 ms 8.3261 ms] 
+```
+
+## Day 06
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [5.6814 us 5.7887 us 5.9209 us]
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [6.3091 us 6.3808 us 6.4785 us] 
+```
+
+## Day 07
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [1.1787 ms 1.1845 ms 1.1910 ms] 
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [2.0990 ms 2.1065 ms 2.1141 ms]
+```

@@ -1,6 +1,6 @@
 use aoc2021::{
-    day_01, day_02, day_03, day_04,
-    utils::{self, AoCData},
+    day_01, day_02, day_03, day_04, day_05, day_06,
+    utils::{self, AoCData}, day_07,
 };
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::env;
@@ -43,6 +43,9 @@ fn run(c: &mut Criterion, num: u8) {
         2 => run_day::<day_02::Data>(c, num, input),
         3 => run_day::<day_03::Data>(c, num, input),
         4 => run_day::<day_04::Data>(c, num, input),
+        5 => run_day::<day_05::Data>(c, num, input),
+        6 => run_day::<day_06::Data>(c, num, input),
+        7 => run_day::<day_07::Data>(c, num, input),
         _ => todo!("not implemented yet"),
     }
 
