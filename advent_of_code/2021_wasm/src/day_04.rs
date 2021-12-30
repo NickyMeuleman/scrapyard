@@ -66,7 +66,7 @@ impl Board {
 }
 
 impl AoCData for Data {
-    fn new(input: &str) -> Self {
+    fn new(input: String) -> Self {
         let (numbers, boards) = input.trim().split_once("\n\n").unwrap();
 
         let numbers = numbers.split(',').filter_map(|s| s.parse().ok()).collect();
@@ -159,14 +159,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(4);
-        let data = Data::new(&input);
+        let data = Data::new(input);
         assert_eq!(data.part_1(), "4512");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(4);
-        let data = Data::new(&input);
+        let data = Data::new(input);
         assert_eq!(data.part_2(), "1924");
     }
 }

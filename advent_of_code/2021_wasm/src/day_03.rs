@@ -26,7 +26,7 @@ fn filter_candidates(candidates: Vec<Vec<u8>>, idx: usize, wanted: u8) -> Vec<Ve
 }
 
 impl AoCData for Data {
-    fn new(input: &str) -> Self {
+    fn new(input: String) -> Self {
         Self {
             nums: input
                 .trim()
@@ -104,14 +104,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(3);
-        let data = Data::new(&input);
+        let data = Data::new(input);
         assert_eq!(data.part_1(), "198");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(3);
-        let data = Data::new(&input);
+        let data = Data::new(input);
         assert_eq!(data.part_2(), "230");
     }
 }

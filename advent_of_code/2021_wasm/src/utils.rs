@@ -1,4 +1,4 @@
-use crate::{day_01, day_02, day_03, day_04, day_05, day_06, day_07};
+use crate::{day_01, day_02, day_03, day_04, day_05, day_06, day_07, day_08};
 use std::fs;
 
 pub fn get_input(day: u8) -> String {
@@ -14,7 +14,7 @@ pub fn get_sample_input(day: u8) -> String {
 // TODO: figure out a way the parts can return any type that implements Display
 pub trait AoCData {
     /// Parse an input string into a Data struct for a specific day
-    fn new(input: &str) -> Self;
+    fn new(input: String) -> Self;
 
     /// both solutions
     fn solve(self) -> (String, String)
@@ -31,9 +31,9 @@ pub trait AoCData {
     fn part_2(&self) -> String;
 }
 
-pub const DAYS: u8 = 7;
+pub const DAYS: u8 = 8;
 
-pub fn run(day: u8, input: &str) -> (String, String) {
+pub fn run(day: u8, input: String) -> (String, String) {
     match day {
         1 => run_day::<day_01::Data>(input),
         2 => run_day::<day_02::Data>(input),
@@ -42,11 +42,12 @@ pub fn run(day: u8, input: &str) -> (String, String) {
         5 => run_day::<day_05::Data>(input),
         6 => run_day::<day_06::Data>(input),
         7 => run_day::<day_07::Data>(input),
+        8 => run_day::<day_08::Data>(input),
         _ => todo!("not implemented yet"),
     }
 }
 
-fn run_day<T: AoCData>(input: &str) -> (String, String) {
+fn run_day<T: AoCData>(input: String) -> (String, String) {
     let data = T::new(input);
     data.solve()
 }
