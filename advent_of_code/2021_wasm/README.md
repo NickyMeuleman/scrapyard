@@ -141,3 +141,39 @@ time:   [921.17 ns 934.28 ns 949.27 ns]
 ```
 time:   [145.11 us 147.86 us 150.99 us]
 ```
+
+## Day 09
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [73.821 us 74.566 us 75.644 us
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [893.55 us 896.08 us 898.92 us]
+```
+
+## Day 10
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [74.966 us 76.239 us 77.746 us]
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [141.26 us 146.02 us 151.06 us] 
+```
