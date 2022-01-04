@@ -34,7 +34,7 @@ pub trait AoCData {
     fn part_2(&self) -> String;
 }
 
-pub const DAYS: u8 = 14;
+pub const DAYS: u8 = 15;
 
 pub fn run(day: u8, input: String) -> (String, String) {
     match day {

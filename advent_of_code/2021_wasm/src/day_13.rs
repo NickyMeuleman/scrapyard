@@ -281,11 +281,4 @@ mod test {
         let data = Data::new(input);
         assert_eq!(data.part_1(), "17");
     }
-
-    #[test]
-    fn part_2() {
-        let input = utils::get_sample_input(13);
-        let data = Data::new(input);
-        assert_eq!(data.part_2(), "");
-    }
 }

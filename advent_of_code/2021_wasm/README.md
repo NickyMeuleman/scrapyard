@@ -269,3 +269,57 @@ After adding logic to recognize characters instead of printing out the ASCII
 ```
 time:   [83.661 us 84.447 us 85.291 us]
 ```
+
+## Day 14
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [53.869 us 54.090 us 54.342 us]
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [248.48 us 250.10 us 251.92 us] 
+```
+
+## Day 15
+
+### Part 1
+
+#### Benchmark
+
+with a HashMap as datastructure to store shortest path to a certain point
+
+```
+time:   [2.6342 ms 2.6547 ms 2.6761 ms]
+```
+
+with a 1D vector as datastructure to store shortest path to a certain point
+
+```
+time:   [1.9476 ms 1.9558 ms 1.9643 ms]
+change: [-26.981% -26.328% -25.664%] (p = 0.00 < 0.05)
+```
+
+### Part 2
+
+#### Benchmark
+
+with a HashMap as datastructure to store shortest path to a certain point
+
+```
+time:   [76.923 ms 78.024 ms 79.276 ms]
+```
+
+with a 1D vector as datastructure to store shortest path to a certain point
+
+```
+time:   [53.251 ms 53.464 ms 53.690 ms]
+change: [-32.613% -31.477% -30.468%] (p = 0.00 < 0.05)
+```
