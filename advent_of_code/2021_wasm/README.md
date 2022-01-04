@@ -175,5 +175,97 @@ time:   [74.966 us 76.239 us 77.746 us]
 #### Benchmark
 
 ```
-time:   [141.26 us 146.02 us 151.06 us] 
+time:   [141.26 us 146.02 us 151.06 us]
+```
+
+## Day 11
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [200.92 us 201.79 us 202.78 us]
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [501.64 us 509.96 us 519.56 us]
+```
+
+## Day 12
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [2.0978 ms 2.1319 ms 2.1806 ms]
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [50.819 ms 51.288 ms 51.788 ms]
+```
+
+## Day 13
+
+### Part 1
+
+#### Benchmark
+
+without mutating fold instructions:
+
+```
+time:   [11.951 us 12.238 us 12.569 us]
+```
+
+with mutating fold instructions:
+
+```
+time:   [12.419 us 12.470 us 12.525 us]
+change: [+2.5203% +4.2624% +5.9012%] (p = 0.00 < 0.05)
+Performance has regressed.
+```
+
+After refactoring fold execution to a seperate function, not a method on Data:
+
+```
+time:   [10.885 us 10.931 us 10.981 us]
+```
+
+### Part 2
+
+#### Benchmark
+
+without mutating fold instructions:
+
+```
+time:   [83.771 us 85.367 us 87.226 us] 
+```
+
+with mutating fold instructions:
+
+```
+time:   [82.032 us 82.971 us 84.093 us]
+change: [-9.2115% -7.2411% -4.9832%] (p = 0.00 < 0.05)
+Performance has improved.
+```
+
+After refactoring fold execution to a seperate function, not a method on Data:
+
+```
+time:   [79.433 us 80.550 us 82.121 us]
+```
+
+After adding logic to recognize characters instead of printing out the ASCII
+
+```
+time:   [83.661 us 84.447 us 85.291 us]
 ```

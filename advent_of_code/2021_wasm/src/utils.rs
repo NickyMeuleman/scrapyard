@@ -1,4 +1,7 @@
-use crate::{day_01, day_02, day_03, day_04, day_05, day_06, day_07, day_08, day_09, day_10};
+use crate::{
+    day_01, day_02, day_03, day_04, day_05, day_06, day_07, day_08, day_09, day_10, day_11, day_12,
+    day_13, day_14, day_15,
+};
 use std::fs;
 
 pub fn get_input(day: u8) -> String {
@@ -31,7 +34,7 @@ pub trait AoCData {
     fn part_2(&self) -> String;
 }
 
-pub const DAYS: u8 = 10;
+pub const DAYS: u8 = 14;
 
 pub fn run(day: u8, input: String) -> (String, String) {
     match day {
@@ -45,6 +48,11 @@ pub fn run(day: u8, input: String) -> (String, String) {
         8 => run_day::<day_08::Data>(input),
         9 => run_day::<day_09::Data>(input),
         10 => run_day::<day_10::Data>(input),
+        11 => run_day::<day_11::Data>(input),
+        12 => run_day::<day_12::Data>(input),
+        13 => run_day::<day_13::Data>(input),
+        14 => run_day::<day_14::Data>(input),
+        15 => run_day::<day_15::Data>(input),
         _ => todo!("not implemented yet"),
     }
 }
