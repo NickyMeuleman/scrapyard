@@ -323,3 +323,93 @@ with a 1D vector as datastructure to store shortest path to a certain point
 time:   [53.251 ms 53.464 ms 53.690 ms]
 change: [-32.613% -31.477% -30.468%] (p = 0.00 < 0.05)
 ```
+
+## Day 16
+
+### Part 1
+
+#### Benchmark
+
+Storing bits as `char`s and using `::from_str_radix()` to get numbers:
+
+```
+time:   [87.264 us 88.040 us 88.992 us]
+```
+
+After storing bits as `bool`s and using math to get numbers:
+
+```
+time:   [42.396 us 42.632 us 42.877 us]
+change: [-52.498% -51.711% -50.886%] (p = 0.00 < 0.05)
+```
+
+After using bit operations to get the decimal number from bits:
+(from `.fold(0, |acc, digit| acc * 2 + if digit { 1 } else { 0 }))` to `.fold(0, |acc, bit| (acc << 1) ^ if bit { 1 } else { 0 })`)
+
+```
+time:   [42.018 us 42.161 us 42.310 us]
+change: [-2.2989% -0.9042% +0.3506%] (p = 0.20 > 0.05)
+```
+
+### Part 2
+
+#### Benchmark
+
+Storing bits as `char`s and using `::from_str_radix()` to get numbers:
+
+```
+time:   [91.922 us 92.952 us 94.166 us]
+```
+
+After storing bits as `bool`s and using math to get numbers:
+
+```
+time:   [48.997 us 50.510 us 52.263 us]
+change: [-45.295% -43.619% -41.479%] (p = 0.00 < 0.05)
+```
+
+After using bit operations to get the decimal number from bits:
+(from `.fold(0, |acc, digit| acc * 2 + if digit { 1 } else { 0 }))` to `.fold(0, |acc, bit| (acc << 1) | if bit { 1 } else { 0 })`)
+
+```
+time:   [47.572 us 47.697 us 47.822 us]
+change: [-10.960% -7.7181% -4.6726%] (p = 0.00 < 0.05)
+```
+
+Conclusion: Is the bit shifting thing more readable? Depends on who's reading.
+
+## Day 17
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [35.678 ns 36.522 ns 37.610 ns]
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [587.48 us 602.45 us 618.62 us]
+```
+
+## Day 18
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [300.43 us 302.66 us 305.30 us]
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [7.7538 ms 7.7788 ms 7.8057 ms]
+```
