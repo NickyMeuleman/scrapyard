@@ -35,7 +35,7 @@ impl AoCData for Data {
 
         while let Some(path) = stack.pop() {
             let current = path.last().unwrap();
-            for neighbour in self.connections.get(current.clone()).unwrap() {
+            for neighbour in self.connections.get(*current).unwrap() {
                 if neighbour == "end" {
                     paths += 1;
                     continue;

@@ -21,7 +21,11 @@ impl Ord for Node {
     }
 }
 
-// if you derive PartialOrd on Node instead of doing this boilerplate, stuff breaks, yo
+// Ensure partialOrd is consistent with Ord. If you #[derive(PartialOrd)] this it might not be the same as that implementation uses a top-down ordering on the Node struct fields
+// in this case, it would order by idx first (as that field occurs first in the source code where Node is defined) and would not be consistent.
+// From the docs:
+// > If Ord is also implemented for Self and Rhs, it must also be consistent with partial_cmp (see the documentation of that trait for the exact requirements).
+// > It’s easy to accidentally make them disagree by deriving some of the traits and manually implementing others.
 impl PartialOrd for Node {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
