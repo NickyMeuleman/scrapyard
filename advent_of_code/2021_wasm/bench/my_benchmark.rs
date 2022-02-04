@@ -1,6 +1,6 @@
 use aoc2021::{
     day_01, day_02, day_03, day_04, day_05, day_06, day_07, day_08, day_09, day_10, day_11, day_12,
-    day_13, day_14, day_15,
+    day_13, day_14, day_15, day_16, day_17, day_18, day_19,
     utils::{self, AoCData},
 };
 use criterion::{criterion_group, criterion_main, Criterion};
@@ -55,6 +55,10 @@ fn run(c: &mut Criterion, num: u8) {
         13 => run_day::<day_13::Data>(c, num, input),
         14 => run_day::<day_14::Data>(c, num, input),
         15 => run_day::<day_15::Data>(c, num, input),
+        16 => run_day::<day_16::Data>(c, num, input),
+        17 => run_day::<day_17::Data>(c, num, input),
+        18 => run_day::<day_18::Data>(c, num, input),
+        19 => run_day::<day_19::Data>(c, num, input),
         _ => todo!("not implemented yet"),
     }
 
@@ -70,6 +74,15 @@ fn run_day<T: AoCData>(c: &mut Criterion, num: u8, input: String) {
 
     // TODO: benchmark for parsing
     // put todo because I couldn't figure out how to get the correct struct since data is an impl Trait and not a specific struct
+
+    match num {
+        19 => {
+            // so, day 19 takes a long time.
+            // I'm not waiting for the standard sample size
+            group.sample_size(10);
+        }
+        _ => {}
+    }
 
     group.bench_function("Part 1", |b| b.iter(|| data.part_1()));
 

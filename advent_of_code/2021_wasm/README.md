@@ -413,3 +413,27 @@ time:   [300.43 us 302.66 us 305.30 us]
 ```
 time:   [7.7538 ms 7.7788 ms 7.8057 ms]
 ```
+
+## Day 19
+
+This day takes a long time to run.
+Decreased sample size to 10, because I'm not waiting for 100 measurements.
+
+First day where I've implemented a custom `solve` method on the `AoCDay` trait to avoid duplicate work when asking for both part1 and 2 at once.
+This will make the usage from WASM much faster, since that's the only method it calls currently.
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [1.7463 s 1.7580 s 1.7725 s]
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [1.7438 s 1.7702 s 1.8116 s]
+```
