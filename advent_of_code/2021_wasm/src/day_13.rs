@@ -42,8 +42,8 @@ impl Point {
 fn fold_grid(grid: &HashSet<Point>, instruction: &Fold) -> HashSet<Point> {
     grid.iter()
         .map(|point| {
-            if point.should_mirror(&instruction) {
-                point.mirror(&instruction)
+            if point.should_mirror(instruction) {
+                point.mirror(instruction)
             } else {
                 *point
             }
