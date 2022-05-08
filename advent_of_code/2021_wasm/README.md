@@ -437,3 +437,34 @@ time:   [1.7463 s 1.7580 s 1.7725 s]
 ```
 time:   [1.7438 s 1.7702 s 1.8116 s]
 ```
+
+## Day 20
+
+
+### Part 1
+
+#### Benchmark
+
+With a 2D-VecDeque storing rows and cols
+```
+time:   [547.49 us 548.93 us 550.44 us]
+```
+
+With a 2D-Vec storing rows and cols
+```
+time:   [441.71 us 443.00 us 444.36 us]
+```
+
+### Part 2
+
+#### Benchmark
+
+With a 2D-VecDeque storing rows and cols
+```
+time:   [30.728 ms 31.506 ms 32.428 ms]
+```
+
+With a 2D-Vec storing rows and cols
+```
+time:   [25.448 ms 25.821 ms 26.211 ms]]
+```
