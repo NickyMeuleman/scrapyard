@@ -471,3 +471,21 @@ With a 2D-Vec storing rows and cols
 ```
 time:   [25.448 ms 25.821 ms 26.211 ms]]
 ```
+
+## Day 21
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [2.9967 us 3.0359 us 3.0783 us]
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [5.5877 ms 5.6601 ms 5.7407 ms]
+```
