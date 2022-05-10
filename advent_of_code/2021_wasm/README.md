@@ -489,3 +489,33 @@ time:   [2.9967 us 3.0359 us 3.0783 us]
 ```
 time:   [5.5877 ms 5.6601 ms 5.7407 ms]
 ```
+
+## Day 22
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [988.51 us 1.0037 ms 1.0260 ms]
+```
+
+commented out approach
+
+```
+time:   [1.3082 ms 1.3272 ms 1.3506 ms]
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [2.4163 ms 2.4292 ms 2.4437 ms]
+```
+
+commented out approach
+
+```
+time:   [53.378 ms 55.485 ms 57.885 ms]
+```
