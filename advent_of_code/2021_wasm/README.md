@@ -519,3 +519,23 @@ commented out approach
 ```
 time:   [53.378 ms 55.485 ms 57.885 ms]
 ```
+
+## Day 23
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [46.637 ms 46.829 ms 47.036 ms]
+```
+
+### Part 2
+
+Part2 takes less time to complete somehow. Wow.
+
+#### Benchmark
+
+```
+time:   [40.298 ms 40.427 ms 40.561 ms]
+```
