@@ -539,3 +539,21 @@ Part2 takes less time to complete somehow. Wow.
 ```
 time:   [40.298 ms 40.427 ms 40.561 ms]
 ```
+
+## Day 24
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [1.0734 s 1.0823 s 1.0937 s]
+```
+
+### Part 2
+
+#### Benchmark
+
+```
+time:   [144.04 ms 155.46 ms 162.40 ms]
+```
