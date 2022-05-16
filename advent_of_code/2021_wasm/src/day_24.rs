@@ -1,5 +1,5 @@
 use crate::AoCData;
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 use std::{convert::Infallible, str::FromStr};
 
 // Find modelnum and solve logic from u/supersmurfen, thanks!

@@ -557,3 +557,19 @@ time:   [1.0734 s 1.0823 s 1.0937 s]
 ```
 time:   [144.04 ms 155.46 ms 162.40 ms]
 ```
+
+## Day 25
+
+### Part 1
+
+#### Benchmark
+
+```
+time:   [105.07 ms 105.55 ms 106.12 ms]
+```
+
+### Part 2
+
+#### Benchmark
+
+However quickly you can click a button to complete it.
