@@ -1,5 +1,5 @@
 use crate::AoCData;
-use hashbrown::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
 pub struct Data {
     connections: HashMap<String, Vec<String>>,

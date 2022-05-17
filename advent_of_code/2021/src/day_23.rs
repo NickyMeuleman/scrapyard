@@ -1,5 +1,5 @@
 use crate::AoCData;
-use hashbrown::HashMap;
+use std::collections::HashMap;
 
 const EMPTY: i8 = -1;
 const A: i8 = 0;

@@ -1,5 +1,5 @@
 use crate::AoCData;
-use hashbrown::HashMap;
+use std::collections::HashMap;
 use std::cmp;
 
 #[derive(Debug, Clone)]

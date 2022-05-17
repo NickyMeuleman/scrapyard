@@ -1,6 +1,6 @@
 use std::vec;
 
-use hashbrown::HashSet;
+use std::collections::HashSet;
 
 use crate::AoCData;
 

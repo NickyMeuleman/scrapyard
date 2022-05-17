@@ -12,7 +12,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wasm-bindgen = "0.2.80"
-hashbrown = "0.11.2"
 
 [dev-dependencies]
 criterion = "0.3"
@@ -30,6 +29,11 @@ opt-level = 'z'
 lto = true
 # abort on panic instead of unwinding the stack, smaller binaries, faster
 # https://doc.rust-lang.org/book/ch09-01-unrecoverable-errors-with-panic.html
+panic = 'abort'
+
+[profile.dev]
+# https://github.com/rust-lang/cargo/issues/2726
+# this needs to be set or cargo bench refuses to work, no idea why
 panic = 'abort'
 
 [package.metadata.wasm-pack.profile.release]

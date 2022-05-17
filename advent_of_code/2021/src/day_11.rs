@@ -97,7 +97,7 @@ impl Data {
     // Alternative solution with seperate Point struct and a HashSet to keep track of octopi that already flashed
     // /// returns amount of octopi that flashed in a single turn
     // fn tick(&mut self) -> u8 {
-    //     use hashbrown::HashSet;
+    //     use std::collections::HashSet;
     //     let octopi = &mut self.octopi;
     //     let mut flashes = 0;
 

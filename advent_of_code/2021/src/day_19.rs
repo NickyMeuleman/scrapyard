@@ -1,5 +1,5 @@
 use crate::utils::{AoCData, Solution};
-use hashbrown::HashSet;
+use std::collections::HashSet;
 
 pub struct Data {
     scans: Vec<Scan>,

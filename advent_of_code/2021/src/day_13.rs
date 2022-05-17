@@ -1,5 +1,5 @@
 use crate::AoCData;
-use hashbrown::HashSet;
+use std::collections::HashSet;
 
 pub struct Data {
     points: HashSet<Point>,
