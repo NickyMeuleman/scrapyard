@@ -29,13 +29,14 @@ impl Solution {
 }
 
 pub fn get_input(day: u8) -> String {
-    // TODO: replace format macro, it causes a big wasm file
-    let input_path = format!("inputs/day{:02}.txt", day);
+    let num = if day >= 10 { day.to_string() } else { "0".to_string() + &day.to_string() };
+    let input_path = "inputs/day".to_string() + &num + ".txt";
     fs::read_to_string(input_path).unwrap()
 }
 
 pub fn get_sample_input(day: u8) -> String {
-    let input_path = format!("inputs/day{:02}_sample.txt", day);
+    let num = if day >= 10 { day.to_string() } else { "0".to_string() + &day.to_string() };
+    let input_path = "inputs/day".to_string() + &num + "_sample.txt";
     fs::read_to_string(input_path).unwrap()
 }
 

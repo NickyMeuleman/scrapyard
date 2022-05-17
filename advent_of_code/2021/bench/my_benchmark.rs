@@ -77,7 +77,8 @@ fn bench_day<T: AoCData>(c: &mut Criterion, num: u8, input: String) {
 
     let data = T::new(input);
 
-    let mut group = c.benchmark_group(format!("Day {:02}", num));
+    let day = if num >= 10 { num.to_string() } else { "0".to_string() + &num.to_string() };
+    let mut group = c.benchmark_group("Day ".to_string() + &day);
 
     // TODO: benchmark for parsing
     // put todo because I couldn't figure out how to get the correct struct since data is an impl Trait and not a specific struct
