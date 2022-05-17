@@ -29,6 +29,7 @@ impl Solution {
 }
 
 pub fn get_input(day: u8) -> String {
+    // TODO: replace format macro, it causes a big wasm file
     let input_path = format!("inputs/day{:02}.txt", day);
     fs::read_to_string(input_path).unwrap()
 }
