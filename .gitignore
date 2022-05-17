@@ -12,6 +12,3 @@
 Cargo.lock
 
 playground/*
-
-*.txt
-/advent_of_code/2021/day_00_template/
