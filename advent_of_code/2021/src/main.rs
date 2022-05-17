@@ -32,7 +32,7 @@ fn main() {
 fn print_day(num: u8) {
     println!("Day{:02}", num);
     let input = utils::get_input(num);
-    let (part1, part2) = utils::run(num, input);
+    let utils::Solution { part1, part2 } = aoc2021::solve(num, input);
     println!("Part 1: {}", part1);
     println!("Part 2: {}", part2);
 }

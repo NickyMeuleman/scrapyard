@@ -1,4 +1,4 @@
-use crate::AoCData;
+use crate::{utils::Solution, AoCData};
 
 #[derive(Debug, Clone)]
 pub struct Data {
@@ -173,7 +173,7 @@ impl AoCData for Data {
         img.count_on().to_string()
     }
 
-    fn solve(self) -> (String, String) {
+    fn solve(self) -> Solution {
         let mut img = self.image.clone();
         let mut part_1 = 0;
         // curse you, infinite grid after 1 step
@@ -186,7 +186,10 @@ impl AoCData for Data {
             }
         }
 
-        (part_1.to_string(), img.count_on().to_string())
+        Solution {
+            part1: part_1.to_string(),
+            part2: img.count_on().to_string(),
+        }
     }
 }
 

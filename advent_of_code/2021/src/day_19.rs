@@ -1,4 +1,4 @@
-use crate::utils::AoCData;
+use crate::utils::{AoCData, Solution};
 use hashbrown::HashSet;
 
 pub struct Data {
@@ -142,7 +142,7 @@ impl Data {
             }
         }
 
-       (full_scan, distances)
+        (full_scan, distances)
     }
 }
 
@@ -201,7 +201,7 @@ impl AoCData for Data {
             .to_string()
     }
 
-    fn solve(self) -> (String, String) {
+    fn solve(self) -> Solution {
         // code that combines p1 and p2 answers to avoid duplicate work
         let (full_scan, distances) = self.build_full_scan();
 
@@ -222,7 +222,10 @@ impl AoCData for Data {
             // writing a fold because .max() gives a rust analyzer error
             .fold(0, |acc, num| acc.max(num));
 
-        (num_beacons.to_string(), greatest_manhattan.to_string())
+        Solution {
+            part1: num_beacons.to_string(),
+            part2: greatest_manhattan.to_string(),
+        }
     }
 }
 

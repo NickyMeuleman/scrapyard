@@ -22,7 +22,8 @@ function handleFile(event) {
 
       const day = Number(dayInputEl.value);
       let result = wasm.solve(day, input);
-      resultEl.innerText = result;
+      resultEl.innerText = result.part1 + "\n" + result.part2;
+      console.log(result);
     },
     false
   );
