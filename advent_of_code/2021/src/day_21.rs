@@ -188,6 +188,6 @@ mod test {
     fn part_2() {
         let input = utils::get_sample_input(21);
         let data = Data::new(input);
-        assert_eq!(data.part_2(), "44435609277631");
+        assert_eq!(data.part_2(), "444356092776315");
     }
 }
