@@ -17,6 +17,11 @@ Day19 might pose a practical time constraint now since the browser blocks while 
 
 Output of `wc -c pkg/aoc2021_bg.wasm`: `207800 pkg/aoc2021_bg.wasm`
 
+and after making `solve` an `async` function so it returns a `Promise` in JS:
+`218328 pkg/aoc2021_bg.wasm`
+
+That is, unfortunately, a huge increase in size.
+
 ## Day 01
 
 ### Part 1

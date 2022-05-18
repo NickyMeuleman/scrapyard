@@ -1,3 +1,8 @@
+use crate::{
+    day_01, day_02, day_03, day_04, day_05, day_06, day_07, day_08, day_09, day_10, day_11, day_12,
+    day_13, day_14, day_15, day_16, day_17, day_18, day_19, day_20, day_21, day_22, day_23, day_24,
+    day_25,
+};
 use std::fs;
 use wasm_bindgen::prelude::*;
 
@@ -29,13 +34,21 @@ impl Solution {
 }
 
 pub fn get_input(day: u8) -> String {
-    let num = if day >= 10 { day.to_string() } else { "0".to_string() + &day.to_string() };
+    let num = if day >= 10 {
+        day.to_string()
+    } else {
+        "0".to_string() + &day.to_string()
+    };
     let input_path = "inputs/day".to_string() + &num + ".txt";
     fs::read_to_string(input_path).unwrap()
 }
 
 pub fn get_sample_input(day: u8) -> String {
-    let num = if day >= 10 { day.to_string() } else { "0".to_string() + &day.to_string() };
+    let num = if day >= 10 {
+        day.to_string()
+    } else {
+        "0".to_string() + &day.to_string()
+    };
     let input_path = "inputs/day".to_string() + &num + "_sample.txt";
     fs::read_to_string(input_path).unwrap()
 }
@@ -68,4 +81,35 @@ pub const DAYS: u8 = 25;
 pub fn run_day<T: AoCData>(input: String) -> Solution {
     let data = T::new(input);
     data.solve()
+}
+
+pub fn run(day: u8, input: String) -> Solution {
+    match day {
+        1 => run_day::<day_01::Data>(input),
+        2 => run_day::<day_02::Data>(input),
+        3 => run_day::<day_03::Data>(input),
+        4 => run_day::<day_04::Data>(input),
+        5 => run_day::<day_05::Data>(input),
+        6 => run_day::<day_06::Data>(input),
+        7 => run_day::<day_07::Data>(input),
+        8 => run_day::<day_08::Data>(input),
+        9 => run_day::<day_09::Data>(input),
+        10 => run_day::<day_10::Data>(input),
+        11 => run_day::<day_11::Data>(input),
+        12 => run_day::<day_12::Data>(input),
+        13 => run_day::<day_13::Data>(input),
+        14 => run_day::<day_14::Data>(input),
+        15 => run_day::<day_15::Data>(input),
+        16 => run_day::<day_16::Data>(input),
+        17 => run_day::<day_17::Data>(input),
+        18 => run_day::<day_18::Data>(input),
+        19 => run_day::<day_19::Data>(input),
+        20 => run_day::<day_20::Data>(input),
+        21 => run_day::<day_21::Data>(input),
+        22 => run_day::<day_22::Data>(input),
+        23 => run_day::<day_23::Data>(input),
+        24 => run_day::<day_24::Data>(input),
+        25 => run_day::<day_25::Data>(input),
+        _ => panic!("trying to solve invalid day"),
+    }
 }
