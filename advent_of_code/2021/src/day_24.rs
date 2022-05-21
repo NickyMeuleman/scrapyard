@@ -1,6 +1,6 @@
 use crate::AoCData;
 use std::collections::HashMap;
-use std::{convert::Infallible, str::FromStr};
+use std::str::FromStr;
 
 // Find modelnum and solve logic from u/supersmurfen, thanks!
 // https://github.com/AxlLind/AdventOfCode2021/blob/main/src/bin/24.rs
