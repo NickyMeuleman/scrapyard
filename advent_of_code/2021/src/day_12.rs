@@ -12,10 +12,11 @@ struct Path<'a> {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
+    fn try_new(input: String) -> Option<Self> {
         // TODO: figure out how to pass a &str so the connections map can store &str instead of String
         let mut connections: HashMap<String, Vec<String>> = HashMap::new();
-        for (from, to) in input.lines().map(|line| line.split_once("-").unwrap()) {
+        let line = input.trim().lines().map(|line| line.split_once("-")).collect::<Option<Vec<_>>>()?;
+        for (from, to) in line {
             connections
                 .entry(from.to_string())
                 .or_default()
@@ -26,7 +27,7 @@ impl AoCData for Data {
                 .push(from.to_string());
         }
 
-        Self { connections }
+        Some(Self { connections })
     }
 
     fn part_1(&self) -> String {
@@ -41,7 +42,9 @@ impl AoCData for Data {
                     continue;
                 }
 
-                if neighbour.chars().next().unwrap().is_lowercase() && path.contains(&neighbour.as_str()) {
+                if neighbour.chars().next().unwrap().is_lowercase()
+                    && path.contains(&neighbour.as_str())
+                {
                     continue;
                 }
 
@@ -113,14 +116,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(12);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "226");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(12);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "3509");
     }
 }

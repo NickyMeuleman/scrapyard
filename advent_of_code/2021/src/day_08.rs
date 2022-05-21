@@ -14,27 +14,27 @@ pub struct Data {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
+    fn try_new(input: String) -> Option<Self> {
         // TODO: figure out out to make lifetimes work so I can return Vec<&str> instead of doing all that to_owned() to get Vec<String>
         let pairs = input
             .trim()
             .lines()
             .map(|line| {
-                let (combinations, digits) = line.split_once(" | ").unwrap();
+                let (combinations, digits) = line.split_once(" | ")?;
                 let combinations = combinations
                     .split_whitespace()
                     .map(|s| s.to_owned())
                     .collect();
                 let digits = digits.split_whitespace().map(|s| s.to_owned()).collect();
 
-                Pair {
+                Some(Pair {
                     combinations,
                     digits,
-                }
+                })
             })
-            .collect();
+            .collect::<Option<Vec<_>>>()?;
 
-        Self { pairs }
+        Some(Self { pairs })
     }
 
     fn part_1(&self) -> String {
@@ -253,14 +253,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(8);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "26");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(8);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "61229");
     }
 }

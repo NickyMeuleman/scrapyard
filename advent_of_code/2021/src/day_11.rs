@@ -147,16 +147,16 @@ impl Data {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
+    fn try_new(input: String) -> Option<Self> {
         let input = input.trim();
         let cols = input.lines().count();
-        let rows = input.lines().next().unwrap().len();
+        let rows = input.lines().next()?.len();
         let octopi = input
             .lines()
-            .flat_map(|line| line.chars().map(|c| c.to_digit(10).unwrap() as u8))
-            .collect();
+            .flat_map(|line| line.chars().map(|c| c.to_digit(10).map(|digit| digit as u8)))
+            .collect::<Option<Vec<u8>>>()?;
 
-        Self { rows, cols, octopi }
+        Some(Self { rows, cols, octopi })
     }
 
     fn part_1(&self) -> String {
@@ -263,14 +263,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(11);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "1656");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(11);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "195");
     }
 }

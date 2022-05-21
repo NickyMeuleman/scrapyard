@@ -107,18 +107,16 @@ impl Point {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
+    fn try_new(input: String) -> Option<Self> {
         let input = input.trim();
         let rows = input.lines().count();
-        let cols = input.lines().next().unwrap().len();
-        Self {
-            rows,
-            cols,
-            map: input
-                .lines()
-                .flat_map(|line| line.chars().map(|c| c.to_digit(10).unwrap() as u8))
-                .collect(),
-        }
+        let cols = input.lines().next()?.len();
+        let map = input
+            .lines()
+            .flat_map(|line| line.chars().map(|c| c.to_digit(10).map(|digit| digit as u8)))
+            .collect::<Option<Vec<_>>>()?;
+
+        Some(Self { rows, cols, map })
     }
 
     fn part_1(&self) -> String {
@@ -212,14 +210,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(9);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "15");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(9);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "1134");
     }
 }

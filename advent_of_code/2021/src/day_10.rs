@@ -15,15 +15,22 @@ pub struct Data {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
+    fn try_new(input: String) -> Option<Self> {
         // TODO: figure out how to pass a &'a str to new() so I can use Vec<&'a str> instead of Vec<Vec<char>> in Data
-        Self {
-            lines: input
-                .trim()
-                .lines()
-                .map(|line| line.chars().collect())
-                .collect(),
-        }
+        let lines = input
+            .trim()
+            .lines()
+            .map(|line| {
+                line.chars()
+                    .map(|c| match c {
+                        '(' | ')' | '[' | ']' | '{' | '}' | '<' | '>' => Some(c),
+                        _ => None,
+                    })
+                    .collect::<Option<Vec<char>>>()
+            })
+            .collect::<Option<Vec<Vec<char>>>>()?;
+
+        Some(Self { lines })
     }
 
     fn part_1(&self) -> String {
@@ -112,14 +119,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(10);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "26397");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(10);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "288957");
     }
 }

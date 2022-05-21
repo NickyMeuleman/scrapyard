@@ -17,7 +17,7 @@ struct Token {
 }
 
 impl SnailFishNum {
-    fn parse(s: &str) -> Self {
+    fn parse(s: &str) -> Option<Self> {
         let mut num = SnailFishNum { tokens: Vec::new() };
         let mut depth = 0;
 
@@ -31,16 +31,15 @@ impl SnailFishNum {
                     depth -= 1;
                 }
                 d => {
-                    let token = Token {
-                        val: d.to_digit(10).unwrap(),
-                        depth: depth - 1,
-                    };
+                    let val = d.to_digit(10)?;
+                    let depth = depth - 1;
+                    let token = Token { val, depth };
                     num.tokens.push(token);
                 }
             }
         }
 
-        num
+        Some(num)
     }
 
     fn explode(&mut self) -> bool {
@@ -159,10 +158,13 @@ impl Add for SnailFishNum {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        Self {
-            nums: input.trim().lines().map(SnailFishNum::parse).collect(),
-        }
+    fn try_new(input: String) -> Option<Self> {
+        let nums = input
+            .trim()
+            .lines()
+            .map(SnailFishNum::parse)
+            .collect::<Option<Vec<_>>>()?;
+        Some(Self { nums })
     }
 
     fn part_1(&self) -> String {
@@ -204,14 +206,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(18);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "4140");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(18);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "3993");
     }
 }

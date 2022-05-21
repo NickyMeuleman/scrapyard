@@ -210,37 +210,37 @@ impl<const DEPTH: usize> State<DEPTH> {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        let rooms: Vec<Vec<i8>> = input
+    fn try_new(input: String) -> Option<Self> {
+        let rooms = input
             .trim()
             .lines()
             .skip(2)
             .take(2)
             .map(parse_line)
-            .collect();
+            .collect::<Option<Vec<Vec<i8>>>>()?;
 
-        fn parse_line(input: &str) -> Vec<i8> {
+        fn parse_line(input: &str) -> Option<Vec<i8>> {
             input
                 .chars()
                 .filter(|c| c.is_alphabetic())
                 .map(|c| match c {
-                    'A' => A,
-                    'B' => B,
-                    'C' => C,
-                    'D' => D,
-                    _ => unreachable!("invalid input"),
+                    'A' => Some(A),
+                    'B' => Some(B),
+                    'C' => Some(C),
+                    'D' => Some(D),
+                    _ => None,
                 })
                 .collect()
         }
 
-        Self {
+        Some(Self {
             rooms: [
-                [rooms[0][0], rooms[1][0]],
-                [rooms[0][1], rooms[1][1]],
-                [rooms[0][2], rooms[1][2]],
-                [rooms[0][3], rooms[1][3]],
+                [*rooms.get(0)?.get(0)?, *rooms.get(1)?.get(0)?],
+                [*rooms.get(0)?.get(1)?, *rooms.get(1)?.get(1)?],
+                [*rooms.get(0)?.get(2)?, *rooms.get(1)?.get(2)?],
+                [*rooms.get(0)?.get(3)?, *rooms.get(1)?.get(3)?],
             ],
-        }
+        })
     }
 
     fn part_1(&self) -> String {
@@ -271,14 +271,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(23);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "12521");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(23);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "44169");
     }
 }

@@ -11,24 +11,24 @@ enum Instruction {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        Self {
-            instructions: input
-                .trim()
-                .lines()
-                .map(|line| {
-                    let parts: Vec<_> = line.split_whitespace().collect();
-                    let amount = parts[1].parse().unwrap();
+    fn try_new(input: String) -> Option<Self> {
+        let instructions = input
+            .trim()
+            .lines()
+            .map(|line| {
+                let parts: Vec<_> = line.split_whitespace().collect();
+                let amount = parts.get(1)?.parse().ok()?;
 
-                    match parts[0] {
-                        "up" => Instruction::Up(amount),
-                        "down" => Instruction::Down(amount),
-                        "forward" => Instruction::Forward(amount),
-                        _ => unreachable!("invalid input data"),
-                    }
-                })
-                .collect(),
-        }
+                match *parts.get(0)? {
+                    "up" => Some(Instruction::Up(amount)),
+                    "down" => Some(Instruction::Down(amount)),
+                    "forward" => Some(Instruction::Forward(amount)),
+                    _ => None,
+                }
+            })
+            .collect::<Option<Vec<_>>>()?;
+
+        Some(Self { instructions })
     }
 
     fn part_1(&self) -> String {
@@ -80,14 +80,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(2);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "150");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(2);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "150");
     }
 }

@@ -8,21 +8,25 @@ pub struct Data {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        let vec: Vec<i32> = input
+    fn try_new(input: String) -> Option<Self> {
+        let vec = input
             .trim()
             // get every substring that is seperated by one of these characters
             .split_terminator(&['=', '.', ','][..])
             // only keep the numbers
-            .filter_map(|x| x.parse().ok())
-            .collect();
+            .map(|x| x.parse().ok())
+            .collect::<Option<Vec<i32>>>()?;
+        let x_min = *vec.get(0)?;
+        let x_max = *vec.get(1)?;
+        let y_min = *vec.get(2)?;
+        let y_max = *vec.get(3)?;
 
-        Self {
-            x_min: vec[0],
-            x_max: vec[1],
-            y_min: vec[2],
-            y_max: vec[3],
-        }
+        Some(Self {
+            x_min,
+            x_max,
+            y_min,
+            y_max,
+        })
     }
 
     fn part_1(&self) -> String {
@@ -91,14 +95,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(17);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "45");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(17);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "112");
     }
 }

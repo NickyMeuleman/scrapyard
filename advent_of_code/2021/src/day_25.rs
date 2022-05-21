@@ -35,14 +35,19 @@ fn run_sim(map: &[Vec<char>], is_east: bool) -> (Vec<Vec<char>>, bool) {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        Self {
-            map: input
-                .trim()
-                .lines()
-                .map(|line| line.chars().collect())
-                .collect(),
-        }
+    fn try_new(input: String) -> Option<Self> {
+        let map = input
+            .trim()
+            .lines()
+            .map(|line| line.chars().map(|c| match c {
+                'v' => Some('v'),
+                '>' => Some('>'),
+                '.' => Some('.'),
+                _ => None
+            }).collect::<Option<Vec<_>>>())
+            .collect::<Option<Vec<Vec<_>>>>()?;
+
+        Some(Self { map })
     }
 
     fn part_1(&self) -> String {
@@ -76,14 +81,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(25);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "58");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(25);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "Merry Christmas!");
     }
 }

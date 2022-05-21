@@ -120,33 +120,35 @@ impl Image {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        let (algorithm, image) = input.trim().split_once("\n\n").unwrap();
+    fn try_new(input: String) -> Option<Self> {
+        let (algorithm, image) = input.trim().split_once("\n\n")?;
+
         let algorithm = algorithm
             .chars()
             .map(|c| match c {
-                '#' => true,
-                '.' => false,
-                _ => unreachable!("invalid input"),
+                '#' => Some(true),
+                '.' => Some(false),
+                _ => None,
             })
-            .collect();
+            .collect::<Option<Vec<bool>>>()?;
+
         let image = image
             .lines()
             .map(|line| {
-                line.chars()
+                let line = line
+                    .chars()
                     .map(|c| match c {
-                        '.' => false,
-                        '#' => true,
-                        _ => unreachable!("invalid input"),
+                        '#' => Some(true),
+                        '.' => Some(false),
+                        _ => None,
                     })
-                    .collect()
+                    .collect::<Option<Vec<bool>>>()?;
+                Some(line)
             })
-            .collect();
+            .collect::<Option<Vec<_>>>()?;
+        let image = Image::new(image);
 
-        Self {
-            algorithm,
-            image: Image::new(image),
-        }
+        Some(Self { algorithm, image })
     }
 
     fn part_1(&self) -> String {
@@ -201,14 +203,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(20);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "35");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(20);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "3351");
     }
 }

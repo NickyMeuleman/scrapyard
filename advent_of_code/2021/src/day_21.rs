@@ -98,7 +98,8 @@ impl Game {
         let roll_sum =
             u16::from(self.die.roll()) + u16::from(self.die.roll()) + u16::from(self.die.roll());
 
-        let new_pos = ((u16::from(active_player.pos) + roll_sum - 1) % u16::from(BOARD_LEN) + 1) as u8;
+        let new_pos =
+            ((u16::from(active_player.pos) + roll_sum - 1) % u16::from(BOARD_LEN) + 1) as u8;
 
         active_player.pos = new_pos;
         active_player.score += u16::from(new_pos);
@@ -114,20 +115,19 @@ impl Game {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
+    fn try_new(input: String) -> Option<Self> {
         let starts: Vec<u8> = input
             .trim()
             .lines()
             .map(|line| {
-                let (_, num) = line.rsplit_once(" ").unwrap();
-                num.parse().unwrap()
+                let (_, num) = line.rsplit_once(" ")?;
+                num.parse().ok()
             })
-            .collect();
+            .collect::<Option<Vec<u8>>>()?;
+        let p1_start = *starts.get(0)?;
+        let p2_start = *starts.get(1)?;
 
-        Self {
-            p1_start: starts[0],
-            p2_start: starts[1],
-        }
+        Some(Self { p1_start, p2_start })
     }
 
     fn part_1(&self) -> String {
@@ -180,14 +180,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(21);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "739785");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(21);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "444356092776315");
     }
 }

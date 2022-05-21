@@ -157,24 +157,25 @@ fn parse_packet(bits: &mut dyn Iterator<Item = bool>) -> Packet {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        Self {
-            bits: input
-                .trim()
-                .chars()
-                .flat_map(|char| {
-                    // turn a hexadecimal digit into a decimal digit
-                    let val = char.to_digit(16).unwrap();
-                    // turn the decimal digit into a vector of booleans representing binary, true for 1, false for 0
-                    vec![
-                        val & 0b1000 != 0,
-                        val & 0b0100 != 0,
-                        val & 0b0010 != 0,
-                        val & 0b0001 != 0,
-                    ]
-                })
-                .collect(),
-        }
+    fn try_new(input: String) -> Option<Self> {
+        let bits = input
+            .trim()
+            .chars()
+            .map(|char| {
+                // turn a hexadecimal digit into a decimal digit
+                let val = char.to_digit(16)?;
+                // turn the decimal digit into a vector of booleans representing binary, true for 1, false for 0
+                Some(vec![
+                    val & 0b1000 != 0,
+                    val & 0b0100 != 0,
+                    val & 0b0010 != 0,
+                    val & 0b0001 != 0,
+                ])
+            })
+            .collect::<Option<Vec<Vec<bool>>>>()?;
+        let bits = bits.into_iter().flatten().collect();
+
+        Some(Self { bits })
     }
 
     fn part_1(&self) -> String {
@@ -202,7 +203,7 @@ mod test {
     #[test]
     fn first_example() {
         let input = "D2FE28".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         let mut bits = data.bits.into_iter();
         // 110100101111111000101000
         // VVVTTTAAAAABBBBBCCCCC
@@ -221,7 +222,7 @@ mod test {
     #[test]
     fn part_1() {
         let input = "38006F45291200".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         let mut bits = data.bits.into_iter();
         // 00111000000000000110111101000101001010010001001000000000
         // VVVTTTILLLLLLLLLLLLLLLAAAAAAAAAAABBBBBBBBBBBBBBBB
@@ -250,84 +251,84 @@ mod test {
     #[test]
     fn part_1_1() {
         let input = "8A004A801A8002F478".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "16");
     }
 
     #[test]
     fn part_1_2() {
         let input = "620080001611562C8802118E34".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "12");
     }
 
     #[test]
     fn part_1_3() {
         let input = "C0015000016115A2E0802F182340".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "23");
     }
 
     #[test]
     fn part_1_4() {
         let input = "A0016C880162017C3686B18A3D4780".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "31");
     }
 
     #[test]
     fn sum() {
         let input = "C200B40A82".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "3");
     }
 
     #[test]
     fn product() {
         let input = "04005AC33890".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "54");
     }
 
     #[test]
     fn min() {
         let input = "880086C3E88112".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "7");
     }
 
     #[test]
     fn max() {
         let input = "CE00C43D881120".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "9");
     }
 
     #[test]
     fn less_than() {
         let input = "D8005AC2A8F0".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "1");
     }
 
     #[test]
     fn greater_than() {
         let input = "F600BC2D8F".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "0");
     }
 
     #[test]
     fn equal() {
         let input = "9C005AC2F8F0".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "0");
     }
 
     #[test]
     fn sum_equals_product() {
         let input = "9C0141080250320F1802104A08".to_string();
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "1");
     }
 }

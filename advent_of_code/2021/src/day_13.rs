@@ -70,34 +70,36 @@ fn fold_grid(grid: &HashSet<Point>, instruction: &Fold) -> HashSet<Point> {
 // }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        let (points, instructions) = input.trim().split_once("\n\n").unwrap();
+    fn try_new(input: String) -> Option<Self> {
+        let (points, instructions) = input.trim().split_once("\n\n")?;
         let points = points
             .lines()
             .map(|line| {
-                let (x, y) = line.split_once(",").unwrap();
-                Point {
-                    x: x.parse().unwrap(),
-                    y: y.parse().unwrap(),
-                }
+                let (x, y) = line.split_once(",")?;
+                let x = x.parse().ok()?;
+                let y = y.parse().ok()?;
+                Some(Point { x, y })
             })
-            .collect();
+            .collect::<Option<HashSet<_>>>()?;
+
         let instructions = instructions
             .lines()
             .map(|line| {
-                let (_, instruction) = line.rsplit_once(' ').unwrap();
-                match instruction.split_once('=').unwrap() {
-                    ("x", num) => Fold::X(num.parse().unwrap()),
-                    ("y", num) => Fold::Y(num.parse().unwrap()),
-                    _ => panic!("Invalid input"),
+                let (_, instruction) = line.rsplit_once(' ')?;
+                let (dir, num) =instruction.split_once('=')?;
+                let num = num.parse().ok()?;
+                match (dir, num) {
+                    ("x", num) => Some(Fold::X(num)),
+                    ("y", num) => Some(Fold::Y(num)),
+                    _ => None,
                 }
             })
-            .collect();
+            .collect::<Option<Vec<Fold>>>()?;
 
-        Self {
+        Some(Self {
             points,
             instructions,
-        }
+        })
     }
 
     fn part_1(&self) -> String {
@@ -278,7 +280,7 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(13);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "17");
     }
 }

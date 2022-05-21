@@ -26,22 +26,22 @@ fn filter_candidates(candidates: Vec<Vec<u8>>, idx: usize, wanted: u8) -> Vec<Ve
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        Self {
-            nums: input
-                .trim()
-                .lines()
-                .map(|line| {
-                    line.chars()
-                        .map(|c| match c {
-                            '1' => 1,
-                            '0' => 0,
-                            _ => unreachable!(),
-                        })
-                        .collect()
-                })
-                .collect(),
-        }
+    fn try_new(input: String) -> Option<Self> {
+        let nums = input
+            .trim()
+            .lines()
+            .map(|line| {
+                line.chars()
+                    .map(|c| match c {
+                        '1' => Some(1),
+                        '0' => Some(0),
+                        _ => None,
+                    })
+                    .collect()
+            })
+            .collect::<Option<Vec<_>>>()?;
+
+        Some(Self { nums })
     }
 
     fn part_1(&self) -> String {
@@ -104,14 +104,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(3);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "198");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(3);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "230");
     }
 }

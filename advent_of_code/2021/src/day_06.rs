@@ -16,14 +16,14 @@ impl Data {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        Self {
-            timers: input
-                .trim()
-                .split(',')
-                .filter_map(|s| s.parse().ok())
-                .collect(),
-        }
+    fn try_new(input: String) -> Option<Self> {
+        let timers = input
+            .trim()
+            .split(',')
+            .map(|s| s.parse().ok())
+            .collect::<Option<Vec<_>>>()?;
+
+        Some(Self { timers })
     }
 
     fn part_1(&self) -> String {
@@ -69,14 +69,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(6);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "5934");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(6);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "26984457539");
     }
 }

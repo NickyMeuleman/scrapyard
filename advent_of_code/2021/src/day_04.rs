@@ -66,10 +66,12 @@ impl Board {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        let (numbers, boards) = input.trim().split_once("\n\n").unwrap();
-
-        let numbers = numbers.split(',').filter_map(|s| s.parse().ok()).collect();
+    fn try_new(input: String) -> Option<Self> {
+        let (numbers, boards) = input.trim().split_once("\n\n")?;
+        let numbers = numbers
+            .split(',')
+            .map(|s| s.parse().ok())
+            .collect::<Option<Vec<u8>>>()?;
 
         let boards = boards
             .split("\n\n")
@@ -83,11 +85,11 @@ impl AoCData for Data {
                     })
                     .collect();
 
-                Board { grid: numbers }
+                Some(Board { grid: numbers })
             })
-            .collect();
+            .collect::<Option<Vec<Board>>>()?;
 
-        Self { numbers, boards }
+        Some(Self { numbers, boards })
     }
 
     fn part_1(&self) -> String {
@@ -159,14 +161,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(4);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "4512");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(4);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "1924");
     }
 }

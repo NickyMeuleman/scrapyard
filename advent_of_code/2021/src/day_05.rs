@@ -1,6 +1,6 @@
 use crate::AoCData;
-use std::collections::HashMap;
 use std::cmp;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Data {
@@ -14,14 +14,11 @@ struct Line {
 }
 
 impl Line {
-    fn new(input: &str) -> Self {
-        input
-            .split_once(" -> ")
-            .map(|(from, to)| Line {
-                from: Point::new(from),
-                to: Point::new(to),
-            })
-            .unwrap()
+    fn try_new(input: &str) -> Option<Self> {
+        let (from, to) = input.split_once(" -> ")?;
+        let from = Point::try_new(from)?;
+        let to = Point::try_new(to)?;
+        Some(Self { from, to })
     }
 
     fn get_points(&self) -> Vec<Point> {
@@ -49,22 +46,22 @@ struct Point {
 }
 
 impl Point {
-    fn new(input: &str) -> Self {
-        input
-            .split_once(",")
-            .map(|(x, y)| Point {
-                x: x.parse().unwrap(),
-                y: y.parse().unwrap(),
-            })
-            .unwrap()
+    fn try_new(input: &str) -> Option<Self> {
+        let (x, y) = input.split_once(",")?;
+        let x = x.parse().ok()?;
+        let y = y.parse().ok()?;
+        Some(Self { x, y })
     }
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        Self {
-            lines: input.trim().lines().map(Line::new).collect(),
-        }
+    fn try_new(input: String) -> Option<Self> {
+        let lines = input
+            .trim()
+            .lines()
+            .map(Line::try_new)
+            .collect::<Option<Vec<Line>>>()?;
+        Some(Self { lines })
     }
 
     fn part_1(&self) -> String {
@@ -107,14 +104,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(5);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "5");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(5);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "12");
     }
 }

@@ -95,18 +95,16 @@ impl Register {
 }
 
 impl FromStr for Register {
-    type Err = Infallible;
+    type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let result = match s {
-            "x" => Register::X,
-            "y" => Register::Y,
-            "z" => Register::Z,
-            "w" => Register::W,
-            _ => unreachable!(),
-        };
-
-        Ok(result)
+        match s {
+            "x" => Ok(Register::X),
+            "y" => Ok(Register::Y),
+            "z" => Ok(Register::Z),
+            "w" => Ok(Register::W),
+            _ => Err(()),
+        }
     }
 }
 
@@ -136,17 +134,16 @@ impl Operand {
 }
 
 impl FromStr for Operand {
-    type Err = Infallible;
+    type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let result = if let Ok(num) = s.parse() {
-            Operand::Val(num)
+        if let Ok(num) = s.parse() {
+            Ok(Operand::Val(num))
+        } else if let Ok(register) = s.parse() {
+            Ok(Operand::Register(register))
         } else {
-            let register = s.parse().unwrap();
-            Operand::Register(register)
-        };
-
-        Ok(result)
+            Err(())
+        }
     }
 }
 
@@ -214,33 +211,33 @@ fn solve(blocks: &[Vec<Instruction>], biggest: bool) -> String {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
+    fn try_new(input: String) -> Option<Self> {
         let instructions = input
             .trim()
             .lines()
             .map(|line| {
                 let parts: Vec<&str> = line.split_whitespace().collect();
-                let instruction = parts[0];
-                let register = parts[1].parse().unwrap();
+                let instruction = *parts.get(0)?;
+                let register = parts.get(1)?.parse().ok()?;
 
                 match instruction {
-                    "inp" => Instruction::Inp(register),
+                    "inp" => Some(Instruction::Inp(register)),
                     _ => {
-                        let operand = parts[2].parse().unwrap();
+                        let operand = parts.get(2)?.parse().ok()?;
                         match instruction {
-                            "add" => Instruction::Add(register, operand),
-                            "mul" => Instruction::Mul(register, operand),
-                            "div" => Instruction::Div(register, operand),
-                            "mod" => Instruction::Mod(register, operand),
-                            "eql" => Instruction::Eql(register, operand),
-                            _ => unreachable!(),
+                            "add" => Some(Instruction::Add(register, operand)),
+                            "mul" => Some(Instruction::Mul(register, operand)),
+                            "div" => Some(Instruction::Div(register, operand)),
+                            "mod" => Some(Instruction::Mod(register, operand)),
+                            "eql" => Some(Instruction::Eql(register, operand)),
+                            _ => None,
                         }
                     }
                 }
             })
-            .collect();
+            .collect::<Option<Vec<_>>>()?;
 
-        Self { instructions }
+        Some(Self { instructions })
     }
 
     fn part_1(&self) -> String {
@@ -273,14 +270,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_input(24);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "93959993429899");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_input(24);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "11815671117121");
     }
 }

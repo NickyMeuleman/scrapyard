@@ -147,32 +147,32 @@ impl Data {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        Self {
-            scans: input
-                .trim()
-                .split("\n\n")
-                .map(|block| {
-                    Scan {
-                        grid: block
-                            .lines()
-                            // skip the first line telling you what scanner this is
-                            // that information is encoded in the index of the vector this block collects into
-                            .skip(1)
-                            .filter_map(|line| {
-                                let (x, rest) = line.split_once(',')?;
-                                let (y, z) = rest.split_once(',')?;
-                                Some(Point {
-                                    x: x.parse().ok()?,
-                                    y: y.parse().ok()?,
-                                    z: z.parse().ok()?,
-                                })
-                            })
-                            .collect(),
-                    }
-                })
-                .collect(),
-        }
+    fn try_new(input: String) -> Option<Self> {
+        let scans = input
+            .trim()
+            .split("\n\n")
+            .map(|block| {
+                let grid = block
+                    .lines()
+                    // skip the first line telling you what scanner this is
+                    // that information is encoded in the index of the vector this block collects into
+                    .skip(1)
+                    .map(|line| {
+                        let (x, rest) = line.split_once(',')?;
+                        let (y, z) = rest.split_once(',')?;
+                        Some(Point {
+                            x: x.parse().ok()?,
+                            y: y.parse().ok()?,
+                            z: z.parse().ok()?,
+                        })
+                    })
+                    .collect::<Option<HashSet<_>>>()?;
+
+                Some(Scan { grid })
+            })
+            .collect::<Option<Vec<_>>>()?;
+
+        Some(Self { scans })
     }
 
     fn part_1(&self) -> String {
@@ -237,14 +237,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(19);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "79");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(19);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "3621");
     }
 }

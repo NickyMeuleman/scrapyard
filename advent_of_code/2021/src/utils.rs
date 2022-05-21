@@ -3,6 +3,7 @@ use crate::{
     day_13, day_14, day_15, day_16, day_17, day_18, day_19, day_20, day_21, day_22, day_23, day_24,
     day_25,
 };
+
 use std::fs;
 use wasm_bindgen::prelude::*;
 
@@ -56,8 +57,10 @@ pub fn get_sample_input(day: u8) -> String {
 // TODO: figure out a way the parts can return any type that implements Display
 pub trait AoCData {
     /// Parse an input string into a Data struct for a specific day
-    fn new(input: String) -> Self;
-
+    // fn new(input: String) -> Self;
+    fn try_new(input: String) -> Option<Self>
+    where
+        Self: Sized;
     /// both solutions
     fn solve(self) -> Solution
     where
@@ -78,12 +81,15 @@ pub trait AoCData {
 
 pub const DAYS: u8 = 25;
 
-pub fn run_day<T: AoCData>(input: String) -> Solution {
-    let data = T::new(input);
-    data.solve()
+pub fn run_day<T: AoCData>(input: String) -> Result<Solution, JsError> {
+    if let Some(data) = T::try_new(input) {
+        Ok(data.solve())
+    } else {
+        Err(JsError::new("Failed to parse"))
+    }
 }
 
-pub fn run(day: u8, input: String) -> Solution {
+pub fn run(day: u8, input: String) -> Result<Solution, JsError> {
     match day {
         1 => run_day::<day_01::Data>(input),
         2 => run_day::<day_02::Data>(input),

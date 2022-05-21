@@ -66,22 +66,21 @@ impl State {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
-        let (template, rules) = input.trim().split_once("\n\n").unwrap();
+    fn try_new(input: String) -> Option<Self> {
+        let (template, rules) = input.trim().split_once("\n\n")?;
+        let template = template.chars().collect();
+        let rules = rules
+            .lines()
+            .map(|line| {
+                let (left, right) = line.split_once(" -> ")?;
+                let mut pair = left.chars();
+                let insert = right.chars().next()?;
 
-        Self {
-            template: template.chars().collect(),
-            rules: rules
-                .lines()
-                .map(|line| {
-                    let (left, right) = line.split_once(" -> ").unwrap();
-                    let mut pair = left.chars();
-                    let insert = right.chars().next().unwrap();
+                Some(([pair.next().unwrap(), pair.next().unwrap()], insert))
+            })
+            .collect::<Option<HashMap<_, _>>>()?;
 
-                    ([pair.next().unwrap(), pair.next().unwrap()], insert)
-                })
-                .collect(),
-        }
+        Some(Self { template, rules })
     }
 
     fn part_1(&self) -> String {
@@ -121,14 +120,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(14);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_1(), "1588");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(14);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "2188189693529");
     }
 }

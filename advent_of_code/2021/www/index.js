@@ -6,8 +6,6 @@ const resultEl = document.querySelector("#result");
 
 function handleFile(event) {
   const file = event.target.files[0];
-  console.log(file);
-
   if (file.type && !file.type.startsWith("text/")) {
     console.log("File is not text.", file.type, file);
     return;
@@ -21,9 +19,13 @@ function handleFile(event) {
       let input = reader.result;
       const day = Number(dayInputEl.value);
 
-      wasm.solve(day, input).then(({ part1, part2 }) => {
-        resultEl.innerText = part1 + "\n" + part2;
-      });
+      wasm
+        .solve(day, input)
+        .then((res) => {
+          console.log("res", res);
+          resultEl.innerText = res.part1 + "\n" + res.part2;
+        })
+        .catch((err) => console.log("catch: ", err));
     },
     false
   );

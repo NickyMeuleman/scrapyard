@@ -121,36 +121,43 @@ impl Data {
 }
 
 impl AoCData for Data {
-    fn new(input: String) -> Self {
+    fn try_new(input: String) -> Option<Self> {
         let instructions = input
             .trim()
             .lines()
             .map(|line| {
-                let (on, rest) = line.split_once(" ").unwrap();
-                let pairs: Vec<(i64, i64)> = rest
+                let (on, rest) = line.split_once(" ")?;
+                let pairs = rest
                     .split(',')
                     .map(|pair| {
                         // cut off x= part, split on .., take numbers
-                        let (min, max) = pair[2..].split_once("..").unwrap();
-                        (min.parse().unwrap(), max.parse().unwrap())
+                        let (min, max) = pair[2..].split_once("..")?;
+                        let min = min.parse().ok()?;
+                        let max = max.parse().ok()?;
+                        Some((min, max))
                     })
-                    .collect();
+                    .collect::<Option<Vec<_>>>()?;
+                let on = on == "on";
+                let x_min = pairs.get(0)?.0;
+                let x_max = pairs.get(0)?.1;
+                let y_min = pairs.get(1)?.0;
+                let y_max = pairs.get(1)?.1;
+                let z_min = pairs.get(2)?.0;
+                let z_max = pairs.get(2)?.1;
+                let cuboid = Cuboid {
+                    x_min,
+                    x_max,
+                    y_min,
+                    y_max,
+                    z_min,
+                    z_max,
+                };
 
-                Instruction {
-                    on: on == "on",
-                    cuboid: Cuboid {
-                        x_min: pairs[0].0,
-                        x_max: pairs[0].1,
-                        y_min: pairs[1].0,
-                        y_max: pairs[1].1,
-                        z_min: pairs[2].0,
-                        z_max: pairs[2].1,
-                    },
-                }
+                Some(Instruction { on, cuboid })
             })
-            .collect();
+            .collect::<Option<Vec<_>>>()?;
 
-        Self { instructions }
+        Some(Self { instructions })
     }
 
     fn part_1(&self) -> String {
@@ -185,7 +192,7 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(22);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         // ran on sample data from p2!
         assert_eq!(data.part_1(), "474140");
     }
@@ -193,7 +200,7 @@ mod test {
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(22);
-        let data = Data::new(input);
+        let data = Data::try_new(input).unwrap();
         assert_eq!(data.part_2(), "2758514936282235");
     }
 }
