@@ -1,8 +1,26 @@
-import * as wasm from "aoc2021";
-
 const fileInputEl = document.querySelector("#file");
 const dayInputEl = document.querySelector("#day");
 const resultEl = document.querySelector("#result");
+const worker = new Worker(new URL("./worker.js", import.meta.url), {
+  name: "AoCWorker",
+  type: "module",
+});
+worker.onmessage = function (msg) {
+  console.log("IN main FROM worker: ", msg);
+  switch (msg.data.type) {
+    case "solved": {
+      resultEl.innerText =
+        msg.data.payload.part1 + "\n" + msg.data.payload.part2;
+      return;
+    }
+    case "error": {
+      resultEl.innerText = msg.data.payload.message;
+      return;
+    }
+    default: {
+    }
+  }
+};
 
 function handleFile(event) {
   const file = event.target.files[0];
@@ -18,14 +36,9 @@ function handleFile(event) {
     () => {
       let input = reader.result;
       const day = Number(dayInputEl.value);
-
-      wasm
-        .solve(day, input)
-        .then((res) => {
-          console.log("res", res);
-          resultEl.innerText = res.part1 + "\n" + res.part2;
-        })
-        .catch((err) => console.log("catch: ", err));
+      const data = { day, input };
+      console.log("IN main TO worker: ", data);
+      worker.postMessage(data);
     },
     false
   );
