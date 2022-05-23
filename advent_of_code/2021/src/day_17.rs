@@ -9,17 +9,13 @@ pub struct Data {
 
 impl AoCData for Data {
     fn try_new(input: String) -> Option<Self> {
-        let vec = input
-            .trim()
-            // get every substring that is seperated by one of these characters
-            .split_terminator(&['=', '.', ','][..])
-            // only keep the numbers
-            .map(|x| x.parse().ok())
-            .collect::<Option<Vec<i32>>>()?;
-        let x_min = *vec.get(0)?;
-        let x_max = *vec.get(1)?;
-        let y_min = *vec.get(2)?;
-        let y_max = *vec.get(3)?;
+        let (x_range, y_range) = input.trim().strip_prefix("target area: ")?.split_once(", ")?;
+        let (x_min, x_max) = x_range.strip_prefix("x=")?.split_once("..")?;
+        let (y_min, y_max) = y_range.strip_prefix("y=")?.split_once("..")?;
+        let x_min = x_min.parse().ok()?;
+        let x_max = x_max.parse().ok()?;
+        let y_min = y_min.parse().ok()?;
+        let y_max = y_max.parse().ok()?;
 
         Some(Self {
             x_min,

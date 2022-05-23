@@ -48,7 +48,7 @@ impl AoCData for Data {
 }
 
 #[derive(Default)]
-struct Population([usize; 9]);
+struct Population([u64; 9]);
 
 impl Population {
     fn tick(&mut self) {
@@ -56,7 +56,7 @@ impl Population {
         self.0[6] += self.0[8];
     }
 
-    fn size(&self) -> usize {
+    fn size(&self) -> u64 {
         self.0.iter().sum()
     }
 }

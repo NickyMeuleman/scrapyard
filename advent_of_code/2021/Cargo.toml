@@ -2,7 +2,7 @@
 authors = ["Nicky Meuleman <nicky.dev@outlook.com>"]
 edition = "2021"
 name = "aoc2021"
-version = "0.4.4"
+version = "0.4.5"
 
 [lib]
 # https://rustwasm.github.io/wasm-pack/book/tutorials/npm-browser-packages/template-deep-dive/cargo-toml.html#a1-crate-type
