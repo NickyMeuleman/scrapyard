@@ -1,0 +1,98 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Welcome to Astro.">
+  <main>
+    <h1>Welcome to <span class="text-gradient">Advent of Code</span></h1>
+    <div>
+      <span>Day:</span>
+      <input id="day" type="number" />
+      <span>Input:</span>
+      <input id="file" type="file" />
+      <span>Result:</span>
+      <output id="result">No result yet!</output>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  main {
+    margin: auto;
+    padding: 1.5rem;
+    max-width: 80ch;
+  }
+  h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    margin: 0;
+    margin-bottom: 1rem;
+  }
+  .text-gradient {
+    background-image: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 400%;
+    background-position: 0%;
+  }
+  div {
+    display: grid;
+    gap: 1rem;
+  }
+</style>
+
+<script is:inline type="module">
+  const fileInputEl = document.querySelector("#file");
+  const dayInputEl = document.querySelector("#day");
+  const resultEl = document.querySelector("#result");
+
+  const worker = new Worker(new URL("./src/worker.ts", import.meta.url), {
+    name: "AoCWorker",
+    type: "module",
+  });
+
+  worker.onmessage = function (msg) {
+    console.log("IN main FROM worker: ", msg);
+    switch (msg.data.type) {
+      case "solved": {
+        resultEl.innerText =
+          msg.data.payload.part1 + "\n" + msg.data.payload.part2;
+        return;
+      }
+      case "error": {
+        resultEl.innerText = msg.data.payload.message;
+        return;
+      }
+      default: {
+      }
+    }
+  };
+
+  function handleFile(event) {
+    const file = event.target.files[0];
+    if (file.type && !file.type.startsWith("text/")) {
+      console.log("File is not text.", file.type, file);
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.addEventListener(
+      "load",
+      () => {
+        let input = reader.result;
+        const day = Number(dayInputEl.value);
+        const data = { day, input };
+        console.log("IN main TO worker: ", data);
+        worker.postMessage(data);
+      },
+      false
+    );
+
+    if (file) {
+      reader.readAsText(file);
+    }
+  }
+
+  fileInputEl.addEventListener("change", handleFile);
+</script>
