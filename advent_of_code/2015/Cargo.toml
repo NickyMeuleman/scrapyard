@@ -14,6 +14,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 wasm-bindgen = "0.2.83"
 wasm-bindgen-futures = "0.4.33"
+md-5 = "0.10.5"
 
 [dependencies.web-sys]
 version = "0.3.4"
