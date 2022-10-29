@@ -29,12 +29,12 @@ impl AoCData for Data {
         let mut instructions = Vec::new();
         for line in input.lines() {
             let (first, second) = line.split_once(" through ")?;
-            let (x2, y2) = second.split_once(",")?;
+            let (x2, y2) = second.split_once(',')?;
             let x2: i32 = x2.parse().ok()?;
             let y2: i32 = y2.parse().ok()?;
             let bottom_right = Point { x: x2, y: y2 };
-            let (first, second) = first.rsplit_once(" ")?;
-            let (x1, y1) = second.split_once(",")?;
+            let (first, second) = first.rsplit_once(' ')?;
+            let (x1, y1) = second.split_once(',')?;
             let x1: i32 = x1.parse().ok()?;
             let y1: i32 = y1.parse().ok()?;
             let top_left = Point { x: x1, y: y1 };

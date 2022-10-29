@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::{utils::Solution, AoCData};
-use itertools::{Itertools, MinMaxResult};
+use itertools::Itertools;
 
 pub struct Data {
     cities: HashSet<String>,
