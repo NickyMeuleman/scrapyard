@@ -1,4 +1,4 @@
-use crate::{day_01, day_02, day_03, day_04, day_05, day_06, day_07, day_08};
+use crate::{day_01, day_02, day_03, day_04, day_05, day_06, day_07, day_08, day_09};
 
 use std::fs;
 use wasm_bindgen::prelude::*;
@@ -95,7 +95,7 @@ pub fn run(day: u8, input: String) -> Result<Solution, JsError> {
         6 => run_day::<day_06::Data>(input),
         7 => run_day::<day_07::Data>(input),
         8 => run_day::<day_08::Data>(input),
-        // 9 => run_day::<day_09::Data>(input),
+        9 => run_day::<day_09::Data>(input),
         // 10 => run_day::<day_10::Data>(input),
         // 11 => run_day::<day_11::Data>(input),
         // 12 => run_day::<day_12::Data>(input),
