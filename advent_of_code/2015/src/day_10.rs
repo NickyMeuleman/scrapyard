@@ -46,14 +46,10 @@ impl AoCData for Data {
 }
 
 fn look_and_say(s: &str) -> String {
-    let mut result = String::new();
-    let mut iter = s.chars();
-    while let Some(curr) = iter.next() {
-        let amount = iter.take_while_ref(|&c| c == curr).count();
-        result.push_str(&(1 + amount).to_string());
-        result.push(curr);
-    }
-    result
+    s.chars()
+        .dedup_with_count()
+        .map(|(count, c)| format!("{}{}", count, c))
+        .collect()
 }
 
 #[cfg(test)]
