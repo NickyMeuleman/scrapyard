@@ -1,5 +1,3 @@
-use itertools::Itertools;
-
 use crate::AoCData;
 
 pub struct Data(Vec<Vec<u32>>);
