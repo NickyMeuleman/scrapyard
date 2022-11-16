@@ -1,12 +1,22 @@
+use std::hash::{Hash, Hasher};
 use std::{
     cmp::Ordering,
-    collections::{BinaryHeap, HashSet},
+    collections::{hash_map::DefaultHasher, BinaryHeap, HashSet},
     fmt,
 };
 
 use itertools::Itertools;
 
 use crate::AoCData;
+
+fn calculate_hash<T>(t: &T) -> u64
+where
+    T: Hash + ?Sized,
+{
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
+}
 
 pub struct Data {
     floors: Vec<HashSet<Item>>,
@@ -37,7 +47,7 @@ impl Floor {
                 Item::Microchip(name) => Some(name),
                 Item::Generator(_) => None,
             })
-            .all(|chip_name| self.items.contains(&Item::Generator(chip_name.to_string())));
+            .all(|chip_name| self.items.contains(&Item::Generator(*chip_name)));
 
         self.items.is_empty() || has_single_item_type || all_chips_paired
     }
@@ -87,7 +97,7 @@ impl fmt::Debug for State {
             let floor = &self.floors[floor];
             let hg = if floor
                 .items
-                .contains(&Item::Generator("hydrogen".to_string()))
+                .contains(&Item::Generator(calculate_hash("hydrogen")))
             {
                 " HG "
             } else {
@@ -95,7 +105,7 @@ impl fmt::Debug for State {
             };
             let hm = if floor
                 .items
-                .contains(&Item::Microchip("hydrogen".to_string()))
+                .contains(&Item::Microchip(calculate_hash("hydrogen")))
             {
                 " HM "
             } else {
@@ -103,7 +113,7 @@ impl fmt::Debug for State {
             };
             let lg = if floor
                 .items
-                .contains(&Item::Generator("lithium".to_string()))
+                .contains(&Item::Generator(calculate_hash("lithium")))
             {
                 " LG "
             } else {
@@ -111,7 +121,7 @@ impl fmt::Debug for State {
             };
             let lm = if floor
                 .items
-                .contains(&Item::Microchip("lithium".to_string()))
+                .contains(&Item::Microchip(calculate_hash("lithium")))
             {
                 " LM "
             } else {
@@ -151,7 +161,7 @@ impl State {
 
     /// returns all legal next states from a given state
     fn next_states(&self) -> Vec<State> {
-        let highest_uncleared_floor = self
+        let highest_uncleared_floor = &self
             .floors
             .iter()
             .position(|floor| !floor.items.is_empty())
@@ -176,7 +186,7 @@ impl State {
                     continue;
                 }
                 // don't ever bring things down to a cleared level
-                if (next_elevator as usize) < highest_uncleared_floor {
+                if (next_elevator as usize) < *highest_uncleared_floor {
                     continue;
                 }
                 let mut next_floors = self.floors.clone();
@@ -203,62 +213,69 @@ impl State {
         possibilities
     }
 
-    fn counts(&self) -> [(u8, u8); 4] {
-        self.floors
+    fn counts(&self) -> (u8, [(u8, u8); 4]) {
+        let floors = self
+            .floors
             .iter()
             .map(|floor| floor.counts())
             .collect::<Vec<_>>()
             .try_into()
-            .unwrap()
+            .unwrap();
+
+        (self.elevator as u8, floors)
     }
 
     /// minimum cost to move every item to the top
     fn min_cost_to_top(self) -> u32 {
-        let mut min_cost = u32::MAX;
+        // SEE comment inside while loop for reason why this is commented out
+        // let mut min_cost = u32::MAX;
+
         // Each VALID floor can be represented by (num_gens, num_chips) as each pair is interchangeable
+        // each VALID state can be represented by (elevator_idx, [(num_gens, num_chips); 4])
         let mut seen = HashSet::new();
         let mut pq = BinaryHeap::new();
 
+        // add unique starting state to the seen cache
         // add starting node to pq
+        seen.insert(self.counts());
         pq.push(Node {
             cost: 0,
             state: self,
         });
 
-        'outer: while let Some(Node { cost, state }) = pq.pop() {
-            dbg!(&cost);
-            dbg!(&state);
-            dbg!(&pq.len());
-            dbg!("");
-
+        while let Some(Node { cost, state }) = pq.pop() {
             if state.full_last_level() {
                 // popped an endstate, return
                 return cost;
             }
 
-            seen.insert(state.counts());
-
-            if cost >= min_cost {
+            // if cost >= min_cost {
                 // a less costly solution has already been found, skip
                 // this happens when there's a solution with a lower cost in the queue
-                continue 'outer;
-            }
-
+                // in this algorithm, that never happens because all costs increase by one
+                // and nodes are sorted in the queue by cost.
+                // leaving this comment to remind my future self of why this part is commented out
+                // continue 'outer;
+            // }
+            
             for new_state in state.next_states() {
                 let new_cost = cost + 1;
 
-                if new_state.full_last_level() {
-                    // do not return here, the route to the end might not be the cheapest one
-                    min_cost = min_cost.min(new_cost);
-                    pq.push(Node {
-                        cost: new_cost,
-                        state: new_state,
-                    });
-                    continue 'outer;
-                }
-
+                // SEE comment above for reason why this is commented out
+                // if new_state.full_last_level() {
+                //     // do not return here, the route to the end might not be the cheapest one
+                //     min_cost = min_cost.min(new_cost);
+                //     pq.push(Node {
+                //         cost: new_cost,
+                //         state: new_state,
+                //     });
+                //     continue 'outer;
+                // }
+                
                 // if we reached this, the items are not at the top yet, keep going with this branch
-                if !seen.contains(&new_state.counts()) {
+                // add the unique equivalent state to the seen cache
+                // only add state to the queue if that equivalent state was not already in the queue previously
+                if seen.insert(new_state.counts()) {
                     pq.push(Node {
                         cost: new_cost,
                         state: new_state,
@@ -266,16 +283,18 @@ impl State {
                 }
             }
         }
+        // SEE comment inside while loop for reason why this is commented out
+        // min_cost
 
-        // only get here if there is no way found to completely move all items to the top (so: min_cost is still MAX)
-        min_cost
+        // no way to reach the endstate was found
+        u32::MAX
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum Item {
-    Generator(String),
-    Microchip(String),
+    Generator(u64),
+    Microchip(u64),
 }
 
 impl AoCData for Data {
@@ -291,11 +310,11 @@ impl AoCData for Data {
                         match part {
                             part if part.ends_with("generator") => {
                                 let name = part.strip_suffix(" generator")?;
-                                items.insert(Item::Generator(name.to_string()));
+                                items.insert(Item::Generator(calculate_hash(name)));
                             }
                             part if part.ends_with("microchip") => {
                                 let name = part.strip_suffix("-compatible microchip")?;
-                                items.insert(Item::Microchip(name.to_string()));
+                                items.insert(Item::Microchip(calculate_hash(name)));
                             }
                             _ => {}
                         };
@@ -305,11 +324,11 @@ impl AoCData for Data {
                         match part {
                             part if part.ends_with("generator") => {
                                 let name = part.strip_suffix(" generator")?;
-                                items.insert(Item::Generator(name.to_string()));
+                                items.insert(Item::Generator(calculate_hash(name)));
                             }
                             part if part.ends_with("microchip") => {
                                 let name = part.strip_suffix("-compatible microchip")?;
-                                items.insert(Item::Microchip(name.to_string()));
+                                items.insert(Item::Microchip(calculate_hash(name)));
                             }
                             _ => {}
                         };
@@ -325,14 +344,25 @@ impl AoCData for Data {
     }
 
     fn part_1(&self) -> String {
-        State::try_new(self.floors.clone())
-            .unwrap()
-            .min_cost_to_top()
-            .to_string()
+        let state = State::try_new(self.floors.clone()).unwrap();
+        state.min_cost_to_top().to_string()
     }
 
     fn part_2(&self) -> String {
-        String::new()
+        let mut state = State::try_new(self.floors.clone()).unwrap();
+        state.floors[0]
+            .items
+            .insert(Item::Generator(calculate_hash("elerium")));
+        state.floors[0]
+            .items
+            .insert(Item::Microchip(calculate_hash("elerium")));
+        state.floors[0]
+            .items
+            .insert(Item::Generator(calculate_hash("dilithium")));
+        state.floors[0]
+            .items
+            .insert(Item::Microchip(calculate_hash("dilithium")));
+        state.min_cost_to_top().to_string()
     }
 }
 
@@ -345,13 +375,13 @@ mod test {
     fn part_1() {
         let input = utils::get_sample_input(11);
         let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_1(), "");
+        assert_eq!(data.part_1(), "11");
     }
 
     #[test]
     fn part_2() {
-        let input = utils::get_sample_input(11);
+        let input = utils::get_input(11);
         let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_2(), "");
+        assert_eq!(data.part_2(), "61");
     }
 }
