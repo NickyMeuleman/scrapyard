@@ -54,19 +54,25 @@ impl AoCData for Data {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils;
 
     #[test]
     fn part_1() {
-        let input = utils::get_sample_input(5);
-        let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_1(), "");
+        let input = "ugknbfddgicrmopn
+aaa
+jchzalrnumimnmhp
+haegwjzuvuyypxyu
+dvszwmarrgswjxmb";
+        let data = Data::try_new(input.to_string()).unwrap();
+        assert_eq!(data.part_1(), "2");
     }
 
     #[test]
     fn part_2() {
-        let input = utils::get_sample_input(5);
-        let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_2(), "");
+        let input = "qjhvhtzxzqqjkmpb
+xxyxx
+uurcxstgmygtbstg
+ieodomkazucvgmuy";
+        let data = Data::try_new(input.to_string()).unwrap();
+        assert_eq!(data.part_2(), "2");
     }
 }
