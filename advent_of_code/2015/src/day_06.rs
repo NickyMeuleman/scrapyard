@@ -133,19 +133,21 @@ impl AoCData for Data {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils;
 
     #[test]
     fn part_1() {
-        let input = utils::get_sample_input(6);
-        let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_1(), "");
+        let input = "turn on 0,0 through 999,999
+toggle 0,0 through 999,0
+turn off 499,499 through 500,500";
+        let data = Data::try_new(input.to_string()).unwrap();
+        assert_eq!(data.part_1(), (1000 * 1000 - 1000 - 4).to_string());
     }
 
     #[test]
     fn part_2() {
-        let input = utils::get_sample_input(6);
-        let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_2(), "");
+        let input = "turn on 0,0 through 0,0
+toggle 0,0 through 999,999";
+        let data = Data::try_new(input.to_string()).unwrap();
+        assert_eq!(data.part_2(), (1 + 2000000).to_string());
     }
 }
