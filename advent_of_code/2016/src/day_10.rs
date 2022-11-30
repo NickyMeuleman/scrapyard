@@ -17,6 +17,43 @@ enum Destination {
     Bot(u8),
 }
 
+fn part_1_helper(instructions: &[Instruction], target_low: u8, target_high: u8) -> u8 {
+    let mut state = HashMap::new();
+    let (start_instructions, transfer_instructions): (Vec<_>, Vec<_>) =
+        instructions.iter().partition_map(|ins| match ins {
+            Instruction::Start(val, bot) => Either::Left((*val, *bot)),
+            Instruction::Transfer(val, low, high) => Either::Right((*val, low, high)),
+        });
+
+    for (bot_num, _, _) in &transfer_instructions {
+        state.insert(*bot_num, vec![]);
+    }
+
+    for (val, bot_num) in start_instructions {
+        if let Some(chips) = state.get_mut(&bot_num) {
+            chips.push(val);
+        }
+    }
+    loop {
+        for (bot_num, low_dest, high_dest) in &transfer_instructions {
+            let chips = state.get_mut(bot_num).unwrap();
+            if chips.len() == 2 {
+                if let MinMaxResult::MinMax(min, max) = chips.drain(..).minmax() {
+                    if min == target_low && max == target_high {
+                        return *bot_num;
+                    }
+                    if let Destination::Bot(n) = low_dest {
+                        state.entry(*n).and_modify(|chips| chips.push(min));
+                    }
+                    if let Destination::Bot(n) = high_dest {
+                        state.entry(*n).and_modify(|chips| chips.push(max));
+                    }
+                }
+            }
+        }
+    }
+}
+
 impl AoCData for Data {
     fn try_new(input: String) -> Option<Self> {
         let mut instructions = Vec::new();
@@ -52,41 +89,7 @@ impl AoCData for Data {
     }
 
     fn part_1(&self) -> String {
-        let mut state = HashMap::new();
-        let (start_instructions, transfer_instructions): (Vec<_>, Vec<_>) =
-            self.0.iter().partition_map(|ins| match ins {
-                Instruction::Start(val, bot) => Either::Left((*val, *bot)),
-                Instruction::Transfer(val, low, high) => Either::Right((*val, low, high)),
-            });
-
-        for (bot_num, _, _) in &transfer_instructions {
-            state.insert(*bot_num, vec![]);
-        }
-
-        for (val, bot_num) in start_instructions {
-            if let Some(chips) = state.get_mut(&bot_num) {
-                chips.push(val);
-            }
-        }
-
-        loop {
-            for (bot_num, low_dest, high_dest) in &transfer_instructions {
-                let chips = state.get_mut(bot_num).unwrap();
-                if chips.len() == 2 {
-                    if let MinMaxResult::MinMax(min, max) = chips.drain(..).minmax() {
-                        if min == 17 && max == 61 {
-                            return bot_num.to_string();
-                        }
-                        if let Destination::Bot(n) = low_dest {
-                            state.entry(*n).and_modify(|chips| chips.push(min));
-                        }
-                        if let Destination::Bot(n) = high_dest {
-                            state.entry(*n).and_modify(|chips| chips.push(max));
-                        }
-                    }
-                }
-            }
-        }
+        part_1_helper(&self.0, 17, 61).to_string()
     }
 
     fn part_2(&self) -> String {
@@ -154,13 +157,13 @@ mod test {
     fn part_1() {
         let input = utils::get_sample_input(10);
         let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_1(), " ");
+        assert_eq!(part_1_helper(&data.0, 2, 5), 2);
     }
 
     #[test]
     fn part_2() {
-        let input = utils::get_sample_input(10);
+        let input = utils::get_input(10);
         let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_2(), "");
+        assert_eq!(data.part_2(), "13727");
     }
 }
