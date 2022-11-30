@@ -25,6 +25,37 @@ impl Reindeer {
     }
 }
 
+fn part_1_helper(deer: &[Reindeer], time: u32) -> u32 {
+    deer.iter()
+        .map(|deer| deer.dist_at(time))
+        .max()
+        .unwrap_or(0)
+}
+
+fn part_2_helper(deer: &[Reindeer], time: u32) -> u32 {
+    let mut points: HashMap<String, u32> =
+            deer.iter().map(|deer| (deer.name.clone(), 0)).collect();
+        for elapsed in 1..=time {
+            let max = deer
+                .iter()
+                .map(|deer| deer.dist_at(elapsed))
+                .max()
+                .unwrap_or(0);
+            let winners = deer
+                .iter()
+                .filter(|deer| deer.dist_at(elapsed) == max)
+                .map(|deer| deer.name.clone());
+            for winner in winners {
+                points
+                    .entry(winner)
+                    .and_modify(|val| *val += 1)
+                    .or_insert(1);
+            }
+        }
+
+        *points.values().max().unwrap()
+}
+
 impl AoCData for Data {
     fn try_new(input: String) -> Option<Self> {
         let mut reindeer = Vec::new();
@@ -46,38 +77,11 @@ impl AoCData for Data {
     }
 
     fn part_1(&self) -> String {
-        self.0
-            .iter()
-            .map(|deer| deer.dist_at(2503))
-            .max()
-            .unwrap_or(0)
-            .to_string()
+        part_1_helper(&self.0, 2503).to_string()
     }
 
     fn part_2(&self) -> String {
-        let mut points: HashMap<String, u32> =
-            self.0.iter().map(|deer| (deer.name.clone(), 0)).collect();
-        for elapsed in 1..=2503 {
-            let max = self
-                .0
-                .iter()
-                .map(|deer| deer.dist_at(elapsed))
-                .max()
-                .unwrap_or(0);
-            let winners = self
-                .0
-                .iter()
-                .filter(|deer| deer.dist_at(elapsed) == max)
-                .map(|deer| deer.name.clone());
-            for winner in winners {
-                points
-                    .entry(winner)
-                    .and_modify(|val| *val += 1)
-                    .or_insert(1);
-            }
-        }
-
-        points.values().max().unwrap().to_string()
+        part_2_helper(&self.0, 2503).to_string()
     }
 }
 
@@ -90,13 +94,13 @@ mod test {
     fn part_1() {
         let input = utils::get_sample_input(14);
         let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_1(), "d");
+        assert_eq!(part_1_helper(&data.0, 1000), 1120);
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(14);
         let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_2(), "");
+        assert_eq!(part_2_helper(&data.0, 1000), 689);
     }
 }
