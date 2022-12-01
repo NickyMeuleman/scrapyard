@@ -76,19 +76,6 @@ impl Data {
         }
         count
     }
-
-    fn print(&self) {
-        for row_idx in 0..self.num_rows {
-            for col_idx in 0..self.num_cols {
-                if self.grid.contains(&(row_idx, col_idx)) {
-                    print!("#")
-                } else {
-                    print!(".")
-                }
-            }
-            println!();
-        }
-    }
 }
 
 fn helper(mut data: Data, steps: u32, part2: bool) -> usize {
@@ -130,7 +117,6 @@ impl AoCData for Data {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils;
 
     #[test]
     fn part_1() {
