@@ -89,6 +89,14 @@ impl Computer {
             }
         }
     }
+
+    fn run(&mut self, instructions: &[Instruction]) {
+        let mut pointer = 0;
+        while pointer < instructions.len() {
+            let instruction = instructions[pointer];
+            pointer = self.execute(&instruction, pointer);
+        }
+    }
 }
 
 impl AoCData for Data {
@@ -127,30 +135,20 @@ impl AoCData for Data {
     }
 
     fn part_1(&self) -> String {
-        let mut pointer = 0;
-        let instructions = &self.0;
         let mut computer = Computer {
             reg_a: 0,
             reg_b: 0,
         };
-        while pointer < instructions.len() {
-            let instruction = instructions[pointer];
-            pointer = computer.execute(&instruction, pointer);
-        }
+        computer.run(&self.0);
         computer.reg_b.to_string()
     }
 
     fn part_2(&self) -> String {
-        let mut pointer = 0;
-        let instructions = &self.0;
         let mut computer = Computer {
             reg_a: 1,
             reg_b: 0,
         };
-        while pointer < instructions.len() {
-            let instruction = instructions[pointer];
-            pointer = computer.execute(&instruction, pointer);
-        }
+        computer.run(&self.0);
         computer.reg_b.to_string()
     }
 }
@@ -164,13 +162,15 @@ mod test {
     fn part_1() {
         let input = utils::get_sample_input(23);
         let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_1(), "");
+        let mut computer = Computer {reg_a: 0, reg_b: 0};
+        computer.run(&data.0);
+        assert_eq!(computer.reg_a, 2);
     }
 
     #[test]
     fn part_2() {
-        let input = utils::get_sample_input(23);
+        let input = utils::get_input(23);
         let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_2(), "");
+        assert_eq!(data.part_2(), "334");
     }
 }
