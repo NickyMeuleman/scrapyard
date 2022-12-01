@@ -91,6 +91,13 @@ impl Data {
     }
 }
 
+fn helper(mut data: Data, steps: u32, part2: bool) -> usize {
+    for _ in 0..steps {
+        data = data.tick(part2);
+    }
+    data.grid.len()
+}
+
 impl AoCData for Data {
     fn try_new(input: String) -> Option<Self> {
         let num_rows = input.lines().count();
@@ -112,19 +119,11 @@ impl AoCData for Data {
     }
 
     fn part_1(&self) -> String {
-        let mut data = self.clone();
-        for _ in 0..100 {
-            data = data.tick(false);
-        }
-        data.grid.len().to_string()
+        helper(self.clone(), 100, false).to_string()
     }
 
     fn part_2(&self) -> String {
-        let mut data = self.clone();
-        for _ in 0..100 {
-            data = data.tick(true);
-        }
-        data.grid.len().to_string()
+        helper(self.clone(), 100, true).to_string()
     }
 }
 
@@ -135,15 +134,25 @@ mod test {
 
     #[test]
     fn part_1() {
-        let input = utils::get_sample_input(18);
-        let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_1(), "d");
+        let input = ".#.#.#
+...##.
+#....#
+..#...
+#.#..#
+####..";
+        let data = Data::try_new(input.to_string()).unwrap();
+        assert_eq!(helper(data, 4, false), 4);
     }
 
     #[test]
     fn part_2() {
-        let input = utils::get_sample_input(18);
-        let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_2(), "");
+        let input = "##.#.#
+...##.
+#....#
+..#...
+#.#..#
+####.#";
+        let data = Data::try_new(input.to_string()).unwrap();
+        assert_eq!(helper(data, 5, true), 17);
     }
 }
