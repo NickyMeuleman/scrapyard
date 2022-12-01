@@ -1,0 +1,7 @@
+pkg
+src/day_00.rs
+dist/
+.output/
+node_modules/
+npm-debug.log*
+*.py
