@@ -78,7 +78,7 @@ pub trait AoCData {
     fn part_2(&self) -> String;
 }
 
-pub const DAYS: u8 = 11;
+pub const DAYS: u8 = 25;
 
 pub fn run_day<T: AoCData>(input: String) -> Result<Solution, JsError> {
     if let Some(data) = T::try_new(input) {

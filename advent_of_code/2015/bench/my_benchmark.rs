@@ -1,5 +1,5 @@
 use aoc2015::{
-    day_01,
+    day_01, day_02, day_03, day_04,
     utils::{self, AoCData},
 };
 use criterion::{criterion_group, criterion_main, Criterion};
@@ -40,9 +40,9 @@ fn run(c: &mut Criterion, num: u8) {
 
     match num {
         1 => bench_day::<day_01::Data>(c, num, input),
-        // 2 => bench_day::<day_02::Data>(c, num, input),
-        // 3 => bench_day::<day_03::Data>(c, num, input),
-        // 4 => bench_day::<day_04::Data>(c, num, input),
+        2 => bench_day::<day_02::Data>(c, num, input),
+        3 => bench_day::<day_03::Data>(c, num, input),
+        4 => bench_day::<day_04::Data>(c, num, input),
         // 5 => bench_day::<day_05::Data>(c, num, input),
         // 6 => bench_day::<day_06::Data>(c, num, input),
         // 7 => bench_day::<day_07::Data>(c, num, input),
