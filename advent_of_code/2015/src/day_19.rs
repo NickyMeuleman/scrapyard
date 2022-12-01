@@ -55,6 +55,7 @@ impl AoCData for Data {
 
         // sort by longest key first so the longest parts get replaced first
         // else, it CAN infinite loop. why?
+        // edit: TODO: the test case still infinite loops sometimes
         let mut reverse_map = Vec::from_iter(reverse_map);
         reverse_map.sort_by(|&(key_a, _), &(key_b, _)| key_b.len().cmp(&key_a.len()));
 
@@ -63,6 +64,7 @@ impl AoCData for Data {
 
         while curr != "e" {
             for (to, from) in &reverse_map {
+                // dbg!(&curr);
                 if curr.contains(*to) {
                     let match_count = curr.matches(*to).count();
                     curr = curr.replace(*to, from);
@@ -78,19 +80,28 @@ impl AoCData for Data {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils;
 
     #[test]
     fn part_1() {
-        let input = utils::get_sample_input(19);
-        let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_1(), "");
+        let input = "H => HO
+H => OH
+O => HH
+
+HOHOHO";
+        let data = Data::try_new(input.to_string()).unwrap();
+        assert_eq!(data.part_1(), "7");
     }
 
     #[test]
     fn part_2() {
-        let input = utils::get_sample_input(19);
-        let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_2(), "");
+        let input = "e => H
+e => O
+H => HO
+H => OH
+O => HH
+
+HOHOHO";
+        let data = Data::try_new(input.to_string()).unwrap();
+        assert_eq!(data.part_2(), "6");
     }
 }
