@@ -10,7 +10,7 @@ impl AoCData for Data {
         let input = input.trim().strip_prefix(
             "To continue, please consult the code grid in the manual.  Enter the code at row ",
         )?;
-        let input = input.strip_suffix(".")?;
+        let input = input.strip_suffix('.')?;
         let (row, col) = input.split_once(", column ")?;
         let row: u32 = row.parse().ok()?;
         let col: u32 = col.parse().ok()?;
@@ -36,7 +36,7 @@ impl AoCData for Data {
     }
 
     fn part_2(&self) -> String {
-        String::from("It's a white christmas after all!")
+        String::from("Snow begins to fall.")
     }
 }
 
@@ -47,15 +47,8 @@ mod test {
 
     #[test]
     fn part_1() {
-        let input = utils::get_sample_input(1);
+        let input = utils::get_sample_input(25);
         let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_1(), "");
-    }
-
-    #[test]
-    fn part_2() {
-        let input = utils::get_sample_input(1);
-        let data = Data::try_new(input).unwrap();
-        assert_eq!(data.part_2(), "It's a white christmas after all!");
+        assert_eq!(data.part_1(), "20151125");
     }
 }
