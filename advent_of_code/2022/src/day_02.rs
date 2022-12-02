@@ -12,7 +12,7 @@ impl AoCData for Data {
     // a game of Rock, Paper, Scissors can be expressed as the following equation
     // outcome = my_shape - opponent_shape + 1 (mod 3)
     // for part2, a reordering of terms
-    // my_shape = outcome - 1 + opponent_shape (mod 3)
+    // my_shape = opponent_shape + outcome - 1 (mod 3)
 
     fn part_1(&self) -> String {
         self.0
