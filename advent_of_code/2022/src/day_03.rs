@@ -23,8 +23,7 @@ impl AoCData for Data {
                     .find(|num| left.contains(*num))
                     .map(|num| match num {
                         b'a'..=b'z' => (num - b'a') as u32 + 1,
-                        b'A'..=b'Z' => (num - b'A') as u32 + 1 + 26,
-                        _ => panic!("invalid input"),
+                        _ => (num - b'A') as u32 + 1 + 26
                     })
             })
             .sum::<u32>()
@@ -62,8 +61,7 @@ impl AoCData for Data {
                     .find(|num| sack2.contains(num) && sack3.contains(num))
                     .map(|common| match common {
                         b'a'..=b'z' => (common - b'a') as u32 + 1,
-                        b'A'..=b'Z' => (common - b'A') as u32 + 1 + 26,
-                        _ => panic!("invalid input"),
+                        _ => (common - b'A') as u32 + 1 + 26,
                     })
             })
             .sum::<u32>()
