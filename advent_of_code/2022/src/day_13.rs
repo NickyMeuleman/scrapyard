@@ -91,6 +91,7 @@ fn parse_list(list: &[char]) -> (Packet, &[char]) {
 impl AoCData for Data {
     fn try_new(input: String) -> Option<Self> {
         let pairs = input
+            .trim()
             .split("\n\n")
             .map(|pair| {
                 let mut lines = pair.lines();
