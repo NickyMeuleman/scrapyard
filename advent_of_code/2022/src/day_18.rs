@@ -141,7 +141,6 @@ impl AoCData for Data {
 
     fn part_2(&self) -> String {
         let exposed = exposed(&self.0);
-        dbg!(self.0.len());
         self.0
             .iter()
             .flat_map(|coord| coord.neighbours())
