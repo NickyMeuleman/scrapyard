@@ -2,8 +2,8 @@ use crate::AoCData;
 
 pub struct Data(Vec<i64>);
 
-impl AoCData for Data {
-    fn try_new(input: String) -> Option<Self> {
+impl AoCData<'_> for Data {
+    fn try_new(input: &str) -> Option<Self> {
         let nums = input
             .lines()
             .map(|line| line.parse().ok())
@@ -85,14 +85,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(20);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_1(), "3");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(20);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_2(), "1623178306");
     }
 }

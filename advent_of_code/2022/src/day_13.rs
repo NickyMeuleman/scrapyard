@@ -88,8 +88,8 @@ fn parse_list(list: &[char]) -> (Packet, &[char]) {
     (Packet::List(packets), &list[1..])
 }
 
-impl AoCData for Data {
-    fn try_new(input: String) -> Option<Self> {
+impl AoCData<'_> for Data {
+    fn try_new(input: &str) -> Option<Self> {
         let pairs = input
             .trim()
             .split("\n\n")
@@ -142,14 +142,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(13);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_1(), "13");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(13);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_2(), "140");
     }
 }

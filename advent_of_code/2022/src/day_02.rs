@@ -1,9 +1,9 @@
 use crate::AoCData;
 
-pub struct Data(String);
+pub struct Data<'a>(&'a str);
 
-impl AoCData for Data {
-    fn try_new(input: String) -> Option<Self> {
+impl<'a> AoCData<'a> for Data<'a> {
+    fn try_new(input: &'a str) -> Option<Self> {
         Some(Self(input))
     }
 
@@ -71,14 +71,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(2);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_1(), "15");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(2);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_2(), "12");
     }
 }

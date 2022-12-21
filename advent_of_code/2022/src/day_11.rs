@@ -46,8 +46,8 @@ struct Test {
     false_recipient: usize,
 }
 
-impl AoCData for Data {
-    fn try_new(input: String) -> Option<Self> {
+impl AoCData<'_> for Data {
+    fn try_new(input: &str) -> Option<Self> {
         let mut monkeys = Vec::new();
         for block in input.split("\n\n") {
             let mut lines = block.lines().skip(1);
@@ -173,14 +173,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(11);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_1(), "10605");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(11);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_2(), "2713310158");
     }
 }

@@ -2,8 +2,8 @@ use crate::AoCData;
 
 pub struct Data(Vec<[[u32; 2]; 2]>);
 
-impl AoCData for Data {
-    fn try_new(input: String) -> Option<Self> {
+impl AoCData<'_> for Data {
+    fn try_new(input: &str) -> Option<Self> {
         fn to_range(s: &str) -> Option<[u32; 2]> {
             let (min, max) = s.split_once('-')?;
             Some([min.parse().ok()?, max.parse().ok()?])
@@ -50,14 +50,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(4);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_1(), "2");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(4);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_2(), "4");
     }
 }

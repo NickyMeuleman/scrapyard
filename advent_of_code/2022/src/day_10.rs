@@ -1,6 +1,6 @@
 use crate::AoCData;
 
-pub struct Data(String);
+pub struct Data<'a>(&'a str);
 
 const COLS: usize = 40;
 const ROWS: usize = 6;
@@ -12,8 +12,8 @@ fn get_pixel(cycle: usize, x: i32) -> bool {
     (curr_col as i32).abs_diff(x) <= SPRITE_WIDTH / 2
 }
 
-impl AoCData for Data {
-    fn try_new(input: String) -> Option<Self> {
+impl<'a> AoCData<'a> for Data<'a> {
+    fn try_new(input: &'a str) -> Option<Self> {
         Some(Self(input))
     }
 
@@ -241,14 +241,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(10);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_1(), "13140");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_input(10);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_2(), "EZFPRAKL");
     }
 }

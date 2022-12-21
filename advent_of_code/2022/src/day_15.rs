@@ -84,8 +84,8 @@ fn part_2_helper(pairs: Vec<[Coord; 2]>, size: i32) -> i64 {
 
 pub struct Data(Vec<[Coord; 2]>);
 
-impl AoCData for Data {
-    fn try_new(input: String) -> Option<Self> {
+impl AoCData<'_> for Data {
+    fn try_new(input: &str) -> Option<Self> {
         let mut pairs = Vec::new();
         for line in input.lines() {
             let (sensor, beacon) = line.split_once(": ")?;
@@ -132,14 +132,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(15);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(part_1_helper(data.0, 10), 26);
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(15);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(part_2_helper(data.0, 20), 56000011);
     }
 }

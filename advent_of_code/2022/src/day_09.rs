@@ -24,8 +24,8 @@ struct Coord {
     y: isize,
 }
 
-impl AoCData for Data {
-    fn try_new(input: String) -> Option<Self> {
+impl AoCData<'_> for Data {
+    fn try_new(input: &str) -> Option<Self> {
         let mut instructions = Vec::new();
         for line in input.lines() {
             let (dir, amount) = line.split_once(' ')?;
@@ -137,14 +137,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(9);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_1(), "13");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(9);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_2(), "1");
     }
 }

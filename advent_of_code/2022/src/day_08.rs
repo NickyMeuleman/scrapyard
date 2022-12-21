@@ -24,8 +24,8 @@ impl Data {
     }
 }
 
-impl AoCData for Data {
-    fn try_new(input: String) -> Option<Self> {
+impl AoCData<'_> for Data {
+    fn try_new(input: &str) -> Option<Self> {
         let grid = input
             .lines()
             .map(|line| line.chars().filter_map(|c| c.to_digit(10)).collect())
@@ -90,14 +90,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(8);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_1(), "21");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(8);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_2(), "8");
     }
 }

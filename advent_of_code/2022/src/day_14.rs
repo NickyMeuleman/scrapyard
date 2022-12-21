@@ -103,7 +103,7 @@ fn simulate(rocks: &HashSet<Coord>, floor_y: Option<i32>) -> usize {
     unreachable!()
 }
 
-fn rocks_in_cave(rock_lines: &Vec<Vec<Coord>>) -> HashSet<Coord> {
+fn rocks_in_cave(rock_lines: &[Vec<Coord>]) -> HashSet<Coord> {
     rock_lines
         .iter()
         .flat_map(|path| {
@@ -132,8 +132,8 @@ fn rocks_in_cave(rock_lines: &Vec<Vec<Coord>>) -> HashSet<Coord> {
         .collect()
 }
 
-impl AoCData for Data {
-    fn try_new(input: String) -> Option<Self> {
+impl AoCData<'_> for Data {
+    fn try_new(input: &str) -> Option<Self> {
             let edges = input
                 .lines()
                 .map(|line| {
@@ -173,14 +173,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(14);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_1(), "24");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(14);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_2(), "93");
     }
 }

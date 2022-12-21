@@ -1,3 +1,6 @@
+// use crate::{
+//  day_19, day_20, day_21
+// };
 use crate::{
     day_01, day_02, day_03, day_04, day_05, day_06, day_07, day_08, day_09, day_10, day_11, day_12,
     day_13, day_14, day_15, day_16, day_17, day_18, day_19, day_20, day_21, day_22, day_23, day_24, day_25,
@@ -54,10 +57,33 @@ pub fn get_sample_input(day: u8) -> String {
 }
 
 // TODO: figure out a way the parts can return any type that implements Display
-pub trait AoCData {
+// pub trait AoCData {
+//     /// Parse an input string into a Data struct for a specific day
+//     // fn new(input: String) -> Self;
+//     fn try_new(input: String) -> Option<Self>
+//     where
+//         Self: Sized;
+//     /// both solutions
+//     fn solve(self) -> Solution
+//     where
+//         Self: Sized,
+//     {
+//         Solution {
+//             part1: self.part_1(),
+//             part2: self.part_2(),
+//         }
+//     }
+
+//     /// part1 solution
+//     fn part_1(&self) -> String;
+
+//     /// part2 solution
+//     fn part_2(&self) -> String;
+// }
+pub trait AoCData<'a> {
     /// Parse an input string into a Data struct for a specific day
     // fn new(input: String) -> Self;
-    fn try_new(input: String) -> Option<Self>
+    fn try_new(input: &'a str) -> Option<Self>
     where
         Self: Sized;
     /// both solutions
@@ -80,7 +106,7 @@ pub trait AoCData {
 
 pub const DAYS: u8 = 25;
 
-pub fn run_day<T: AoCData>(input: String) -> Result<Solution, JsError> {
+pub fn run_day<'a, T: AoCData<'a>>(input: &'a str) -> Result<Solution, JsError> {
     if let Some(data) = T::try_new(input) {
         Ok(data.solve())
     } else {
@@ -90,31 +116,31 @@ pub fn run_day<T: AoCData>(input: String) -> Result<Solution, JsError> {
 
 pub fn run(day: u8, input: String) -> Result<Solution, JsError> {
     match day {
-        1 => run_day::<day_01::Data>(input),
-        2 => run_day::<day_02::Data>(input),
-        3 => run_day::<day_03::Data>(input),
-        4 => run_day::<day_04::Data>(input),
-        5 => run_day::<day_05::Data>(input),
-        6 => run_day::<day_06::Data>(input),
-        7 => run_day::<day_07::Data>(input),
-        8 => run_day::<day_08::Data>(input),
-        9 => run_day::<day_09::Data>(input),
-        10 => run_day::<day_10::Data>(input),
-        11 => run_day::<day_11::Data>(input),
-        12 => run_day::<day_12::Data>(input),
-        13 => run_day::<day_13::Data>(input),
-        14 => run_day::<day_14::Data>(input),
-        15 => run_day::<day_15::Data>(input),
-        16 => run_day::<day_16::Data>(input),
-        17 => run_day::<day_17::Data>(input),
-        18 => run_day::<day_18::Data>(input),
-        19 => run_day::<day_19::Data>(input),
-        20 => run_day::<day_20::Data>(input),
-        21 => run_day::<day_21::Data>(input),
-        22 => run_day::<day_22::Data>(input),
-        23 => run_day::<day_23::Data>(input),
-        24 => run_day::<day_24::Data>(input),
-        25 => run_day::<day_25::Data>(input),
+        1 => run_day::<day_01::Data>(&input),
+        2 => run_day::<day_02::Data>(&input),
+        3 => run_day::<day_03::Data>(&input),
+        4 => run_day::<day_04::Data>(&input),
+        5 => run_day::<day_05::Data>(&input),
+        6 => run_day::<day_06::Data>(&input),
+        7 => run_day::<day_07::Data>(&input),
+        8 => run_day::<day_08::Data>(&input),
+        9 => run_day::<day_09::Data>(&input),
+        10 => run_day::<day_10::Data>(&input),
+        11 => run_day::<day_11::Data>(&input),
+        12 => run_day::<day_12::Data>(&input),
+        13 => run_day::<day_13::Data>(&input),
+        14 => run_day::<day_14::Data>(&input),
+        15 => run_day::<day_15::Data>(&input),
+        16 => run_day::<day_16::Data>(&input),
+        17 => run_day::<day_17::Data>(&input),
+        18 => run_day::<day_18::Data>(&input),
+        19 => run_day::<day_19::Data>(&input),
+        20 => run_day::<day_20::Data>(&input),
+        21 => run_day::<day_21::Data>(&input),
+        22 => run_day::<day_22::Data>(&input),
+        23 => run_day::<day_23::Data>(&input),
+        24 => run_day::<day_24::Data>(&input),
+        25 => run_day::<day_25::Data>(&input),
         _ => panic!("trying to solve invalid day"),
     }
 }

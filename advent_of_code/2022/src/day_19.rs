@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+// use std::collections::VecDeque;
 
 use crate::AoCData;
 
@@ -214,8 +214,8 @@ fn max_geodes(blueprint: &[[u16; 4]; 4], max_time: u16) -> u16 {
 
 // END RECURSIVE VERSION
 
-impl AoCData for Data {
-    fn try_new(input: String) -> Option<Self> {
+impl AoCData<'_> for Data {
+    fn try_new(input: &str) -> Option<Self> {
         let mut blueprints = Vec::new();
 
         for line in input.lines() {
@@ -270,14 +270,14 @@ mod test {
     #[test]
     fn part_1() {
         let input = utils::get_sample_input(19);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_1(), "33");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(19);
-        let data = Data::try_new(input).unwrap();
+        let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_2(), "3472");
     }
 }
