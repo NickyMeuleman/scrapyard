@@ -48,7 +48,7 @@ enum Jet {
     Right,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 struct Coord {
     x: usize,
     // positive y goes up.
@@ -56,20 +56,26 @@ struct Coord {
     y: usize,
 }
 
+#[derive(Default)]
 struct State {
     jet_count: usize,
     piece_count: usize,
     added_by_repeats: usize,
     top: usize,
-    map: [[bool; WIDTH]; 10000],
+    map: Vec<[bool; WIDTH]>,
     curr: Coord,
     seen: HashMap<(usize, usize), (usize, usize, usize)>,
 }
 
 impl State {
-    fn is_valid(&self, new_curr: &Coord, piece: &[Coord]) -> bool {
+    fn is_valid(&mut self, new_curr: &Coord, piece: &[Coord]) -> bool {
         piece.iter().all(|offset| {
-            new_curr.x + offset.x < WIDTH && !self.map[new_curr.y + offset.y][new_curr.x + offset.x]
+            let x = new_curr.x + offset.x;
+            let y = new_curr.y + offset.y;
+            while self.map.len() <= y {
+                self.map.push([false; WIDTH]);
+            }
+            x < WIDTH && !self.map[y][x]
         })
     }
 }
@@ -88,8 +94,13 @@ impl std::fmt::Display for State {
             .collect();
         let mut local_top = self.top;
         for offset in piece {
-            print[self.curr.y + offset.y][self.curr.x + offset.x] = '@';
-            local_top = local_top.max(self.curr.y + offset.y);
+            let x = self.curr.x + offset.x;
+            let y= self.curr.y + offset.y;
+            while print.len() <= y {
+                print.push(vec!['.'; WIDTH]);
+            }
+            print[y][x] = '@';
+            local_top = local_top.max(y);
         }
         for row in (0..=local_top).rev() {
             let mut row_str = String::from('|');
@@ -100,7 +111,7 @@ impl std::fmt::Display for State {
             row_str.push('\n');
             write!(f, "{}", row_str)?;
         }
-        writeln!(f, "+{:7}+", "-".repeat(WIDTH))
+        writeln!(f, "+{}+", "-".repeat(WIDTH))
     }
 }
 
@@ -122,17 +133,9 @@ impl AoCData<'_> for Data {
     }
 
     fn part_1(&self) -> String {
-        let target = 2022;
+        let target = 2;
         let jets = &self.0;
-        let mut state = State {
-            jet_count: 0,
-            piece_count: 0,
-            top: 0,
-            curr: Coord { x: 2, y: 3 },
-            map: [[false; WIDTH]; 10000],
-            seen: HashMap::new(),
-            added_by_repeats: 0,
-        };
+        let mut state: State = Default::default();
 
         while state.piece_count != target {
             // new piece starts falling
@@ -203,15 +206,7 @@ impl AoCData<'_> for Data {
     fn part_2(&self) -> String {
         let target = 1_000_000_000_000;
         let jets = &self.0;
-        let mut state = State {
-            jet_count: 0,
-            piece_count: 0,
-            added_by_repeats: 0,
-            map: [[false; WIDTH]; 10000],
-            top: 0,
-            curr: Coord { x: 2, y: 3 },
-            seen: HashMap::new(),
-        };
+        let mut state: State = Default::default();
     
         while state.piece_count != target {
             // new piece starts falling
@@ -252,6 +247,9 @@ impl AoCData<'_> for Data {
             for offset in piece {
                 let x = state.curr.x + offset.x;
                 let y = state.curr.y + offset.y;
+                while state.map.len() <= y {
+                    state.map.push([false; WIDTH]);
+                }
                 state.map[y][x] = true;
                 // y is 0 indexed
                 state.top = state.top.max(y + 1);
@@ -278,9 +276,9 @@ impl AoCData<'_> for Data {
                 state
                     .seen
                     .entry(key)
-                    .and_modify(|(amnt, old_t, old_top)| {
+                    .and_modify(|(amnt, old_piece_count, old_top)| {
                         *amnt += 1;
-                        *old_t = state.piece_count;
+                        *old_piece_count = state.piece_count;
                         *old_top = state.top;
                     })
                     .or_insert((1, state.piece_count, state.top));
@@ -304,13 +302,13 @@ mod test {
     fn part_1() {
         let input = utils::get_sample_input(17);
         let data = Data::try_new(&input).unwrap();
-        assert_eq!(data.part_1(), "");
+        assert_eq!(data.part_1(), "3068");
     }
 
     #[test]
     fn part_2() {
         let input = utils::get_sample_input(17);
         let data = Data::try_new(&input).unwrap();
-        assert_eq!(data.part_2(), "");
+        assert_eq!(data.part_2(), "1514285714288");
     }
 }
