@@ -50,21 +50,21 @@ enum Jet {
 
 #[derive(Debug, PartialEq, Default)]
 struct Coord {
-    x: usize,
+    x: u64,
     // positive y goes up.
     // happy mathematicians, sad game programmers
-    y: usize,
+    y: u64,
 }
 
 #[derive(Default)]
 struct State {
-    jet_count: usize,
-    piece_count: usize,
-    added_by_repeats: usize,
-    top: usize,
+    jet_count: u64,
+    piece_count: u64,
+    added_by_repeats: u64,
+    top: u64,
     map: Vec<[bool; WIDTH]>,
     curr: Coord,
-    seen: HashMap<(usize, usize), (usize, usize, usize)>,
+    seen: HashMap<(u64, u64), (u32, u64, u64)>,
 }
 
 impl State {
@@ -72,17 +72,17 @@ impl State {
         piece.iter().all(|offset| {
             let x = new_curr.x + offset.x;
             let y = new_curr.y + offset.y;
-            while self.map.len() <= y {
+            while self.map.len() as u64 <= y {
                 self.map.push([false; WIDTH]);
             }
-            x < WIDTH && !self.map[y][x]
+            x < WIDTH as u64 && !self.map[y as usize][x as usize]
         })
     }
 }
 
 impl std::fmt::Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let piece = PIECES[self.piece_count % PIECES.len()];
+        let piece = PIECES[(self.piece_count % PIECES.len() as u64) as usize];
         let mut print: Vec<Vec<_>> = self
             .map
             .iter()
@@ -95,17 +95,17 @@ impl std::fmt::Display for State {
         let mut local_top = self.top;
         for offset in piece {
             let x = self.curr.x + offset.x;
-            let y= self.curr.y + offset.y;
-            while print.len() <= y {
+            let y = self.curr.y + offset.y;
+            while print.len() as u64 <= y {
                 print.push(vec!['.'; WIDTH]);
             }
-            print[y][x] = '@';
+            print[y as usize][x as usize] = '@';
             local_top = local_top.max(y);
         }
         for row in (0..=local_top).rev() {
             let mut row_str = String::from('|');
             for col in 0..7 {
-                row_str.push(print[row][col]);
+                row_str.push(print[row as usize][col]);
             }
             row_str.push('|');
             row_str.push('\n');
@@ -133,13 +133,13 @@ impl AoCData<'_> for Data {
     }
 
     fn part_1(&self) -> String {
-        let target = 2;
+        let target = 2022;
         let jets = &self.0;
         let mut state: State = Default::default();
 
         while state.piece_count != target {
             // new piece starts falling
-            let piece = PIECES[state.piece_count % PIECES.len()];
+            let piece = PIECES[(state.piece_count % PIECES.len() as u64) as usize];
             state.curr.x = 2;
             state.curr.y = state.top + 3;
 
@@ -148,7 +148,7 @@ impl AoCData<'_> for Data {
 
             loop {
                 // jet
-                let jet = &jets[state.jet_count % jets.len()];
+                let jet = &jets[(state.jet_count % jets.len() as u64) as usize];
                 let new_curr = match jet {
                     Jet::Left => Coord {
                         x: state.curr.x.saturating_sub(1),
@@ -191,7 +191,7 @@ impl AoCData<'_> for Data {
             for offset in piece {
                 let x = state.curr.x + offset.x;
                 let y = state.curr.y + offset.y;
-                state.map[y][x] = true;
+                state.map[y as usize][x as usize] = true;
                 // y is 0 indexed.
                 state.top = state.top.max(y + 1);
             }
@@ -207,16 +207,16 @@ impl AoCData<'_> for Data {
         let target = 1_000_000_000_000;
         let jets = &self.0;
         let mut state: State = Default::default();
-    
+
         while state.piece_count != target {
             // new piece starts falling
-            let piece = PIECES[state.piece_count % PIECES.len()];
+            let piece = PIECES[(state.piece_count % PIECES.len() as u64) as usize];
             state.curr.x = 2;
             state.curr.y = state.top + 3;
-    
+
             loop {
                 // jet
-                let jet = &jets[state.jet_count % jets.len()];
+                let jet = &jets[(state.jet_count % jets.len() as u64) as usize];
                 let new_curr = match jet {
                     Jet::Left => Coord {
                         x: state.curr.x.saturating_sub(1),
@@ -231,7 +231,7 @@ impl AoCData<'_> for Data {
                     state.curr = new_curr;
                 }
                 state.jet_count += 1;
-    
+
                 // fall
                 let new_curr = Coord {
                     x: state.curr.x,
@@ -242,24 +242,24 @@ impl AoCData<'_> for Data {
                 }
                 state.curr = new_curr;
             }
-    
+
             // settle
             for offset in piece {
                 let x = state.curr.x + offset.x;
                 let y = state.curr.y + offset.y;
-                while state.map.len() <= y {
+                while state.map.len() as u64 <= y {
                     state.map.push([false; WIDTH]);
                 }
-                state.map[y][x] = true;
+                state.map[y as usize][x as usize] = true;
                 // y is 0 indexed
                 state.top = state.top.max(y + 1);
             }
-    
+
             // look for cycle
             if state.added_by_repeats == 0 {
                 let key = (
-                    state.piece_count % PIECES.len(),
-                    state.jet_count % jets.len(),
+                    state.piece_count % PIECES.len() as u64,
+                    state.jet_count % jets.len() as u64,
                 );
                 // at third occurrence of key, the values in the seen map repeat
                 // add as many of them as possible without hitting the goal piece_count
@@ -283,11 +283,11 @@ impl AoCData<'_> for Data {
                     })
                     .or_insert((1, state.piece_count, state.top));
             }
-    
+
             // prepare for next iteration of while loop
             state.piece_count += 1;
         }
-    
+
         let top = state.top + state.added_by_repeats;
         top.to_string()
     }
