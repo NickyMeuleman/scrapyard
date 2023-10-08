@@ -3,7 +3,6 @@ authors = ["Nicky Meuleman <nicky.dev@outlook.com>"]
 name = "aoc2023"
 version = "0.1.0"
 edition = "2021"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
@@ -16,6 +15,9 @@ crate-type = ["cdylib", "rlib"]
 wasm-bindgen = "0.2.87"
 wasm-bindgen-futures = "0.4.37"
 itertools = "0.11.0"
+
+[dev-dependencies]
+criterion = "0.5.1"
 
 [profile.release]
 # Tell `LLVM` to optimize a certain way
@@ -32,6 +34,11 @@ lto = true
 # https://doc.rust-lang.org/book/ch09-01-unrecoverable-errors-with-panic.html
 panic = 'abort'
 
+# `cargo bench` SOMETIMES errors with:
+# the crate `aoc2023` requires panic strategy `abort` which is incompatible with this crate's strategy of `unwind`
+# why, why sometimes, why not all the time or never?
+# Is it because use of "cdylib" and "rlib", because criterion complains those have identical names
+
 [package.metadata.wasm-pack.profile.release]
 # run wasm-opt with a flag.
 # for example, the optimization flag possibilities:
@@ -42,3 +49,8 @@ panic = 'abort'
 # after running both, speed output a .wasm with the exact same size as size, so I chose speed
 # so, if I set the LLVM opt-level to speed, it fails to build and tells me to disable wasm-opt, if I set it to size, it works
 wasm-opt = ['-Os']
+
+[[bench]]
+name = "my_benchmark"
+#  to disable the libtest benchmark harness
+harness = false
