@@ -1,4 +1,4 @@
-use aoc2023::utils::{get_input, solve_sync, Solution, DAYS};
+use aoc2023::{print_day, DAYS};
 use std::env;
 
 fn main() {
@@ -27,12 +27,4 @@ fn main() {
             }
         }
     }
-}
-
-fn print_day(num: u8) {
-    println!("Day{:02}", num);
-    let input = get_input(num, false).unwrap();
-    let Solution { part1, part2 } = solve_sync(num, input);
-    println!("Part 1: {}", part1);
-    println!("Part 2: {}", part2);
 }

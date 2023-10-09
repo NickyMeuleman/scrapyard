@@ -1,4 +1,4 @@
-use crate::utils::AoCData;
+use crate::AoCData;
 
 #[derive(Debug)]
 pub struct Data(Vec<u32>);
@@ -63,18 +63,18 @@ impl AoCData<'_> for Data {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils;
+    use crate::get_input;
 
     #[test]
     fn part_1() {
-        let input = utils::get_input(1, true).unwrap();
+        let input = get_input(1, true).unwrap();
         let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_1(), "");
     }
 
     #[test]
     fn part_2() {
-        let input = utils::get_input(1, true).unwrap();
+        let input = get_input(1, true).unwrap();
         let data = Data::try_new(&input).unwrap();
         assert_eq!(data.part_2(), "");
     }
