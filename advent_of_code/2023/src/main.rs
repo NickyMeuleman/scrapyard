@@ -1,5 +1,6 @@
-use aoc2023::utils;
+use aoc2023::utils::{get_input, solve_sync, Solution, DAYS};
 use std::env;
+
 fn main() {
     let mut args = env::args();
 
@@ -20,7 +21,7 @@ fn main() {
         }
         None => {
             // run all days
-            for num in 1..=utils::DAYS {
+            for num in 1..=DAYS {
                 print_day(num);
                 println!("\n");
             }
@@ -30,8 +31,8 @@ fn main() {
 
 fn print_day(num: u8) {
     println!("Day{:02}", num);
-    let input = utils::get_input(num, false).unwrap();
-    let utils::Solution { part1, part2 } = aoc2023::solve_sync(num, input);
+    let input = get_input(num, false).unwrap();
+    let Solution { part1, part2 } = solve_sync(num, input);
     println!("Part 1: {}", part1);
     println!("Part 2: {}", part2);
 }

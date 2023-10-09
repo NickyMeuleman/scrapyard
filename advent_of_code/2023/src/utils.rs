@@ -105,3 +105,10 @@ pub fn run(day: u8, input: String) -> Result<Solution, JsError> {
         _ => panic!("trying to solve invalid day"),
     }
 }
+
+pub fn solve_sync(day: u8, input: String) -> Solution {
+    run(day, input).unwrap_or(Solution {
+        part1: String::new(),
+        part2: String::new(),
+    })
+}

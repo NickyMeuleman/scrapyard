@@ -1,4 +1,4 @@
-use crate::AoCData;
+use crate::utils::AoCData;
 
 #[derive(Debug)]
 pub struct Data(Vec<u32>);
@@ -14,9 +14,6 @@ impl AoCData<'_> for Data {
     }
 
     fn part_1(&self) -> String {
-        use std::{thread, time};
-
-        thread::sleep(time::Duration::from_millis(10));
         self.0
             .iter()
             .map(|mass| mass / 3 - 2)
