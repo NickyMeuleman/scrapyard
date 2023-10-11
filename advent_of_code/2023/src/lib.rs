@@ -1,5 +1,7 @@
+#![feature(return_position_impl_trait_in_trait)]
+#[allow(refining_impl_trait)]
 pub mod day_01;
-use std::{fs, io};
+use std::{fmt::Display, fs, io};
 use wasm_bindgen::prelude::*;
 
 pub const DAYS: u8 = 1;
@@ -31,7 +33,6 @@ impl Solution {
     }
 }
 
-// TODO: figure out a way the parts can return any type that implements Display
 pub trait AoCData<'a> {
     /// Parse an input string into a Data struct for a specific day
     fn try_new(input: &'a str) -> Option<Self>
@@ -39,10 +40,10 @@ pub trait AoCData<'a> {
         Self: Sized;
 
     /// part1 solution
-    fn part_1(&self) -> String;
+    fn part_1(&self) -> impl Display;
 
     /// part2 solution
-    fn part_2(&self) -> String;
+    fn part_2(&self) -> impl Display;
 
     /// both solutions
     fn solve(self) -> Solution
@@ -50,8 +51,8 @@ pub trait AoCData<'a> {
         Self: Sized,
     {
         Solution {
-            part1: self.part_1(),
-            part2: self.part_2(),
+            part1: format!("{}", self.part_1()),
+            part2: format!("{}", self.part_2()),
         }
     }
 }

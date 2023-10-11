@@ -9,19 +9,18 @@ impl AoCData<'_> for Data {
             input
                 .lines()
                 .filter_map(|line| line.parse().ok())
-                .collect::<Vec<u32>>(),
+                .collect(),
         ))
     }
 
-    fn part_1(&self) -> String {
+    fn part_1(&self) -> u32 {
         self.0
             .iter()
             .map(|mass| mass / 3 - 2)
-            .sum::<u32>()
-            .to_string()
+            .sum()
     }
 
-    fn part_2(&self) -> String {
+    fn part_2(&self) -> u32 {
         fn needed_fuel(mass: u32) -> u32 {
             (mass / 3).saturating_sub(2)
         }
@@ -41,7 +40,7 @@ impl AoCData<'_> for Data {
                 }
             }
         }
-        total.to_string()
+        total
 
         // recursion, slower, more memory
         // fn needed_fuel(mass: u32) -> u32 {
@@ -69,13 +68,13 @@ mod test {
     fn part_1() {
         let input = get_input(1, true).unwrap();
         let data = Data::try_new(&input).unwrap();
-        assert_eq!(data.part_1(), "");
+        assert_eq!(data.part_1(), 1);
     }
 
     #[test]
     fn part_2() {
         let input = get_input(1, true).unwrap();
         let data = Data::try_new(&input).unwrap();
-        assert_eq!(data.part_2(), "");
+        assert_eq!(data.part_2(), 2);
     }
 }
