@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::AoCData;
 
 #[derive(Debug)]
@@ -13,14 +15,14 @@ impl AoCData<'_> for Data {
         ))
     }
 
-    fn part_1(&self) -> u32 {
+    fn part_1(&self) -> impl Display {
         self.0
             .iter()
             .map(|mass| mass / 3 - 2)
-            .sum()
+            .sum::<u32>()
     }
 
-    fn part_2(&self) -> u32 {
+    fn part_2(&self) -> impl Display {
         fn needed_fuel(mass: u32) -> u32 {
             (mass / 3).saturating_sub(2)
         }
@@ -68,13 +70,15 @@ mod test {
     fn part_1() {
         let input = get_input(1, true).unwrap();
         let data = Data::try_new(&input).unwrap();
-        assert_eq!(data.part_1(), 1);
+        let result = data.part_1().to_string();
+        assert_eq!(result, "");
     }
 
     #[test]
     fn part_2() {
         let input = get_input(1, true).unwrap();
         let data = Data::try_new(&input).unwrap();
-        assert_eq!(data.part_2(), 2);
+        let result = data.part_2().to_string();
+        assert_eq!(result, "");
     }
 }

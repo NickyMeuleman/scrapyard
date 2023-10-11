@@ -1,10 +1,11 @@
 #![feature(return_position_impl_trait_in_trait)]
-#[allow(refining_impl_trait)]
+
 pub mod day_01;
+pub mod day_02;
 use std::{fmt::Display, fs, io};
 use wasm_bindgen::prelude::*;
 
-pub const DAYS: u8 = 1;
+pub const DAYS: u8 = 2;
 
 // https://github.com/rustwasm/wasm-bindgen/issues/1775
 // https://stackoverflow.com/questions/68243940/rust-wasm-bindgen-struct-with-string
@@ -51,8 +52,8 @@ pub trait AoCData<'a> {
         Self: Sized,
     {
         Solution {
-            part1: format!("{}", self.part_1()),
-            part2: format!("{}", self.part_2()),
+            part1: self.part_1().to_string(),
+            part2: self.part_2().to_string(),
         }
     }
 }
@@ -68,22 +69,10 @@ pub fn get_input(day: u8, sample: bool) -> io::Result<String> {
     fs::read_to_string(input_path)
 }
 
-fn solve_sync(day: u8, input: String) -> Result<Solution, JsError> {
-    let data = match day {
-        1 => day_01::Data::try_new(&input),
-        _ => panic!("trying to solve invalid day"),
-    };
-
-    match data {
-        Some(data) => Ok(data.solve()),
-        None => Err(JsError::new("Failed to parse")),
-    }
-}
-
 pub fn print_day(num: u8) {
     println!("Day{:02}", num);
     let input = get_input(num, false).unwrap();
-    let Solution { part1, part2 } = solve_sync(num, input).unwrap_or(Solution {
+    let Solution { part1, part2 } = solve_day(num, input).unwrap_or(Solution {
         part1: String::new(),
         part2: String::new(),
     });
@@ -91,7 +80,25 @@ pub fn print_day(num: u8) {
     println!("Part 2: {}", part2);
 }
 
+pub fn day_helper<'a, T: AoCData<'a>>(day: u8, input: &'a str) -> Result<Solution, JsError> {
+    if let Some(data) = T::try_new(input) {
+        Ok(data.solve())
+    } else {
+        Err(JsError::new(&format!("Failed to parse day {day}")))
+    }
+}
+
+fn solve_day(day: u8, input: String) -> Result<Solution, JsError> {
+    match day {
+        1 => day_helper::<day_01::Data>(day, &input),
+        2 => day_helper::<day_02::Data>(day, &input),
+        n => Err(JsError::new(&format!(
+            "Trying to solve an invalid day, found day {n}"
+        ))),
+    }
+}
+
 #[wasm_bindgen]
 pub async fn solve(day: u8, input: String) -> Result<Solution, JsError> {
-    solve_sync(day, input)
+    solve_day(day, input)
 }
