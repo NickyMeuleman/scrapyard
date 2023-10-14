@@ -8,16 +8,17 @@ use wasm_bindgen::prelude::*;
 
 pub const DAYS: u8 = 2;
 
+pub enum Answer {
+    Part(String),
+    Both(Solution),
+}
+
 // https://github.com/rustwasm/wasm-bindgen/issues/1775
 // https://stackoverflow.com/questions/68243940/rust-wasm-bindgen-struct-with-string
 // Strings on a struct can not be public
 // skip the fields with a wasm_bindgen macro, but implement a getter for them so you can access them in JS.
 // a weird disable only to later enable, I know.
 // You can do without the wasm_bindgen skip on the fields, but since my other Rust code accesses them, I need them to be public.
-pub enum Answer {
-    Part(String),
-    Both(Solution),
-}
 #[wasm_bindgen]
 pub struct Solution {
     #[wasm_bindgen(skip)]
@@ -63,10 +64,12 @@ pub trait AoCData<'a> {
     }
 }
 
+#[derive(Debug)]
+#[wasm_bindgen]
 pub enum Part {
-    One,
-    Two,
-    Both,
+    One = 1,
+    Two = 2,
+    Both = 3,
 }
 
 pub fn get_input(day: u8, sample: bool) -> io::Result<String> {
@@ -98,7 +101,7 @@ pub fn print_part(day: u8, part: &Part) {
     let elapsed = now.elapsed();
     println!("Runtime:");
     println!("{:?}", elapsed);
-    match result {
+    match result.unwrap_or(Answer::Part("No result!".to_string())) {
         Answer::Part(result) => {
             println!("Answer:");
             println!("{result}");
@@ -116,44 +119,55 @@ pub fn print_part(day: u8, part: &Part) {
     }
 }
 
-pub fn day_helper<'a, T: AoCData<'a>>(day: u8, input: &'a str) -> Result<Solution, JsError> {
+pub fn part_helper<'a, T: AoCData<'a>>(
+    day: u8,
+    input: &'a str,
+    part: &Part,
+) -> Result<Answer, JsError> {
     if let Some(data) = T::try_new(input) {
-        Ok(data.solve())
+        let answer = match part {
+            Part::One => Answer::Part(data.part_1().to_string()),
+            Part::Two => Answer::Part(data.part_2().to_string()),
+            Part::Both => Answer::Both(data.solve()),
+        };
+        Ok(answer)
     } else {
         Err(JsError::new(&format!("Failed to parse day {day}")))
     }
 }
 
-fn solve_day(day: u8, input: String) -> Result<Solution, JsError> {
+fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, JsError> {
     match day {
-        1 => day_helper::<day_01::Data>(day, &input),
-        2 => day_helper::<day_02::Data>(day, &input),
+        1 => part_helper::<day_01::Data>(day, input, part),
+        2 => part_helper::<day_02::Data>(day, input, part),
         n => Err(JsError::new(&format!(
-            "Trying to solve an invalid day, found day {n}"
+            "Trying to solve an invalid day, found day: {n}"
         ))),
     }
 }
 
-pub fn part_helper<'a, T: AoCData<'a>>(_day: u8, input: &'a str, part: &Part) -> Answer {
-    if let Some(data) = T::try_new(input) {
-        return match part {
-            Part::One => Answer::Part(data.part_1().to_string()),
-            Part::Two => Answer::Part(data.part_2().to_string()),
-            Part::Both => Answer::Both(data.solve()),
-        };
-    }
-    panic!("At the disco")
-}
-
-fn solve_part(day: u8, input: &str, part: &Part) -> Answer {
-    match day {
-        1 => part_helper::<day_01::Data>(day, input, part),
-        2 => part_helper::<day_02::Data>(day, input, part),
-        n => panic!("Trying to solve an invalid day, found day {n}"),
-    }
-}
-
 #[wasm_bindgen]
-pub async fn solve(day: u8, input: String) -> Result<Solution, JsError> {
-    solve_day(day, input)
+pub async fn solve(day: u8, input: String, part: Part) -> Result<Solution, JsError> {
+    // wasm bindgen can't handle enums with values yet
+    // see: https://github.com/rustwasm/wasm-bindgen/issues/2407
+    // so we do some data janitoring and return a Solution for every Answer enum variant and fill the missing field with an empty string (yuck)
+    let answer = solve_part(day, &input, &part)?;
+
+    match answer {
+        Answer::Part(result) => match part {
+            Part::One => Ok(Solution {
+                part1: result,
+                part2: "".to_string(),
+            }),
+            Part::Two => Ok(Solution {
+                part1: "".to_string(),
+                part2: result,
+            }),
+            _ => Err(JsError::new(&format!(
+                "Tried to solve an invalid part, found part: {:?}",
+                part
+            ))),
+        },
+        Answer::Both(solution) => Ok(solution),
+    }
 }
