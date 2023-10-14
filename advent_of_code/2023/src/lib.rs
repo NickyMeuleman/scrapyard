@@ -104,6 +104,8 @@ pub fn print_part(day: u8, part: &Part) {
             println!("{result}");
             // ah, a flaky thing that sometimes works, yay
             ctx.set_contents(result).unwrap();
+            // reading the clipboard makes it less flaky somehow
+            ctx.get_contents().unwrap();
         }
         Answer::Both(solution) => {
             println!("Part 1:");
