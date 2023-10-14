@@ -35,7 +35,13 @@ import Layout from "../layouts/Layout.astro";
     <h1>Welcome to <span class="text-gradient">Advent of Code</span></h1>
     <div>
       <h2 class="text-gradient">Day:</h2>
-      <input id="day" type="number" />
+      <input id="day" type="number" min="1" max="25" />
+      <h2 class="text-gradient">Part:</h2>
+      <select id="part">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option selected value="3">Both</option>
+      </select>
       <h2 class="text-gradient">Input:</h2>
       <input id="file" type="file" />
       <h2 class="text-gradient">Result:</h2>
@@ -90,22 +96,31 @@ import Layout from "../layouts/Layout.astro";
 
   const fileInputEl = document.querySelector("#file");
   const dayInputEl = document.querySelector("#day");
+  const partInputEl = document.querySelector("#part");
   const resultEl = document.querySelector("#result");
 
   fileInputEl.addEventListener("change", async function (event) {
     const day = Number(dayInputEl.value);
+    const part = Number(partInputEl.value);
     const file = event.target.files[0];
     const input = await file.text();
 
     let resultHTML;
     try {
-      const solution = await solve(day, input);
-      resultHTML = `
-      <h3>part 1:</h3>
-      <p>${solution.part1}</p>
-      <h3>Part 2:</h3>
-      <p>${solution.part2}</p>
-      `;
+      const solution = await solve(day, input, part);
+      // JS match statements when?
+      if (part == 1) {
+        resultHTML = `<p>${solution.part1}</p>`;
+      } else if (part == 2) {
+        resultHTML = `<p>${solution.part2}</p>`;
+      } else {
+        resultHTML = `
+        <h3>part 1:</h3>
+        <p>${solution.part1}</p>
+        <h3>Part 2:</h3>
+        <p>${solution.part2}</p>
+        `;
+      }
     } catch (error) {
       resultHTML = `
       <h3>Ya done goofed!<h3>
