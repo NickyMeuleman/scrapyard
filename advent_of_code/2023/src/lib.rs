@@ -157,10 +157,7 @@ pub async fn solve(day: u8, input: String, part: Part) -> Result<Solution, JsErr
                 part1: "".to_string(),
                 part2: result,
             }),
-            _ => Err(JsError::new(&format!(
-                "Tried to solve an invalid part, found part: {:?}",
-                part
-            ))),
+            _ => unreachable!(),
         },
         Answer::Both(solution) => Ok(solution),
     }
