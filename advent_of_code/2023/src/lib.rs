@@ -2,7 +2,6 @@
 
 pub mod day_01;
 pub mod day_02;
-use cli_clipboard::{ClipboardContext, ClipboardProvider};
 use std::{fmt::Display, fs, io, time::Instant};
 use wasm_bindgen::prelude::*;
 
@@ -84,7 +83,6 @@ pub fn get_input(day: u8, sample: bool) -> io::Result<String> {
 }
 
 pub fn print_part(day: u8, part: &Part) {
-    let mut ctx = ClipboardContext::new().unwrap();
     println!(
         "Day {}, {}",
         day,
@@ -105,10 +103,6 @@ pub fn print_part(day: u8, part: &Part) {
         Answer::Part(result) => {
             println!("Answer:");
             println!("{result}");
-            // ah, a flaky thing that sometimes works, yay
-            ctx.set_contents(result).unwrap();
-            // reading the clipboard makes it less flaky somehow
-            ctx.get_contents().unwrap();
         }
         Answer::Both(solution) => {
             println!("Part 1:");
