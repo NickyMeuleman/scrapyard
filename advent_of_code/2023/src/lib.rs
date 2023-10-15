@@ -2,6 +2,7 @@
 
 pub mod day_01;
 pub mod day_02;
+pub mod day_03;
 use std::{fmt::Display, fs, io, time::Instant};
 use wasm_bindgen::prelude::*;
 
@@ -9,7 +10,7 @@ pub const DAYS: u8 = 2;
 
 pub enum Answer {
     Part(String),
-    Both(Solution),
+    Both(WasmSolution),
 }
 
 // https://github.com/rustwasm/wasm-bindgen/issues/1775
@@ -19,7 +20,7 @@ pub enum Answer {
 // a weird disable only to later enable, I know.
 // You can do without the wasm_bindgen skip on the fields, but since my other Rust code accesses them, I need them to be public.
 #[wasm_bindgen]
-pub struct Solution {
+pub struct WasmSolution {
     #[wasm_bindgen(skip)]
     pub part1: String,
     #[wasm_bindgen(skip)]
@@ -27,7 +28,7 @@ pub struct Solution {
 }
 
 #[wasm_bindgen]
-impl Solution {
+impl WasmSolution {
     #[wasm_bindgen(getter)]
     pub fn part1(&self) -> String {
         self.part1.clone()
@@ -36,6 +37,20 @@ impl Solution {
     #[wasm_bindgen(getter)]
     pub fn part2(&self) -> String {
         self.part2.clone()
+    }
+}
+
+pub struct Solution {
+    part1: Box<dyn Display>,
+    part2: Box<dyn Display>,
+}
+
+impl From<Solution> for WasmSolution {
+    fn from(value: Solution) -> Self {
+        WasmSolution {
+            part1: value.part1.to_string(),
+            part2: value.part2.to_string(),
+        }
     }
 }
 
@@ -56,9 +71,11 @@ pub trait AoCData<'a> {
     where
         Self: Sized,
     {
+        // have to make sure results that come back from the part functions live long enough,
+        // because those might be borrowed things that impl Display
         Solution {
-            part1: self.part_1().to_string(),
-            part2: self.part_2().to_string(),
+            part1: Box::new(self.part_1().to_string()),
+            part2: Box::new(self.part_2().to_string()),
         }
     }
 }
@@ -122,7 +139,7 @@ pub fn part_helper<'a, T: AoCData<'a>>(
         let answer = match part {
             Part::One => Answer::Part(data.part_1().to_string()),
             Part::Two => Answer::Part(data.part_2().to_string()),
-            Part::Both => Answer::Both(data.solve()),
+            Part::Both => Answer::Both(data.solve().into()),
         };
         Ok(answer)
     } else {
@@ -134,6 +151,7 @@ fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, JsError> {
     match day {
         1 => part_helper::<day_01::Data>(day, input, part),
         2 => part_helper::<day_02::Data>(day, input, part),
+        3 => part_helper::<day_03::Data>(day, input, part),
         n => Err(JsError::new(&format!(
             "Trying to solve an invalid day, found day: {n}"
         ))),
@@ -141,7 +159,7 @@ fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, JsError> {
 }
 
 #[wasm_bindgen]
-pub async fn solve(day: u8, input: String, part: Part) -> Result<Solution, JsError> {
+pub async fn solve(day: u8, input: String, part: Part) -> Result<WasmSolution, JsError> {
     // wasm bindgen can't handle enums with values yet
     // see: https://github.com/rustwasm/wasm-bindgen/issues/2407
     // so we do some data janitoring and return a Solution for every Answer enum variant and fill the missing field with an empty string (yuck)
@@ -149,11 +167,11 @@ pub async fn solve(day: u8, input: String, part: Part) -> Result<Solution, JsErr
 
     match answer {
         Answer::Part(result) => match part {
-            Part::One => Ok(Solution {
+            Part::One => Ok(WasmSolution {
                 part1: result,
                 part2: "".to_string(),
             }),
-            Part::Two => Ok(Solution {
+            Part::Two => Ok(WasmSolution {
                 part1: "".to_string(),
                 part2: result,
             }),
