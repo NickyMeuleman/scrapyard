@@ -3,6 +3,8 @@
 pub mod day_01;
 pub mod day_02;
 pub mod day_03;
+pub mod day_04;
+pub mod day_05;
 use std::{fmt::Display, fs, io, time::Instant};
 use wasm_bindgen::prelude::*;
 
@@ -10,7 +12,7 @@ pub const DAYS: u8 = 2;
 
 pub enum Answer {
     Part(String),
-    Both(WasmSolution),
+    Both(Solution),
 }
 
 // https://github.com/rustwasm/wasm-bindgen/issues/1775
@@ -20,37 +22,21 @@ pub enum Answer {
 // a weird disable only to later enable, I know.
 // You can do without the wasm_bindgen skip on the fields, but since my other Rust code accesses them, I need them to be public.
 #[wasm_bindgen]
-pub struct WasmSolution {
-    #[wasm_bindgen(skip)]
-    pub part1: String,
-    #[wasm_bindgen(skip)]
-    pub part2: String,
-}
-
-#[wasm_bindgen]
-impl WasmSolution {
-    #[wasm_bindgen(getter)]
-    pub fn part1(&self) -> String {
-        self.part1.clone()
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn part2(&self) -> String {
-        self.part2.clone()
-    }
-}
-
 pub struct Solution {
     part1: Box<dyn Display>,
     part2: Box<dyn Display>,
 }
 
-impl From<Solution> for WasmSolution {
-    fn from(value: Solution) -> Self {
-        WasmSolution {
-            part1: value.part1.to_string(),
-            part2: value.part2.to_string(),
-        }
+#[wasm_bindgen]
+impl Solution {
+    #[wasm_bindgen(getter)]
+    pub fn part1(&self) -> String {
+        self.part1.to_string()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn part2(&self) -> String {
+        self.part2.to_string()
     }
 }
 
@@ -152,6 +138,8 @@ fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, JsError> {
         1 => part_helper::<day_01::Data>(day, input, part),
         2 => part_helper::<day_02::Data>(day, input, part),
         3 => part_helper::<day_03::Data>(day, input, part),
+        4 => part_helper::<day_04::Data>(day, input, part),
+        5 => part_helper::<day_05::Data>(day, input, part),
         n => Err(JsError::new(&format!(
             "Trying to solve an invalid day, found day: {n}"
         ))),
@@ -159,7 +147,7 @@ fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, JsError> {
 }
 
 #[wasm_bindgen]
-pub async fn solve(day: u8, input: String, part: Part) -> Result<WasmSolution, JsError> {
+pub async fn solve(day: u8, input: String, part: Part) -> Result<Solution, JsError> {
     // wasm bindgen can't handle enums with values yet
     // see: https://github.com/rustwasm/wasm-bindgen/issues/2407
     // so we do some data janitoring and return a Solution for every Answer enum variant and fill the missing field with an empty string (yuck)
@@ -167,13 +155,13 @@ pub async fn solve(day: u8, input: String, part: Part) -> Result<WasmSolution, J
 
     match answer {
         Answer::Part(result) => match part {
-            Part::One => Ok(WasmSolution {
-                part1: result,
-                part2: "".to_string(),
+            Part::One => Ok(Solution {
+                part1: Box::new(result),
+                part2: Box::new("".to_string()),
             }),
-            Part::Two => Ok(WasmSolution {
-                part1: "".to_string(),
-                part2: result,
+            Part::Two => Ok(Solution {
+                part1: Box::new("".to_string()),
+                part2: Box::new(result),
             }),
             _ => unreachable!(),
         },
