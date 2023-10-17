@@ -122,7 +122,7 @@ pub fn part_helper<'a, T: AoCData<'a>>(
     day: u8,
     input: &'a str,
     part: &Part,
-) -> Result<Answer, JsError> {
+) -> Result<Answer, String> {
     if let Some(data) = T::try_new(input) {
         let answer = match part {
             Part::One => Answer::Part(data.part_1().to_string()),
@@ -131,20 +131,18 @@ pub fn part_helper<'a, T: AoCData<'a>>(
         };
         Ok(answer)
     } else {
-        Err(JsError::new(&format!("Failed to parse day {day}")))
+        Err(format!("Failed to parse day {day}"))
     }
 }
 
-fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, JsError> {
+fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, String> {
     match day {
         1 => part_helper::<day_01::Data>(day, input, part),
         2 => part_helper::<day_02::Data>(day, input, part),
         3 => part_helper::<day_03::Data>(day, input, part),
         4 => part_helper::<day_04::Data>(day, input, part),
         5 => part_helper::<day_05::Data>(day, input, part),
-        n => Err(JsError::new(&format!(
-            "Trying to solve an invalid day, found day: {n}"
-        ))),
+        n => Err(format!("Trying to solve an invalid day, found day: {n}")),
     }
 }
 
@@ -153,20 +151,21 @@ pub async fn solve(day: u8, input: String, part: Part) -> Result<WasmSolution, J
     // wasm bindgen can't handle enums with values yet
     // see: https://github.com/rustwasm/wasm-bindgen/issues/2407
     // so we do some data janitoring and return a Solution for every Answer enum variant and fill the missing field with an empty string (yuck)
-    let answer = solve_part(day, &input, &part)?;
-
-    match answer {
-        Answer::Part(result) => match part {
-            Part::One => Ok(WasmSolution {
-                part1: Some(result),
-                part2: None,
-            }),
-            Part::Two => Ok(WasmSolution {
-                part1: None,
-                part2: Some(result),
-            }),
-            _ => unreachable!(),
+    match solve_part(day, &input, &part) {
+        Ok(answer) => match answer {
+            Answer::Part(result) => match part {
+                Part::One => Ok(WasmSolution {
+                    part1: Some(result),
+                    part2: None,
+                }),
+                Part::Two => Ok(WasmSolution {
+                    part1: None,
+                    part2: Some(result),
+                }),
+                _ => unreachable!(),
+            },
+            Answer::Both(solution) => Ok(solution.into()),
         },
-        Answer::Both(solution) => Ok(solution.into()),
+        Err(error) => Err(JsError::new(&error)),
     }
 }
