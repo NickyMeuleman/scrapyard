@@ -21,22 +21,24 @@ pub enum Answer {
 // skip the fields with a wasm_bindgen macro, but implement a getter for them so you can access them in JS.
 // a weird disable only to later enable, I know.
 // You can do without the wasm_bindgen skip on the fields, but since my other Rust code accesses them, I need them to be public.
-#[wasm_bindgen]
+
 pub struct Solution {
     part1: Box<dyn Display>,
     part2: Box<dyn Display>,
 }
 
-#[wasm_bindgen]
-impl Solution {
-    #[wasm_bindgen(getter)]
-    pub fn part1(&self) -> String {
-        self.part1.to_string()
-    }
+#[wasm_bindgen(getter_with_clone)]
+pub struct WasmSolution {
+    pub part1: Option<String>,
+    pub part2: Option<String>,
+}
 
-    #[wasm_bindgen(getter)]
-    pub fn part2(&self) -> String {
-        self.part2.to_string()
+impl From<Solution> for WasmSolution {
+    fn from(value: Solution) -> Self {
+        WasmSolution {
+            part1: Some(value.part1.to_string()),
+            part2: Some(value.part2.to_string()),
+        }
     }
 }
 
@@ -125,7 +127,7 @@ pub fn part_helper<'a, T: AoCData<'a>>(
         let answer = match part {
             Part::One => Answer::Part(data.part_1().to_string()),
             Part::Two => Answer::Part(data.part_2().to_string()),
-            Part::Both => Answer::Both(data.solve().into()),
+            Part::Both => Answer::Both(data.solve()),
         };
         Ok(answer)
     } else {
@@ -147,7 +149,7 @@ fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, JsError> {
 }
 
 #[wasm_bindgen]
-pub async fn solve(day: u8, input: String, part: Part) -> Result<Solution, JsError> {
+pub async fn solve(day: u8, input: String, part: Part) -> Result<WasmSolution, JsError> {
     // wasm bindgen can't handle enums with values yet
     // see: https://github.com/rustwasm/wasm-bindgen/issues/2407
     // so we do some data janitoring and return a Solution for every Answer enum variant and fill the missing field with an empty string (yuck)
@@ -155,16 +157,16 @@ pub async fn solve(day: u8, input: String, part: Part) -> Result<Solution, JsErr
 
     match answer {
         Answer::Part(result) => match part {
-            Part::One => Ok(Solution {
-                part1: Box::new(result),
-                part2: Box::new("".to_string()),
+            Part::One => Ok(WasmSolution {
+                part1: Some(result),
+                part2: None,
             }),
-            Part::Two => Ok(Solution {
-                part1: Box::new("".to_string()),
-                part2: Box::new(result),
+            Part::Two => Ok(WasmSolution {
+                part1: None,
+                part2: Some(result),
             }),
             _ => unreachable!(),
         },
-        Answer::Both(solution) => Ok(solution),
+        Answer::Both(solution) => Ok(solution.into()),
     }
 }
