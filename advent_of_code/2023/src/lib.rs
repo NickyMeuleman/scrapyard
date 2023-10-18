@@ -5,6 +5,7 @@ pub mod day_02;
 pub mod day_03;
 pub mod day_04;
 pub mod day_05;
+pub mod day_06;
 use std::{fmt::Display, fs, io, time::Instant};
 use wasm_bindgen::prelude::*;
 
@@ -142,6 +143,7 @@ fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, String> {
         3 => part_helper::<day_03::Data>(day, input, part),
         4 => part_helper::<day_04::Data>(day, input, part),
         5 => part_helper::<day_05::Data>(day, input, part),
+        6 => part_helper::<day_06::Data>(day, input, part),
         n => Err(format!("Trying to solve an invalid day, found day: {n}")),
     }
 }

@@ -159,21 +159,51 @@ impl AoCData<'_> for Data {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::get_input;
 
     #[test]
     fn part_1() {
-        let input = get_input(3, true).unwrap();
+        let input = "R75,D30,R83,U83,L12,D49,R71,U7,L72
+U62,R66,U55,R34,D71,R55,D58,R83";
         let data = Data::try_new(&input).unwrap();
         let result = data.part_1().to_string();
-        assert_eq!(result, "");
+        assert_eq!(result, "159");
+
+        let input = "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51
+U98,R91,D20,R16,D67,R40,U7,R15,U6,R7";
+        let data = Data::try_new(&input).unwrap();
+        let result = data.part_1().to_string();
+        assert_eq!(result, "135");
     }
 
     #[test]
     fn part_2() {
-        let input = get_input(3, true).unwrap();
+        let input = "R75,D30,R83,U83,L12,D49,R71,U7,L72
+U62,R66,U55,R34,D71,R55,D58,R83";
         let data = Data::try_new(&input).unwrap();
         let result = data.part_2().to_string();
-        assert_eq!(result, "");
+        assert_eq!(result, "610");
+
+        let input = "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51
+U98,R91,D20,R16,D67,R40,U7,R15,U6,R7";
+        let data = Data::try_new(&input).unwrap();
+        let result = data.part_2().to_string();
+        assert_eq!(result, "410");
+    }
+
+    #[test]
+    fn solve() {
+        let input = "R75,D30,R83,U83,L12,D49,R71,U7,L72
+U62,R66,U55,R34,D71,R55,D58,R83";
+        let data = Data::try_new(&input).unwrap();
+        let Solution { part1, part2 } = data.solve();
+        assert_eq!(part1.to_string(), "159");
+        assert_eq!(part2.to_string(), "610");
+
+        let input = "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51
+U98,R91,D20,R16,D67,R40,U7,R15,U6,R7";
+        let data = Data::try_new(&input).unwrap();
+        let Solution { part1, part2 } = data.solve();
+        assert_eq!(part1.to_string(), "135");
+        assert_eq!(part2.to_string(), "410");
     }
 }

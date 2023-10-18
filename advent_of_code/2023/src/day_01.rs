@@ -57,28 +57,51 @@ impl AoCData<'_> for Data {
         //     .iter()
         //     .map(|mass| needed_fuel(*mass))
         //     .sum::<u32>()
-        //     .to_string()
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::get_input;
 
     #[test]
     fn part_1() {
-        let input = get_input(1, true).unwrap();
+        let input = "12";
         let data = Data::try_new(&input).unwrap();
         let result = data.part_1().to_string();
-        assert_eq!(result, "");
+        assert_eq!(result, "2");
+
+        let input = "14";
+        let data = Data::try_new(&input).unwrap();
+        let result = data.part_1().to_string();
+        assert_eq!(result, "2");
+
+        let input = "1969";
+        let data = Data::try_new(&input).unwrap();
+        let result = data.part_1().to_string();
+        assert_eq!(result, "654");
+
+        let input = "100756";
+        let data = Data::try_new(&input).unwrap();
+        let result = data.part_1().to_string();
+        assert_eq!(result, "33583");
     }
 
     #[test]
     fn part_2() {
-        let input = get_input(1, true).unwrap();
+        let input = "14";
         let data = Data::try_new(&input).unwrap();
         let result = data.part_2().to_string();
-        assert_eq!(result, "");
+        assert_eq!(result, "2");
+
+        let input = "1969";
+        let data = Data::try_new(&input).unwrap();
+        let result = data.part_2().to_string();
+        assert_eq!(result, "966");
+
+        let input = "100756";
+        let data = Data::try_new(&input).unwrap();
+        let result = data.part_2().to_string();
+        assert_eq!(result, "50346");
     }
 }
