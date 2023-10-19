@@ -1,2 +1,2 @@
-inputs/full/*
-!inputs/full/.gitkeep
+inputs/*
+!inputs/.gitkeep

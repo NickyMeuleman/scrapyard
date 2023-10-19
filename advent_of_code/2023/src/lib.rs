@@ -9,7 +9,7 @@ pub mod day_06;
 use std::{fmt::Display, fs, io, time::Instant};
 use wasm_bindgen::prelude::*;
 
-pub const DAYS: u8 = 2;
+pub const DAYS: u8 = 6;
 
 pub enum Answer {
     Part(String),
@@ -77,14 +77,9 @@ pub enum Part {
     Both = 3,
 }
 
-pub fn get_input(day: u8, sample: bool) -> io::Result<String> {
+pub fn get_input(day: u8) -> io::Result<String> {
     let num = format!("{:02}", day);
-    let input_path = format!(
-        "inputs/{}/day{}.txt",
-        if sample { "samples" } else { "full" },
-        num
-    );
-
+    let input_path = format!("inputs/day{}.txt", num);
     fs::read_to_string(input_path)
 }
 
@@ -99,7 +94,7 @@ pub fn print_part(day: u8, part: &Part) {
         }
     );
     println!("{:=<20}", "=");
-    let input = get_input(day, false).unwrap();
+    let input = get_input(day).unwrap();
     let now = Instant::now();
     let result = solve_part(day, &input, &part);
     let elapsed = now.elapsed();
