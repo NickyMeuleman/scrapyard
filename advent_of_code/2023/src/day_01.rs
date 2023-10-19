@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::AoCData;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Data(Vec<u32>);
 
 impl AoCData<'_> for Data {

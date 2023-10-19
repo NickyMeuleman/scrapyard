@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::AoCData;
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Data(Vec<i32>);
 
 fn part_1_helper(list: &mut Vec<i32>) {

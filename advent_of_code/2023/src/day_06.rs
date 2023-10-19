@@ -5,7 +5,7 @@ use std::{
 
 use crate::AoCData;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Data<'a>(HashMap<&'a str, Vec<&'a str>>);
 
 fn checksum(map: &HashMap<&str, Vec<&str>>, name: &str, depth: u32) -> u32 {
@@ -71,21 +71,43 @@ impl<'a> AoCData<'a> for Data<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::get_input;
 
     #[test]
     fn part_1() {
-        let input = get_input(1, true).unwrap();
+        let input = "COM)B
+B)C
+C)D
+D)E
+E)F
+B)G
+G)H
+D)I
+E)J
+J)K
+K)L";
         let data = Data::try_new(&input).unwrap();
         let result = data.part_1().to_string();
-        assert_eq!(result, "");
+        assert_eq!(result, "42");
     }
 
     #[test]
     fn part_2() {
-        let input = get_input(1, true).unwrap();
+        let input = "COM)B
+B)C
+C)D
+D)E
+E)F
+B)G
+G)H
+D)I
+E)J
+J)K
+K)L
+K)YOU
+I)SAN
+";
         let data = Data::try_new(&input).unwrap();
         let result = data.part_2().to_string();
-        assert_eq!(result, "");
+        assert_eq!(result, "4");
     }
 }

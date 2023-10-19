@@ -5,12 +5,12 @@ use std::{
 
 use crate::{AoCData, Solution};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Instruction {
     direction: Direction,
     amount: i32,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Direction {
     Up,
     Right,
@@ -29,7 +29,7 @@ impl Coord {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Data(Vec<Vec<Instruction>>);
 
 impl AoCData<'_> for Data {

@@ -4,6 +4,7 @@ use itertools::Itertools;
 
 use crate::AoCData;
 
+#[derive(Debug, Clone)]
 pub struct Data {
     start: i32,
     end: i32,
@@ -52,6 +53,7 @@ fn meets_part_2_criteria(num: i32) -> bool {
 
     has_double && increasing
 }
+
 impl AoCData<'_> for Data {
     fn try_new(input: &str) -> Option<Self> {
         let (start, end) = input.split_once("-").unwrap();
