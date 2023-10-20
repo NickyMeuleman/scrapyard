@@ -1,0 +1,56 @@
+[package]
+authors = ["Nicky Meuleman <nicky.dev@outlook.com>"]
+name = "aoc2023"
+version = "0.1.0"
+edition = "2021"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# https://rustwasm.github.io/wasm-pack/book/tutorials/npm-browser-packages/template-deep-dive/cargo-toml.html#a1-crate-type
+# "cdylib" is necessary for wasm
+# "rlib" because we want to be able to use "use" statements in non-wasm spots like main.rs (for unit testing)
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2.87"
+wasm-bindgen-futures = "0.4.37"
+itertools = "0.11.0"
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[profile.release]
+# Tell `LLVM` to optimize a certain way
+# for example, the optimization flag possibilities:
+# 's' size
+# 'z' aggressive size
+# 1   speed
+# 2   more speed
+# 3   even more speed (release profile default)
+opt-level = 'z'
+# use link time optimization, slower builds, but faster and smaller
+lto = true
+# abort on panic instead of unwinding the stack, smaller binaries, faster
+# https://doc.rust-lang.org/book/ch09-01-unrecoverable-errors-with-panic.html
+panic = 'abort'
+
+# `cargo bench` SOMETIMES errors with:
+# the crate `aoc2023` requires panic strategy `abort` which is incompatible with this crate's strategy of `unwind`
+# why, why sometimes, why not all the time or never?
+# Is it because use of "cdylib" and "rlib", because criterion complains those have identical names
+
+[package.metadata.wasm-pack.profile.release]
+# run wasm-opt with a flag.
+# for example, the optimization flag possibilities:
+# -Os   size
+# -Oz   aggressive size
+# -O    speed
+# -O4   aggressive speed
+# after running both, speed output a .wasm with the exact same size as size, so I chose speed
+# so, if I set the LLVM opt-level to speed, it fails to build and tells me to disable wasm-opt, if I set it to size, it works
+wasm-opt = ['-Os']
+
+[[bench]]
+name = "my_benchmark"
+# to disable the libtest benchmark harness
+harness = false
