@@ -1,5 +1,9 @@
 #![feature(return_position_impl_trait_in_trait)]
 
+use std::{fmt::Display, fs, io, time::Instant};
+
+use wasm_bindgen::prelude::*;
+
 pub mod day_01;
 pub mod day_02;
 pub mod day_03;
@@ -7,15 +11,38 @@ pub mod day_04;
 pub mod day_05;
 pub mod day_06;
 pub mod day_07;
-pub mod intcode;
-use std::{fmt::Display, fs, io, time::Instant};
-use wasm_bindgen::prelude::*;
+pub mod day_08;
+pub mod day_09;
+pub mod day_10;
+pub mod day_11;
+pub mod day_12;
+pub mod day_13;
+pub mod day_14;
+pub mod day_15;
+pub mod day_16;
+pub mod day_17;
+pub mod day_18;
+pub mod day_19;
+pub mod day_20;
+pub mod day_21;
+pub mod day_22;
+pub mod day_23;
+pub mod day_24;
+pub mod day_25;
 
-pub const DAYS: u8 = 7;
+pub const DAYS: u8 = 25;
 
 pub enum Answer {
     Part(String),
     Both(Solution),
+}
+
+#[derive(Debug)]
+#[wasm_bindgen]
+pub enum Part {
+    One = 1,
+    Two = 2,
+    Both = 3,
 }
 
 // https://github.com/rustwasm/wasm-bindgen/issues/1775
@@ -69,14 +96,6 @@ pub trait AoCData<'a> {
             part2: Box::new(self.part_2().to_string()),
         }
     }
-}
-
-#[derive(Debug)]
-#[wasm_bindgen]
-pub enum Part {
-    One = 1,
-    Two = 2,
-    Both = 3,
 }
 
 pub fn get_input(day: u8) -> io::Result<String> {
@@ -142,6 +161,24 @@ fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, String> {
         5 => part_helper::<day_05::Data>(day, input, part),
         6 => part_helper::<day_06::Data>(day, input, part),
         7 => part_helper::<day_07::Data>(day, input, part),
+        8 => part_helper::<day_08::Data>(day, input, part),
+        9 => part_helper::<day_09::Data>(day, input, part),
+        10 => part_helper::<day_10::Data>(day, input, part),
+        11 => part_helper::<day_11::Data>(day, input, part),
+        12 => part_helper::<day_12::Data>(day, input, part),
+        13 => part_helper::<day_13::Data>(day, input, part),
+        14 => part_helper::<day_14::Data>(day, input, part),
+        15 => part_helper::<day_15::Data>(day, input, part),
+        16 => part_helper::<day_16::Data>(day, input, part),
+        17 => part_helper::<day_17::Data>(day, input, part),
+        18 => part_helper::<day_18::Data>(day, input, part),
+        19 => part_helper::<day_19::Data>(day, input, part),
+        20 => part_helper::<day_20::Data>(day, input, part),
+        21 => part_helper::<day_21::Data>(day, input, part),
+        22 => part_helper::<day_22::Data>(day, input, part),
+        23 => part_helper::<day_23::Data>(day, input, part),
+        24 => part_helper::<day_24::Data>(day, input, part),
+        25 => part_helper::<day_25::Data>(day, input, part),
         n => Err(format!("Trying to solve an invalid day, found day: {n}")),
     }
 }
@@ -150,7 +187,9 @@ fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, String> {
 pub async fn solve(day: u8, input: String, part: Part) -> Result<WasmSolution, JsError> {
     // wasm bindgen can't handle enums with values yet
     // see: https://github.com/rustwasm/wasm-bindgen/issues/2407
-    // so we do some data janitoring and return a Solution for every Answer enum variant and fill the missing field with an empty string (yuck)
+    // I'd like to return an enum for the solved part that holds a string, but we can't.
+    // That's why we return a WasmSolution for everything, even single parts,
+    // A WasmSolution has Option<String> fields, None values turn into undefined in JS
     match solve_part(day, &input, &part) {
         Ok(answer) => match answer {
             Answer::Part(result) => match part {

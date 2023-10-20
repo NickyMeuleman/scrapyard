@@ -15,7 +15,7 @@ impl AoCData<'_> for Data {
     }
 
     fn part_2(&self) -> impl Display {
-        ""
+        "Merry Christmas!"
     }
 }
 
@@ -28,14 +28,6 @@ mod test {
         let input = "";
         let data = Data::try_new(input).unwrap();
         let result = data.part_1().to_string();
-        assert_eq!(result, "");
-    }
-
-    #[test]
-    fn part_2() {
-        let input = "";
-        let data = Data::try_new(input).unwrap();
-        let result = data.part_2().to_string();
         assert_eq!(result, "");
     }
 }

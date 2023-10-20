@@ -52,5 +52,5 @@ wasm-opt = ['-Os']
 
 [[bench]]
 name = "my_benchmark"
-#  to disable the libtest benchmark harness
+# to disable the libtest benchmark harness
 harness = false
