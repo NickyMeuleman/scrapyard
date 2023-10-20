@@ -1,4 +1,4 @@
-use aoc2023::{day_01, day_02, day_03, day_04, day_05, day_06, get_input, AoCData, DAYS};
+use aoc2023::{day_01, day_02, day_03, day_04, day_05, day_06, day_07, get_input, AoCData, DAYS};
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 use std::env;
 
@@ -39,6 +39,7 @@ pub fn bench_day(c: &mut Criterion, day: u8) {
         4 => day_helper::<day_04::Data>(c, day, &input),
         5 => day_helper::<day_05::Data>(c, day, &input),
         6 => day_helper::<day_06::Data>(c, day, &input),
+        7 => day_helper::<day_07::Data>(c, day, &input),
         n => panic!("Trying to bench an invalid day, found day {n}"),
     }
 }

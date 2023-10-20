@@ -1,10 +1,33 @@
-Benchmarking with `hyperfine`:
+## Building the WASM
+1. `cd` into root
+2. `wasm-pack build --scope nickymeuleman --target web --out-dir www/pkg`
 
-Using 5 warmup runs before measuring.
-The first one of those warmup runs will build the project in release mode.
-Every subsequent run will use the cached built project.
+## Using the WASM site
+1. `cd` into `www`
+2. `npm run dev`
 
-Example to benchmark day 1:
-```sh
-hyperfine --warmup 5 "cargo run --release 1"
-```
+## Using the CLI
+1. `cd` into root
+2. `cargo run <day> <part>`
+
+eg: 
+- `cargo run 3 1` to run day 3 part 1
+- `cargo run 3` to run day 3 both parts
+
+Answers are written to the console along with a total runtime
+
+## Benchmarking
+1. `cd` into root
+2. `cargo run <day>`
+
+eg:
+- `cargo bench 3` to bench day 3
+
+Benchmarks:
+1. parsing
+1. part 1
+1. part 2
+1. both parts combined
+
+Note: I implement a method that avoids duplicate work between part 1 and part 2 sometimes,
+so benchmarking both parts is NOT the same as adding part1 to part 2.

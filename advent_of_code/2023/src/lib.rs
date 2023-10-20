@@ -6,10 +6,12 @@ pub mod day_03;
 pub mod day_04;
 pub mod day_05;
 pub mod day_06;
+pub mod day_07;
+pub mod intcode;
 use std::{fmt::Display, fs, io, time::Instant};
 use wasm_bindgen::prelude::*;
 
-pub const DAYS: u8 = 6;
+pub const DAYS: u8 = 7;
 
 pub enum Answer {
     Part(String),
@@ -139,6 +141,7 @@ fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, String> {
         4 => part_helper::<day_04::Data>(day, input, part),
         5 => part_helper::<day_05::Data>(day, input, part),
         6 => part_helper::<day_06::Data>(day, input, part),
+        7 => part_helper::<day_07::Data>(day, input, part),
         n => Err(format!("Trying to solve an invalid day, found day: {n}")),
     }
 }
