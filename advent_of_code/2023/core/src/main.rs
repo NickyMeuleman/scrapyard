@@ -1,5 +1,6 @@
-use aoc2023::{print_part, Part, DAYS};
 use std::env;
+
+use aoc2023_core::{print_part, Part, DAYS};
 
 fn main() {
     let mut args = env::args();

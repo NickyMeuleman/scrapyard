@@ -1,8 +1,12 @@
 #![feature(return_position_impl_trait_in_trait)]
 
-use std::{fmt::Display, fs, io, time::Instant};
-
-use wasm_bindgen::prelude::*;
+use std::{
+    env,
+    fmt::Display,
+    fs, io,
+    path::{Path, PathBuf},
+    time::Instant,
+};
 
 pub mod day_01;
 pub mod day_02;
@@ -38,7 +42,6 @@ pub enum Answer {
 }
 
 #[derive(Debug)]
-#[wasm_bindgen]
 pub enum Part {
     One = 1,
     Two = 2,
@@ -53,23 +56,8 @@ pub enum Part {
 // You can do without the wasm_bindgen skip on the fields, but since my other Rust code accesses them, I need them to be public.
 
 pub struct Solution {
-    part1: Box<dyn Display>,
-    part2: Box<dyn Display>,
-}
-
-#[wasm_bindgen(getter_with_clone)]
-pub struct WasmSolution {
-    pub part1: Option<String>,
-    pub part2: Option<String>,
-}
-
-impl From<Solution> for WasmSolution {
-    fn from(value: Solution) -> Self {
-        WasmSolution {
-            part1: Some(value.part1.to_string()),
-            part2: Some(value.part2.to_string()),
-        }
-    }
+    pub part1: Box<dyn Display>,
+    pub part2: Box<dyn Display>,
 }
 
 pub trait AoCData<'a> {
@@ -99,8 +87,9 @@ pub trait AoCData<'a> {
 }
 
 pub fn get_input(day: u8) -> io::Result<String> {
-    let num = format!("{:02}", day);
-    let input_path = format!("inputs/day{}.txt", num);
+    let mut input_path = workspace_dir();
+    input_path.push("inputs");
+    input_path.push(format!("day{:02}.txt", day));
     fs::read_to_string(input_path)
 }
 
@@ -152,7 +141,7 @@ pub fn part_helper<'a, T: AoCData<'a>>(
     }
 }
 
-fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, String> {
+pub fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, String> {
     match day {
         1 => part_helper::<day_01::Data>(day, input, part),
         2 => part_helper::<day_02::Data>(day, input, part),
@@ -183,28 +172,21 @@ fn solve_part(day: u8, input: &str, part: &Part) -> Result<Answer, String> {
     }
 }
 
-#[wasm_bindgen]
-pub async fn solve(day: u8, input: String, part: Part) -> Result<WasmSolution, JsError> {
-    // wasm bindgen can't handle enums with values yet
-    // see: https://github.com/rustwasm/wasm-bindgen/issues/2407
-    // I'd like to return an enum for the solved part that holds a string, but we can't.
-    // That's why we return a WasmSolution for everything, even single parts,
-    // A WasmSolution has Option<String> fields, None values turn into undefined in JS
-    match solve_part(day, &input, &part) {
-        Ok(answer) => match answer {
-            Answer::Part(result) => match part {
-                Part::One => Ok(WasmSolution {
-                    part1: Some(result),
-                    part2: None,
-                }),
-                Part::Two => Ok(WasmSolution {
-                    part1: None,
-                    part2: Some(result),
-                }),
-                _ => unreachable!(),
-            },
-            Answer::Both(solution) => Ok(solution.into()),
-        },
-        Err(error) => Err(JsError::new(&error)),
-    }
+fn workspace_dir() -> PathBuf {
+    let output = std::process::Command::new(env!("CARGO"))
+        .arg("locate-project")
+        .arg("--workspace")
+        .arg("--message-format=plain")
+        .output()
+        .unwrap()
+        .stdout;
+    let cargo_path = Path::new(
+        std::str::from_utf8(&output)
+            .unwrap()
+            .trim(),
+    );
+    cargo_path
+        .parent()
+        .unwrap()
+        .to_path_buf()
 }

@@ -1,13 +1,21 @@
+wc -c www/pkg/aoc2023_wasm_bg.wasm
+
+after codegen-units = 1
+34174 www/pkg/aoc2023_wasm_bg.wasm
+
+added strip = true
+33985 www/pkg/aoc2023_wasm_bg.wasm
+
 ## Building the WASM
-1. `cd` into root
+1. `cd` into `wasm`
 2. `wasm-pack build --scope nickymeuleman --target web --out-dir www/pkg`
 
 ## Using the WASM site
-1. `cd` into `www`
+1. `cd` into `wasm/www`
 2. `npm run dev`
 
 ## Using the CLI
-1. `cd` into root
+1. `cd` into `core`
 2. `cargo run <day> <part>`
 
 eg: 
