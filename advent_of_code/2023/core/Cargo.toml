@@ -8,6 +8,7 @@ description = "Solutions to Advent of Code 2023"
 keywords = ["AoC", "advent-of-code"]
 categories = ["algorithms", "rust-patterns", "command-line-utilities"]
 readme = "README.md"
+repository.workspace = true
 
 [dependencies]
 itertools = "0.11.0"
