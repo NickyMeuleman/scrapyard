@@ -1,4 +1,4 @@
-use aoc2023_core::{solve_part, Answer, Part, Solution};
+use aoc2023::{solve_part, Answer, Part, Solution};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(getter_with_clone)]

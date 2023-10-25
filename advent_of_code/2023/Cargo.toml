@@ -1,6 +1,6 @@
 [workspace]
-members = [ "core", "wasm" ]
 resolver = "2"
+members = [ "core", "wasm" ]
 default-members = ["core"]
 
 [workspace.package]

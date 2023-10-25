@@ -4,10 +4,12 @@ authors.workspace = true
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Solutions to Advent of Code 2023 in Rust compiled to WebAssembly"
+keywords = ["AoC", "advent-of-code", "wasm", "webassembly"]
 categories = ["algorithms", "rust-patterns", "wasm"]
 
 [dependencies]
-aoc2023-core = { path = "../core" }
+aoc2023 = { path = "../core" }
 wasm-bindgen = "0.2.87"
 wasm-bindgen-futures = "0.4.37"
 
