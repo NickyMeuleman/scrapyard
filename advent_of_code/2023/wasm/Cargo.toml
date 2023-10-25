@@ -5,7 +5,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 description = "Solutions to Advent of Code 2023 in Rust compiled to WebAssembly"
-keywords = ["AoC", "advent-of-code", "wasm", "webassembly"]
+keywords = ["AoC", "advent-of-code", "2023", "wasm", "webassembly"]
 categories = ["algorithms", "rust-patterns", "wasm"]
 repository.workspace = true
 
