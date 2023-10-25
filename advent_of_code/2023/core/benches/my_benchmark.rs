@@ -1,7 +1,7 @@
 use aoc2023::{
     day_01, day_02, day_03, day_04, day_05, day_06, day_07, day_08, day_09, day_10, day_11, day_12,
     day_13, day_14, day_15, day_16, day_17, day_18, day_19, day_20, day_21, day_22, day_23, day_24,
-    day_25, get_input, AoCData, DAYS,
+    day_25, get_input, AoCDay, DAYS,
 };
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 use std::env;
@@ -66,7 +66,7 @@ pub fn bench_day(c: &mut Criterion, day: u8) {
     }
 }
 
-fn day_helper<'a, T: AoCData<'a> + Clone>(c: &mut Criterion, day: u8, input: &'a str) {
+fn day_helper<'a, T: AoCDay<'a> + Clone>(c: &mut Criterion, day: u8, input: &'a str) {
     let mut group = c.benchmark_group(format!("Day {:02}", day));
     group.bench_function("Parsing", |b| b.iter(|| black_box(T::try_new(&input))));
     let data = T::try_new(&input).unwrap();

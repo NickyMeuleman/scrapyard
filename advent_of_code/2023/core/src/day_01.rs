@@ -1,11 +1,11 @@
 use std::fmt::Display;
 
-use crate::AoCData;
+use crate::AoCDay;
 
 #[derive(Debug, Clone)]
 pub struct Data(Vec<u32>);
 
-impl AoCData<'_> for Data {
+impl AoCDay<'_> for Data {
     fn try_new(input: &str) -> Option<Self> {
         Some(Self(
             input

@@ -60,7 +60,7 @@ pub struct Solution {
     pub part2: Box<dyn Display>,
 }
 
-pub trait AoCData<'a> {
+pub trait AoCDay<'a> {
     /// Parse an input string into a Data struct for a specific day
     fn try_new(input: &'a str) -> Option<Self>
     where
@@ -124,7 +124,7 @@ pub fn print_part(day: u8, part: &Part) {
     }
 }
 
-pub fn part_helper<'a, T: AoCData<'a>>(
+pub fn part_helper<'a, T: AoCDay<'a>>(
     day: u8,
     input: &'a str,
     part: &Part,
