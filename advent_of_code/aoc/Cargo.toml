@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [ "*/solutions", "*/wasm" ]
+members = [ "core","*/solutions", "*/wasm" ]
 default-members = ["2023/solutions"]
 
 [workspace.package]

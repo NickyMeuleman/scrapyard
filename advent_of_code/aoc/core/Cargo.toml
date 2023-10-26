@@ -1,0 +1,10 @@
+[package]
+name = "aoc-core"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Core code for Advent of Code crates"
+keywords = ["AoC", "advent-of-code"]
+categories = ["command-line-utilities"]
+repository.workspace = true
