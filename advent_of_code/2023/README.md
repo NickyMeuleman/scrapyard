@@ -16,7 +16,8 @@ What the directories in this reporitory contain:
     - These files should be provided by the user of this repo.
 
 This repo does not contain my personal input files because [the creator prefers people not to share inputs](https://twitter.com/ericwastl/status/1465805354214830081).
-The official subreddit [repeats this request](https://www.reddit.com/r/adventofcode/wiki/faqs/copyright/inputs/).
+The official subreddit [repeats this request](https://www.reddit.com/r/adventofcode/wiki/faqs/copyright/puzzle_texts/).
+And [discourages collecting inputs](https://www.reddit.com/r/adventofcode/wiki/faqs/copyright/inputs/)
 
 The files in this directory should have filenames following the `day<number>.txt` where `<number>` is 2 digits.
 eg. `day01.txt` to `day25.txt`.
