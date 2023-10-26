@@ -1,33 +1,30 @@
-## Building the WASM
-1. `cd` into root
-2. `wasm-pack build --scope nickymeuleman --target web --out-dir www/pkg`
+Workspace containing code related to [Advent of Code 2023](https://adventofcode.com/2023).
 
-## Using the WASM site
-1. `cd` into `www`
-2. `npm run dev`
+What the directories in this reporitory contain:
 
-## Using the CLI
-1. `cd` into root
-2. `cargo run <day> <part>`
+[core]:
+- Solution code per day.
+- Small CLI tool to call those solutions.
+- Benchmarks for each solution.
 
-eg: 
-- `cargo run 3 1` to run day 3 part 1
-- `cargo run 3` to run day 3 both parts
+[wasm]:
+- A WebAssembly API to use the solutions on different inputs.
+- A sample website that uses the built WASM.
 
-Answers are written to the console along with a total runtime
+[inputs]:
+- Holds input files for each day, used by the [core] CLI and benchmarks.
+    - These files should be provided by the user of this repo.
 
-## Benchmarking
-1. `cd` into root
-2. `cargo run <day>`
+This repo does not contain my personal input files because [the creator prefers people not to share inputs](https://twitter.com/ericwastl/status/1465805354214830081).
+The official subreddit [repeats this request](https://www.reddit.com/r/adventofcode/wiki/faqs/copyright/puzzle_texts/).
+And [discourages collecting inputs](https://www.reddit.com/r/adventofcode/wiki/faqs/copyright/inputs/)
 
-eg:
-- `cargo bench 3` to bench day 3
+The files in this directory should have filenames following the `day<number>.txt` where `<number>` is 2 digits.
+eg. `day01.txt` to `day25.txt`.
 
-Benchmarks:
-1. parsing
-1. part 1
-1. part 2
-1. both parts combined
+Each day of Advent of Code, you can download the input at the bottom of that days question.
+For day where the official site provides the input inline, create a textfile with that input to run the CLI/benchmarks in [core].
 
-Note: I implement a method that avoids duplicate work between part 1 and part 2 sometimes,
-so benchmarking both parts is NOT the same as adding part1 to part 2.
+---
+
+More information about each crate can be found in its readme.
