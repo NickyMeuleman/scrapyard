@@ -88,6 +88,7 @@ pub trait AoCDay<'a> {
 
 pub fn get_input(day: u8) -> io::Result<String> {
     let mut input_path = workspace_dir();
+    input_path.push("2023");
     input_path.push("inputs");
     input_path.push(format!("day{:02}.txt", day));
     fs::read_to_string(input_path)

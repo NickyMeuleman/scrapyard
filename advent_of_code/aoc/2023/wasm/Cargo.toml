@@ -11,7 +11,7 @@ readme = "README.md"
 repository.workspace = true
 
 [dependencies]
-aoc2023 = { path = "../core" }
+aoc2023 = { path = "../solutions" }
 wasm-bindgen = "0.2.87"
 wasm-bindgen-futures = "0.4.37"
 
