@@ -1,41 +1,29 @@
-wc -c www/pkg/aoc2023_wasm_bg.wasm
+Workspace containing code related to [Advent of Code 2023](https://adventofcode.com/2023).
 
-after codegen-units = 1
-34174 www/pkg/aoc2023_wasm_bg.wasm
+What the directories in this reporitory contain:
 
-added strip = true
-33985 www/pkg/aoc2023_wasm_bg.wasm
+[core]:
+- Solution code per day.
+- Small CLI tool to call those solutions.
+- Benchmarks for each solution.
 
-## Building the WASM
-1. `cd` into `wasm`
-2. `wasm-pack build --scope nickymeuleman --target web --out-dir www/pkg`
+[wasm]:
+- A WebAssembly API to use the solutions on different inputs.
+- A sample website that uses the built WASM.
 
-## Using the WASM site
-1. `cd` into `wasm/www`
-2. `npm run dev`
+[inputs]:
+- Holds input files for each day, used by the [core] CLI and benchmarks.
+    - These files should be provided by the user of this repo.
 
-## Using the CLI
-1. `cd` into `core`
-2. `cargo run <day> <part>`
+This repo does not contain my personal input files because [the creator prefers people not to share inputs](https://twitter.com/ericwastl/status/1465805354214830081).
+The official subreddit [repeats this request](https://www.reddit.com/r/adventofcode/wiki/faqs/copyright/inputs/).
 
-eg: 
-- `cargo run 3 1` to run day 3 part 1
-- `cargo run 3` to run day 3 both parts
+The files in this directory should have filenames following the `day<number>.txt` where `<number>` is 2 digits.
+eg. `day01.txt` to `day25.txt`.
 
-Answers are written to the console along with a total runtime
+Each day of Advent of Code, you can download the input at the bottom of that days question.
+For day where the official site provides the input inline, create a textfile with that input to run the CLI/benchmarks in [core].
 
-## Benchmarking
-1. `cd` into root
-2. `cargo run <day>`
+---
 
-eg:
-- `cargo bench 3` to bench day 3
-
-Benchmarks:
-1. parsing
-1. part 1
-1. part 2
-1. both parts combined
-
-Note: I implement a method that avoids duplicate work between part 1 and part 2 sometimes,
-so benchmarking both parts is NOT the same as adding part1 to part 2.
+More information about each crate can be found in its readme.

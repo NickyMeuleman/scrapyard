@@ -1,6 +1,6 @@
 Solutions to [Advent of Code 2023](https://adventofcode.com/2022) in the [Rust programming language](https://www.rust-lang.org/)
 
-## Solving days
+## Using the CLI to solve days
 
 `cargo run <day> <part>`
 
