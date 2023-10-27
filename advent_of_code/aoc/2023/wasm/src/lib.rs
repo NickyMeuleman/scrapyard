@@ -28,7 +28,7 @@ pub async fn solve(day: u8, input: String, part: u8) -> Result<WasmSolution, JsE
     // I'd like to return an enum for the solved part that holds a string, but we can't.
     // That's why we return a WasmSolution for everything, even single parts,
     // A WasmSolution has Option<String> fields, None values turn into undefined in JS
-    match solve_part(day, &input, &part) {
+    match solve_part(day, &part, &input) {
         Ok(answer) => match answer {
             Answer::Part(result) => match part {
                 Part::One => Ok(WasmSolution {

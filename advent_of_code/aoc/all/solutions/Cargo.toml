@@ -1,0 +1,15 @@
+[package]
+name = "aoc-all"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Solutions to Advent of Code"
+keywords = ["AoC", "advent-of-code"]
+categories = ["algorithms", "rust-patterns", "command-line-utilities"]
+readme = "README.md"
+repository.workspace = true
+
+[dependencies]
+aoc-core = { path = "../../core"}
+aoc2023 = { path = "../../2023/solutions"}

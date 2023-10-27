@@ -5,6 +5,7 @@ use std::{
     fmt::Display,
     fs, io,
     path::{Path, PathBuf},
+    time::Instant,
 };
 
 pub const DAYS: u8 = 25;
@@ -59,7 +60,7 @@ pub trait AoCDay<'a> {
     }
 }
 
-pub fn get_input(day: u8, year: u32) -> io::Result<String> {
+pub fn get_input(year: u32, day: u8) -> io::Result<String> {
     let mut input_path = workspace_dir();
     input_path.push(year.to_string());
     input_path.push("inputs");
@@ -84,4 +85,58 @@ fn workspace_dir() -> PathBuf {
         .parent()
         .unwrap()
         .to_path_buf()
+}
+
+pub fn print_part(
+    year: u32,
+    day: u8,
+    part: &Part,
+    part_solver: impl Fn(u8, &Part, &str) -> Result<Answer, String>,
+) {
+    println!(
+        "Year {}, Day {}, {}",
+        year,
+        day,
+        match part {
+            Part::One => "part 1",
+            Part::Two => "part 2",
+            Part::Both => "both parts",
+        }
+    );
+    println!("{:=<20}", "=");
+    let input = get_input(year, day).unwrap();
+    let now = Instant::now();
+    let result = part_solver(day, &part, &input);
+    let elapsed = now.elapsed();
+    println!("Runtime:");
+    println!("{:?}", elapsed);
+    match result.unwrap_or(Answer::Part("No result!".to_string())) {
+        Answer::Part(result) => {
+            println!("Answer:");
+            println!("{result}");
+        }
+        Answer::Both(solution) => {
+            println!("Part 1:");
+            println!("{}", solution.part1);
+            println!("Part 2:");
+            println!("{}", solution.part2);
+        }
+    }
+}
+
+pub fn part_helper<'a, T: AoCDay<'a>>(
+    day: u8,
+    part: &Part,
+    input: &'a str,
+) -> Result<Answer, String> {
+    if let Some(data) = T::try_new(input) {
+        let answer = match part {
+            Part::One => Answer::Part(data.part_1().to_string()),
+            Part::Two => Answer::Part(data.part_2().to_string()),
+            Part::Both => Answer::Both(data.solve()),
+        };
+        Ok(answer)
+    } else {
+        Err(format!("Failed to parse day {day}"))
+    }
 }
