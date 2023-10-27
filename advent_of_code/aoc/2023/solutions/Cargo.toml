@@ -11,7 +11,7 @@ readme = "README.md"
 repository.workspace = true
 
 [dependencies]
-aoc-core = { path = "../../core"}
+aoc-core = { path = "../../core/solutions"}
 itertools = "0.11.0"
 
 [dev-dependencies]

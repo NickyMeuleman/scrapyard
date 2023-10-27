@@ -1,20 +1,6 @@
-use aoc2023::{solve_part, Answer, Part, Solution};
+use aoc2023::{solve_part, Answer, Part};
+use aoc_core_wasm::WasmSolution;
 use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen(getter_with_clone)]
-pub struct WasmSolution {
-    pub part1: Option<String>,
-    pub part2: Option<String>,
-}
-
-impl From<Solution> for WasmSolution {
-    fn from(value: Solution) -> Self {
-        WasmSolution {
-            part1: Some(value.part1.to_string()),
-            part2: Some(value.part2.to_string()),
-        }
-    }
-}
 
 #[wasm_bindgen]
 pub async fn solve(day: u8, input: String, part: u8) -> Result<WasmSolution, JsError> {

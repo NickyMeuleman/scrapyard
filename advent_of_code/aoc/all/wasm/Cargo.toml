@@ -12,6 +12,7 @@ repository.workspace = true
 
 [dependencies]
 aoc-all = { path = "../solutions" }
+aoc-core-wasm ={ path = "../../core/wasm" }
 wasm-bindgen = "0.2.87"
 wasm-bindgen-futures = "0.4.37"
 
