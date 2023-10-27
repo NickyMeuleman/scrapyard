@@ -1,10 +1,9 @@
 use std::env;
 
 use aoc_all::print_part;
-use aoc_core::{Part, DAYS};
+use aoc_core::{Part, DAYS, LAST_YEAR};
 
 fn main() {
-    println!("sup");
     let mut args = env::args();
 
     // the first argument is the location the program is running, we don't need that
@@ -34,7 +33,7 @@ fn main() {
             None => Part::Both,
         }
     };
-    dbg!(year, day, &part);
+
     if let Some(year) = year {
         // run one year
         match day {
@@ -44,13 +43,19 @@ fn main() {
             }
             None => {
                 // run all days
-                for num in 1..=DAYS {
-                    print_part(year, num, &part);
+                for day in 1..=DAYS {
+                    print_part(year, day, &part);
                     println!("\n");
                 }
             }
         }
     } else {
         // run all years
+        for year in 2015..=LAST_YEAR {
+            for day in 1..=DAYS {
+                print_part(year, day, &part);
+                println!("\n");
+            }
+        }
     }
 }

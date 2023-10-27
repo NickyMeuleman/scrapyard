@@ -9,6 +9,7 @@ use std::{
 };
 
 pub const DAYS: u8 = 25;
+pub const LAST_YEAR: u32 = 2023;
 
 pub enum Answer {
     Part(String),

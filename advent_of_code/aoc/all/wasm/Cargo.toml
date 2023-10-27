@@ -1,0 +1,33 @@
+[package]
+name = "aoc-all-wasm"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Solutions to Advent of Code 2023 in Rust compiled to WebAssembly"
+keywords = ["AoC", "advent-of-code", "2023", "wasm", "webassembly"]
+categories = ["algorithms", "rust-patterns", "wasm"]
+readme = "README.md"
+repository.workspace = true
+
+[dependencies]
+aoc-all = { path = "../solutions" }
+wasm-bindgen = "0.2.87"
+wasm-bindgen-futures = "0.4.37"
+
+[lib]
+# https://rustwasm.github.io/wasm-pack/book/tutorials/npm-browser-packages/template-deep-dive/cargo-toml.html#a1-crate-type
+# "cdylib" is necessary for wasm
+# "rlib" because we want to be able to use "use" statements in non-wasm spots like main.rs (for unit testing)
+crate-type = ["cdylib", "rlib"]
+
+[package.metadata.wasm-pack.profile.release]
+# run wasm-opt with a flag.
+# for example, the optimization flag possibilities:
+# -Os   size
+# -Oz   aggressive size
+# -O    speed
+# -O4   aggressive speed
+# after running both, speed output a .wasm with the exact same size as size, so I chose speed
+# so, if I set the LLVM opt-level to speed, it fails to build and tells me to disable wasm-opt, if I set it to size, it works
+wasm-opt = ['-Os']
