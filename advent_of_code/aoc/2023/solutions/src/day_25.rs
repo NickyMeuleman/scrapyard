@@ -1,21 +1,21 @@
 use std::fmt::Display;
 
-use crate::AoCDay;
+use crate::{AoCDay, AoCError};
 
 #[derive(Debug, Clone)]
 pub struct Data;
 
 impl AoCDay<'_> for Data {
-    fn try_new(_input: &str) -> Option<Self> {
-        Some(Self)
+    fn try_new(_input: &str) -> Result<Self, AoCError> {
+        Ok(Self)
     }
 
-    fn part_1(&self) -> impl Display {
-        ""
+    fn part_1(&self) -> Result<impl Display, AoCError> {
+        Ok("")
     }
 
-    fn part_2(&self) -> impl Display {
-        "Merry Christmas!"
+    fn part_2(&self) -> Result<impl Display, AoCError> {
+        Ok("")
     }
 }
 
@@ -27,7 +27,7 @@ mod test {
     fn part_1() {
         let input = "";
         let data = Data::try_new(input).unwrap();
-        let result = data.part_1().to_string();
+        let result = data.part_1().unwrap().to_string();
         assert_eq!(result, "");
     }
 }

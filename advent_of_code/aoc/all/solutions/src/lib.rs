@@ -15,6 +15,6 @@ fn get_solver(
 ) -> Result<impl Fn(Day, &Part, &str) -> Result<Answer, AoCError>, AoCError> {
     match year.value() {
         2023 => Ok(aoc2023::solve_part),
-        _ => Err(AoCError::Custom(format!("Unsupported year"))),
+        _ => Err(AoCError::new("Unsupported year")),
     }
 }

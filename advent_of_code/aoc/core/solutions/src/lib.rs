@@ -13,17 +13,27 @@ pub const LAST_YEAR: u16 = 2023;
 
 // https://rustwasm.github.io/wasm-bindgen/api/wasm_bindgen/struct.JsError.html
 #[derive(Debug, Clone)]
-pub enum AoCError {
-    Custom(String),
+pub struct AoCError {
+    value: String,
 }
+
+impl AoCError {
+    pub fn new<T: Into<String>>(t: T) -> Self {
+        Self { value: t.into() }
+    }
+}
+
 use core::fmt;
 impl std::error::Error for AoCError {}
 impl Display for AoCError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let message = match self {
-            AoCError::Custom(msg) => msg,
-        };
-        write!(f, "{}", message)
+        write!(f, "{}", self.value)
+    }
+}
+
+impl From<io::Error> for AoCError {
+    fn from(value: io::Error) -> Self {
+        Self::new(value.to_string())
     }
 }
 
@@ -35,7 +45,7 @@ pub struct Day {
 impl Day {
     pub fn try_new(value: u8) -> Result<Self, AoCError> {
         if value < 1 || value > 25 {
-            return Err(AoCError::Custom("Invalid day".to_string()));
+            return Err(AoCError::new("Invalid day"));
         }
         Ok(Self { value })
     }
@@ -53,7 +63,7 @@ pub struct Year {
 impl Year {
     pub fn try_new(value: u16) -> Result<Self, AoCError> {
         if value < 2015 || value > LAST_YEAR {
-            return Err(AoCError::Custom("Invalid year".to_string()));
+            return Err(AoCError::new("Invalid year"));
         }
         Ok(Self { value })
     }
@@ -99,36 +109,37 @@ pub struct Solution {
 
 pub trait AoCDay<'a> {
     /// Parse an input string into a Data struct for a specific day
-    fn try_new(input: &'a str) -> Option<Self>
+    fn try_new(input: &'a str) -> Result<Self, AoCError>
     where
         Self: Sized;
 
     /// part1 solution
-    fn part_1(&self) -> impl Display;
+    fn part_1(&self) -> Result<impl Display, AoCError>;
 
     /// part2 solution
-    fn part_2(&self) -> impl Display;
+    fn part_2(&self) -> Result<impl Display, AoCError>;
 
     /// both solutions
-    fn solve(self) -> Solution
+    fn solve(self) -> Result<Solution, AoCError>
     where
         Self: Sized,
     {
         // have to make sure results that come back from the part functions live long enough,
         // because those might be borrowed things that impl Display
-        Solution {
-            part1: Box::new(self.part_1().to_string()),
-            part2: Box::new(self.part_2().to_string()),
-        }
+        Ok(Solution {
+            part1: Box::new(self.part_1()?.to_string()),
+            part2: Box::new(self.part_2()?.to_string()),
+        })
     }
 }
 
-pub fn get_input(year: Year, day: Day) -> io::Result<String> {
+pub fn get_input(year: Year, day: Day) -> Result<String, AoCError> {
     let mut input_path = workspace_dir();
     input_path.push(year.value().to_string());
     input_path.push("inputs");
     input_path.push(format!("day{:02}.txt", day.value()));
-    fs::read_to_string(input_path)
+    let input = fs::read_to_string(input_path)?;
+    Ok(input)
 }
 
 fn workspace_dir() -> PathBuf {
@@ -187,22 +198,12 @@ pub fn print_part(
     }
 }
 
-pub fn part_helper<'a, T: AoCDay<'a>>(
-    day: Day,
-    part: &Part,
-    input: &'a str,
-) -> Result<Answer, AoCError> {
-    if let Some(data) = T::try_new(input) {
-        let answer = match part {
-            Part::One => Answer::Part(data.part_1().to_string()),
-            Part::Two => Answer::Part(data.part_2().to_string()),
-            Part::Both => Answer::Both(data.solve()),
-        };
-        Ok(answer)
-    } else {
-        Err(AoCError::Custom(format!(
-            "Failed to parse day {}",
-            day.value()
-        )))
-    }
+pub fn part_helper<'a, T: AoCDay<'a>>(part: &Part, input: &'a str) -> Result<Answer, AoCError> {
+    let data = T::try_new(input)?;
+    let answer = match part {
+        Part::One => Answer::Part(data.part_1()?.to_string()),
+        Part::Two => Answer::Part(data.part_2()?.to_string()),
+        Part::Both => Answer::Both(data.solve()?),
+    };
+    Ok(answer)
 }
