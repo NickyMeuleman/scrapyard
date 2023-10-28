@@ -1,6 +1,7 @@
 use std::env;
 
 use aoc2023::{print_part, Part, DAYS};
+use aoc_core::Day;
 
 fn main() {
     let mut args = env::args();
@@ -8,9 +9,12 @@ fn main() {
     // the first argument is the location the program is running, we don't need that
     args.next();
 
-    let day: Option<u8> = {
+    let day: Option<Day> = {
         match args.next() {
-            Some(day) => day.parse().ok(),
+            Some(day) => match day.parse::<u8>() {
+                Ok(val) => Day::try_new(val).ok(),
+                Err(_) => None,
+            },
             None => None,
         }
     };
@@ -34,7 +38,8 @@ fn main() {
         None => {
             // run all days
             for num in 1..=DAYS {
-                print_part(num, &part);
+                let day = Day::try_new(num).unwrap();
+                print_part(day, &part);
                 println!("\n");
             }
         }

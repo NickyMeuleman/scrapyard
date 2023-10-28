@@ -2,7 +2,7 @@
 
 use std::io;
 
-pub use aoc_core::{part_helper, Answer, AoCDay, Part, Solution, DAYS};
+pub use aoc_core::{part_helper, Answer, AoCDay, AoCError, Day, Part, Solution, Year, DAYS};
 
 pub mod day_01;
 pub mod day_02;
@@ -30,16 +30,18 @@ pub mod day_23;
 pub mod day_24;
 pub mod day_25;
 
-pub fn get_input(day: u8) -> io::Result<String> {
-    aoc_core::get_input(2023, day)
+pub fn get_input(day: Day) -> io::Result<String> {
+    let year = Year::try_new(2023).unwrap();
+    aoc_core::get_input(year, day)
 }
 
-pub fn print_part(day: u8, part: &Part) {
-    aoc_core::print_part(2023, day, part, solve_part)
+pub fn print_part(day: Day, part: &Part) {
+    let year = Year::try_new(2023).unwrap();
+    aoc_core::print_part(year, day, part, solve_part)
 }
 
-pub fn solve_part(day: u8, part: &Part, input: &str) -> Result<Answer, String> {
-    match day {
+pub fn solve_part(day: Day, part: &Part, input: &str) -> Result<Answer, AoCError> {
+    match day.value() {
         1 => part_helper::<day_01::Data>(day, part, input),
         2 => part_helper::<day_02::Data>(day, part, input),
         3 => part_helper::<day_03::Data>(day, part, input),
@@ -65,6 +67,8 @@ pub fn solve_part(day: u8, part: &Part, input: &str) -> Result<Answer, String> {
         23 => part_helper::<day_23::Data>(day, part, input),
         24 => part_helper::<day_24::Data>(day, part, input),
         25 => part_helper::<day_25::Data>(day, part, input),
-        n => Err(format!("Trying to solve an invalid day, found day: {n}")),
+        n => Err(AoCError::Custom(format!(
+            "Trying to solve an invalid day, found day: {n}"
+        ))),
     }
 }

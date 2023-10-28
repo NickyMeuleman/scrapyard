@@ -1,7 +1,7 @@
 use aoc2023::{
     day_01, day_02, day_03, day_04, day_05, day_06, day_07, day_08, day_09, day_10, day_11, day_12,
     day_13, day_14, day_15, day_16, day_17, day_18, day_19, day_20, day_21, day_22, day_23, day_24,
-    day_25, get_input, AoCDay, DAYS,
+    day_25, get_input, AoCDay, Day, DAYS,
 };
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 use std::env;
@@ -9,34 +9,38 @@ use std::env;
 fn bench_main(c: &mut Criterion) {
     let mut args = env::args();
 
-    let day: Option<u8> = {
+    let day: Option<Day> = {
         // the first argument is the location the program is running, we don't need that
         args.next();
         // the second argument should be the day
         match args.next() {
-            Some(day) => day.parse().ok(),
+            Some(num) => match num.parse().ok() {
+                Some(val) => Some(Day::try_new(val).unwrap()),
+                None => None,
+            },
             None => None,
         }
     };
 
     match day {
-        Some(num) => {
+        Some(day) => {
             // bench single day
-            bench_day(c, num);
+            bench_day(c, day);
         }
         None => {
             // bench all days
             for num in 1..=DAYS {
-                bench_day(c, num);
+                let day = Day::try_new(num).unwrap();
+                bench_day(c, day);
                 println!("\n");
             }
         }
     }
 }
 
-pub fn bench_day(c: &mut Criterion, day: u8) {
+pub fn bench_day(c: &mut Criterion, day: Day) {
     let input = get_input(day).expect("Getting input failed");
-    match day {
+    match day.value() {
         1 => day_helper::<day_01::Data>(c, day, &input),
         2 => day_helper::<day_02::Data>(c, day, &input),
         3 => day_helper::<day_03::Data>(c, day, &input),
@@ -66,8 +70,8 @@ pub fn bench_day(c: &mut Criterion, day: u8) {
     }
 }
 
-fn day_helper<'a, T: AoCDay<'a> + Clone>(c: &mut Criterion, day: u8, input: &'a str) {
-    let mut group = c.benchmark_group(format!("Day {:02}", day));
+fn day_helper<'a, T: AoCDay<'a> + Clone>(c: &mut Criterion, day: Day, input: &'a str) {
+    let mut group = c.benchmark_group(format!("Day {:02}", day.value()));
     group.bench_function("Parsing", |b| b.iter(|| black_box(T::try_new(&input))));
     let data = T::try_new(&input).unwrap();
     group.bench_function("Part 1", |b| b.iter(|| black_box(data.part_1())));

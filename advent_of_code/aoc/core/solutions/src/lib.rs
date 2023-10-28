@@ -9,7 +9,59 @@ use std::{
 };
 
 pub const DAYS: u8 = 25;
-pub const LAST_YEAR: u32 = 2023;
+pub const LAST_YEAR: u16 = 2023;
+
+// https://rustwasm.github.io/wasm-bindgen/api/wasm_bindgen/struct.JsError.html
+#[derive(Debug, Clone)]
+pub enum AoCError {
+    Custom(String),
+}
+use core::fmt;
+impl std::error::Error for AoCError {}
+impl Display for AoCError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let message = match self {
+            AoCError::Custom(msg) => msg,
+        };
+        write!(f, "{}", message)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Day {
+    value: u8,
+}
+
+impl Day {
+    pub fn try_new(value: u8) -> Result<Self, AoCError> {
+        if value < 1 || value > 25 {
+            return Err(AoCError::Custom("Invalid day".to_string()));
+        }
+        Ok(Self { value })
+    }
+
+    pub fn value(&self) -> u8 {
+        self.value
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Year {
+    value: u16,
+}
+
+impl Year {
+    pub fn try_new(value: u16) -> Result<Self, AoCError> {
+        if value < 2015 || value > LAST_YEAR {
+            return Err(AoCError::Custom("Invalid year".to_string()));
+        }
+        Ok(Self { value })
+    }
+
+    pub fn value(&self) -> u16 {
+        self.value
+    }
+}
 
 pub enum Answer {
     Part(String),
@@ -21,6 +73,16 @@ pub enum Part {
     One = 1,
     Two = 2,
     Both = 3,
+}
+
+impl Part {
+    pub fn new(value: u8) -> Self {
+        match value {
+            1 => Self::One,
+            2 => Self::Two,
+            _ => Self::Both,
+        }
+    }
 }
 
 // https://github.com/rustwasm/wasm-bindgen/issues/1775
@@ -61,11 +123,11 @@ pub trait AoCDay<'a> {
     }
 }
 
-pub fn get_input(year: u32, day: u8) -> io::Result<String> {
+pub fn get_input(year: Year, day: Day) -> io::Result<String> {
     let mut input_path = workspace_dir();
-    input_path.push(year.to_string());
+    input_path.push(year.value().to_string());
     input_path.push("inputs");
-    input_path.push(format!("day{:02}.txt", day));
+    input_path.push(format!("day{:02}.txt", day.value()));
     fs::read_to_string(input_path)
 }
 
@@ -89,15 +151,15 @@ fn workspace_dir() -> PathBuf {
 }
 
 pub fn print_part(
-    year: u32,
-    day: u8,
+    year: Year,
+    day: Day,
     part: &Part,
-    part_solver: impl Fn(u8, &Part, &str) -> Result<Answer, String>,
+    part_solver: impl Fn(Day, &Part, &str) -> Result<Answer, AoCError>,
 ) {
     println!(
         "Year {}, Day {}, {}",
-        year,
-        day,
+        year.value(),
+        day.value(),
         match part {
             Part::One => "part 1",
             Part::Two => "part 2",
@@ -126,10 +188,10 @@ pub fn print_part(
 }
 
 pub fn part_helper<'a, T: AoCDay<'a>>(
-    day: u8,
+    day: Day,
     part: &Part,
     input: &'a str,
-) -> Result<Answer, String> {
+) -> Result<Answer, AoCError> {
     if let Some(data) = T::try_new(input) {
         let answer = match part {
             Part::One => Answer::Part(data.part_1().to_string()),
@@ -138,6 +200,9 @@ pub fn part_helper<'a, T: AoCDay<'a>>(
         };
         Ok(answer)
     } else {
-        Err(format!("Failed to parse day {day}"))
+        Err(AoCError::Custom(format!(
+            "Failed to parse day {}",
+            day.value()
+        )))
     }
 }
