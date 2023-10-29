@@ -25,20 +25,20 @@ fn bench_main(c: &mut Criterion) {
     match day {
         Some(day) => {
             // bench single day
-            bench_day(c, day);
+            bench_day(c, &day);
         }
         None => {
             // bench all days
             for num in 1..=DAYS {
                 let day = Day::try_new(num).unwrap();
-                bench_day(c, day);
+                bench_day(c, &day);
                 println!("\n");
             }
         }
     }
 }
 
-pub fn bench_day(c: &mut Criterion, day: Day) {
+pub fn bench_day(c: &mut Criterion, day: &Day) {
     let input = get_input(day).expect("Getting input failed");
     match day.value() {
         1 => day_helper::<day_01::Data>(c, day, &input),
@@ -70,7 +70,7 @@ pub fn bench_day(c: &mut Criterion, day: Day) {
     }
 }
 
-fn day_helper<'a, T: AoCDay<'a> + Clone>(c: &mut Criterion, day: Day, input: &'a str) {
+fn day_helper<'a, T: AoCDay<'a> + Clone>(c: &mut Criterion, day: &Day, input: &'a str) {
     let mut group = c.benchmark_group(format!("Day {:02}", day.value()));
     group.bench_function("Parsing", |b| b.iter(|| black_box(T::try_new(&input))));
     let data = T::try_new(&input).unwrap();
