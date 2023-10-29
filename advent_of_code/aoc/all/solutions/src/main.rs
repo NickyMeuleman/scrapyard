@@ -42,15 +42,15 @@ fn main() {
     if let Some(year) = year {
         // run one year
         match day {
-            Some(num) => {
+            Some(day) => {
                 // run single day
-                print_part(year, num, &part);
+                print_part(&year, &day, &part);
             }
             None => {
                 // run all days
                 for num in 1..=DAYS {
                     let day = Day::try_new(num).unwrap();
-                    print_part(year, day, &part);
+                    print_part(&year, &day, &part);
                     println!("\n");
                 }
             }
@@ -61,7 +61,7 @@ fn main() {
             let year = Year::try_new(num).unwrap();
             for num in 1..=DAYS {
                 let day = Day::try_new(num).unwrap();
-                print_part(year, day, &part);
+                print_part(&year, &day, &part);
                 println!("\n");
             }
         }

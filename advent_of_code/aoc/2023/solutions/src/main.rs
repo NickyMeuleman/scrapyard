@@ -11,7 +11,7 @@ fn main() {
 
     let day: Option<Day> = {
         match args.next() {
-            Some(day) => match day.parse::<u8>() {
+            Some(day) => match day.parse() {
                 Ok(val) => Day::try_new(val).ok(),
                 Err(_) => None,
             },
@@ -31,15 +31,15 @@ fn main() {
     };
 
     match day {
-        Some(num) => {
+        Some(day) => {
             // run single day
-            print_part(num, &part);
+            print_part(&day, &part);
         }
         None => {
             // run all days
             for num in 1..=DAYS {
                 let day = Day::try_new(num).unwrap();
-                print_part(day, &part);
+                print_part(&day, &part);
                 println!("\n");
             }
         }

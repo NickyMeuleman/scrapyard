@@ -37,7 +37,6 @@ impl From<io::Error> for AoCError {
     }
 }
 
-#[derive(Clone, Copy)]
 pub struct Day {
     value: u8,
 }
@@ -55,7 +54,6 @@ impl Day {
     }
 }
 
-#[derive(Clone, Copy)]
 pub struct Year {
     value: u16,
 }
@@ -133,7 +131,7 @@ pub trait AoCDay<'a> {
     }
 }
 
-pub fn get_input(year: Year, day: Day) -> Result<String, AoCError> {
+pub fn get_input(year: &Year, day: &Day) -> Result<String, AoCError> {
     let mut input_path = workspace_dir();
     input_path.push(year.value().to_string());
     input_path.push("inputs");
@@ -162,10 +160,10 @@ fn workspace_dir() -> PathBuf {
 }
 
 pub fn print_part(
-    year: Year,
-    day: Day,
+    year: &Year,
+    day: &Day,
     part: &Part,
-    part_solver: impl Fn(Day, &Part, &str) -> Result<Answer, AoCError>,
+    part_solver: impl Fn(&Day, &Part, &str) -> Result<Answer, AoCError>,
 ) {
     println!(
         "Year {}, Day {}, {}",

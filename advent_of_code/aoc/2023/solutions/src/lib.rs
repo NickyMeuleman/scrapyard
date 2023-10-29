@@ -28,17 +28,17 @@ pub mod day_23;
 pub mod day_24;
 pub mod day_25;
 
-pub fn get_input(day: Day) -> Result<String, AoCError> {
+pub fn get_input(day: &Day) -> Result<String, AoCError> {
     let year = Year::try_new(2023)?;
-    aoc_core::get_input(year, day)
+    aoc_core::get_input(&year, day)
 }
 
-pub fn print_part(day: Day, part: &Part) {
+pub fn print_part(day: &Day, part: &Part) {
     let year = Year::try_new(2023).unwrap();
-    aoc_core::print_part(year, day, part, solve_part)
+    aoc_core::print_part(&year, day, part, solve_part)
 }
 
-pub fn solve_part(day: Day, part: &Part, input: &str) -> Result<Answer, AoCError> {
+pub fn solve_part(day: &Day, part: &Part, input: &str) -> Result<Answer, AoCError> {
     match day.value() {
         1 => part_helper::<day_01::Data>(part, input),
         2 => part_helper::<day_02::Data>(part, input),

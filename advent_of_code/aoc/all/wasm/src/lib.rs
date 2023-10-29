@@ -7,7 +7,7 @@ pub async fn solve(year: u16, day: u8, part: u8, input: String) -> Result<WasmSo
     let year = Year::try_new(year)?;
     let day = Day::try_new(day)?;
     let part = Part::new(part);
-    let answer = solve_part(year, day, &part, &input)?;
+    let answer = solve_part(&year, &day, &part, &input)?;
     // wasm bindgen can't handle enums with values yet
     // see: https://github.com/rustwasm/wasm-bindgen/issues/2407
     // I'd like to return an enum for the solved part that holds a string, but we can't.
