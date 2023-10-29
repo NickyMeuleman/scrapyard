@@ -37,12 +37,14 @@ impl From<io::Error> for AoCError {
     }
 }
 
+pub type AoCResult<T> = Result<T, AoCError>;
+
 pub struct Day {
     value: u8,
 }
 
 impl Day {
-    pub fn try_new(value: u8) -> Result<Self, AoCError> {
+    pub fn try_new(value: u8) -> AoCResult<Self> {
         if value < 1 || value > 25 {
             return Err(AoCError::new("Invalid day"));
         }
@@ -59,7 +61,7 @@ pub struct Year {
 }
 
 impl Year {
-    pub fn try_new(value: u16) -> Result<Self, AoCError> {
+    pub fn try_new(value: u16) -> AoCResult<Self> {
         if value < 2015 || value > LAST_YEAR {
             return Err(AoCError::new("Invalid year"));
         }
@@ -107,15 +109,15 @@ pub struct Solution {
 
 pub trait AoCDay<'a> {
     /// Parse an input string into a Data struct for a specific day
-    fn try_new(input: &'a str) -> Result<Self, AoCError>
+    fn try_new(input: &'a str) -> AoCResult<Self>
     where
         Self: Sized;
 
     /// part1 solution
-    fn part_1(&self) -> Result<impl Display, AoCError>;
+    fn part_1(&self) -> AoCResult<impl Display>;
 
     /// part2 solution
-    fn part_2(&self) -> Result<impl Display, AoCError>;
+    fn part_2(&self) -> AoCResult<impl Display>;
 
     /// both solutions
     fn solve(self) -> Result<Solution, AoCError>
@@ -163,7 +165,7 @@ pub fn print_part(
     year: &Year,
     day: &Day,
     part: &Part,
-    part_solver: impl Fn(&Day, &Part, &str) -> Result<Answer, AoCError>,
+    part_solver: impl Fn(&Day, &Part, &str) -> AoCResult<Answer>,
 ) {
     println!(
         "Year {}, Day {}, {}",

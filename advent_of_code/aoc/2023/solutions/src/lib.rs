@@ -1,6 +1,8 @@
 #![feature(return_position_impl_trait_in_trait)]
 
-pub use aoc_core::{part_helper, Answer, AoCDay, AoCError, Day, Part, Solution, Year, DAYS};
+pub use aoc_core::{
+    part_helper, Answer, AoCDay, AoCError, AoCResult, Day, Part, Solution, Year, DAYS,
+};
 
 pub mod day_01;
 pub mod day_02;
@@ -28,7 +30,7 @@ pub mod day_23;
 pub mod day_24;
 pub mod day_25;
 
-pub fn get_input(day: &Day) -> Result<String, AoCError> {
+pub fn get_input(day: &Day) -> AoCResult<String> {
     let year = Year::try_new(2023)?;
     aoc_core::get_input(&year, day)
 }
@@ -38,7 +40,7 @@ pub fn print_part(day: &Day, part: &Part) {
     aoc_core::print_part(&year, day, part, solve_part)
 }
 
-pub fn solve_part(day: &Day, part: &Part, input: &str) -> Result<Answer, AoCError> {
+pub fn solve_part(day: &Day, part: &Part, input: &str) -> AoCResult<Answer> {
     match day.value() {
         1 => part_helper::<day_01::Data>(part, input),
         2 => part_helper::<day_02::Data>(part, input),

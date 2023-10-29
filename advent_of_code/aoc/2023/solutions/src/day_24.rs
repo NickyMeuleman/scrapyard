@@ -1,20 +1,20 @@
 use std::fmt::Display;
 
-use crate::{AoCDay, AoCError};
+use crate::{AoCDay, AoCResult};
 
 #[derive(Debug, Clone)]
 pub struct Data;
 
 impl AoCDay<'_> for Data {
-    fn try_new(_input: &str) -> Result<Self, AoCError> {
+    fn try_new(_input: &str) -> AoCResult<Self> {
         Ok(Self)
     }
 
-    fn part_1(&self) -> Result<impl Display, AoCError> {
+    fn part_1(&self) -> AoCResult<impl Display> {
         Ok("")
     }
 
-    fn part_2(&self) -> Result<impl Display, AoCError> {
+    fn part_2(&self) -> AoCResult<impl Display> {
         Ok("")
     }
 }
