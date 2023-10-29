@@ -120,7 +120,7 @@ pub trait AoCDay<'a> {
     fn part_2(&self) -> AoCResult<impl Display>;
 
     /// both solutions
-    fn solve(self) -> Result<Solution, AoCError>
+    fn solve(self) -> AoCResult<Solution>
     where
         Self: Sized,
     {
@@ -198,7 +198,7 @@ pub fn print_part(
     }
 }
 
-pub fn part_helper<'a, T: AoCDay<'a>>(part: &Part, input: &'a str) -> Result<Answer, AoCError> {
+pub fn part_helper<'a, T: AoCDay<'a>>(part: &Part, input: &'a str) -> AoCResult<Answer> {
     let data = T::try_new(input)?;
     let answer = match part {
         Part::One => Answer::Part(data.part_1()?.to_string()),
