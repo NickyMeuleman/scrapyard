@@ -3,7 +3,7 @@ use aoc_core_wasm::WasmSolution;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub async fn solve(day: u8, input: String, part: u8) -> Result<WasmSolution, JsError> {
+pub async fn solve(day: u8, part: u8, input: String) -> Result<WasmSolution, JsError> {
     let day = Day::try_new(day)?;
     let part = Part::new(part);
 
