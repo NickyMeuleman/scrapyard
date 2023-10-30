@@ -4,6 +4,7 @@ use std::{
     env,
     fmt::Display,
     fs, io,
+    num::{ParseIntError, TryFromIntError},
     path::{Path, PathBuf},
     time::Instant,
 };
@@ -33,6 +34,16 @@ impl Display for AoCError {
 
 impl From<io::Error> for AoCError {
     fn from(value: io::Error) -> Self {
+        Self::new(value.to_string())
+    }
+}
+impl From<ParseIntError> for AoCError {
+    fn from(value: ParseIntError) -> Self {
+        Self::new(value.to_string())
+    }
+}
+impl From<TryFromIntError> for AoCError {
+    fn from(value: TryFromIntError) -> Self {
         Self::new(value.to_string())
     }
 }
