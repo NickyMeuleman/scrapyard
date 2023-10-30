@@ -4,37 +4,11 @@ use aoc2023::{
     day_25, get_input, AoCDay, Day, DAYS,
 };
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
-use std::env;
 
 fn bench_main(c: &mut Criterion) {
-    let mut args = env::args();
-
-    let day: Option<Day> = {
-        // the first argument is the location the program is running, we don't need that
-        args.next();
-        // the second argument should be the day
-        match args.next() {
-            Some(num) => match num.parse().ok() {
-                Some(val) => Some(Day::try_new(val).unwrap()),
-                None => None,
-            },
-            None => None,
-        }
-    };
-
-    match day {
-        Some(day) => {
-            // bench single day
-            bench_day(c, &day);
-        }
-        None => {
-            // bench all days
-            for num in 1..=DAYS {
-                let day = Day::try_new(num).unwrap();
-                bench_day(c, &day);
-                println!("\n");
-            }
-        }
+    for num in 1..=DAYS {
+        let day = Day::try_new(num).unwrap();
+        bench_day(c, &day)
     }
 }
 
