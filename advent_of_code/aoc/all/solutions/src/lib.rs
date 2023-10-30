@@ -10,8 +10,9 @@ pub fn solve_part(year: &Year, day: &Day, part: &Part, input: &str) -> AoCResult
     part_solver(day, part, input)
 }
 
-fn get_solver(year: &Year) -> AoCResult<impl Fn(&Day, &Part, &str) -> AoCResult<Answer>> {
+fn get_solver(year: &Year) -> AoCResult<fn(&Day, &Part, &str) -> AoCResult<Answer>> {
     match year.value() {
+        2022 => Ok(aoc2022::solve_part),
         2023 => Ok(aoc2023::solve_part),
         _ => Err(AoCError::new("Unsupported year")),
     }
