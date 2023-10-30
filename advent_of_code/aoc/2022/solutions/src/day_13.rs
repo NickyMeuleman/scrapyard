@@ -103,7 +103,7 @@ impl AoCData<'_> for Data {
                 Some([parse_packet(left), parse_packet(right)])
             })
             .collect::<Option<Vec<[Packet; 2]>>>()
-            .ok_or(AoCError::new("Parsing Failed"))?;
+            .ok_or(AoCError::Parsing)?;
 
         Ok(Self(pairs))
     }

@@ -93,31 +93,31 @@ impl AoCData<'_> for Data {
         for line in input.lines() {
             let (sensor, beacon) = line
                 .split_once(": ")
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             let sensor = sensor
                 .strip_prefix("Sensor at ")
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             let beacon = beacon
                 .strip_prefix("closest beacon is at ")
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             let (sx, sy) = sensor
                 .split_once(", ")
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             let (bx, by) = beacon
                 .split_once(", ")
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             let sx = sx
                 .strip_prefix("x=")
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             let sy = sy
                 .strip_prefix("y=")
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             let bx = bx
                 .strip_prefix("x=")
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             let by = by
                 .strip_prefix("y=")
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
 
             let pair = [
                 Coord {

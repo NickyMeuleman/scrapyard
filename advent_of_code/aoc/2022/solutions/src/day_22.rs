@@ -156,7 +156,7 @@ impl AoCData<'_> for Data {
         let (grid, moves) = input
             .trim_end()
             .split_once("\n\n")
-            .ok_or(AoCError::new("Parsing Failed"))?;
+            .ok_or(AoCError::Parsing)?;
         let mut instructions = Vec::new();
         let mut digits = Vec::new();
         for c in moves.chars() {
@@ -164,7 +164,7 @@ impl AoCData<'_> for Data {
                 // accumulate digits
                 let digit = c
                     .to_digit(10)
-                    .ok_or(AoCError::new("Parsing Failed"))? as u8;
+                    .ok_or(AoCError::Parsing)? as u8;
                 digits.push(digit);
             } else {
                 // construct number out of digits
@@ -179,7 +179,7 @@ impl AoCData<'_> for Data {
                 let turn = match c {
                     'L' => Turn::L,
                     'R' => Turn::R,
-                    _ => return Err(AoCError::new("Parsing Failed")),
+                    _ => return Err(AoCError::Parsing),
                 };
                 instructions.push(Instruction::Rotate(turn));
             }
@@ -199,7 +199,7 @@ impl AoCData<'_> for Data {
                     '.' => Tile::Open,
                     '#' => Tile::Solid,
                     ' ' => Tile::None,
-                    _ => return Err(AoCError::new("Parsing Failed")),
+                    _ => return Err(AoCError::Parsing),
                 };
                 row.push(tile);
             }

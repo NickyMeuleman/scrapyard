@@ -303,7 +303,7 @@ impl<'a> AoCData<'a> for Data<'a> {
             .filter(|(human, elephant)| human.0.is_disjoint(elephant.0))
             .map(|(human, elephant)| human.1 + elephant.1)
             .max()
-            .ok_or(AoCError::new("No maximum found"))
+            .ok_or(AoCError::Solving)
     }
 }
 

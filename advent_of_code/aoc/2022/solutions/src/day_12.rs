@@ -84,7 +84,7 @@ impl AoCData<'_> for Data {
         let cols = input
             .lines()
             .next()
-            .ok_or(AoCError::new("Failed Parsing"))?
+            .ok_or(AoCError::Parsing)?
             .len();
         let mut map = vec![vec![0; cols]; rows];
         let mut start = Coord { x: 0, y: 0 };
@@ -104,7 +104,7 @@ impl AoCData<'_> for Data {
                         'z'
                     }
                     'a'..='z' => c,
-                    _ => return Err(AoCError::new("Failed Parsing")),
+                    _ => return Err(AoCError::Parsing),
                 };
 
                 let val = letter as u8 - b'a';

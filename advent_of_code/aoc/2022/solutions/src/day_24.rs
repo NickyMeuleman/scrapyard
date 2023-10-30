@@ -257,7 +257,7 @@ impl AoCData<'_> for Data {
         let cols = input
             .lines()
             .next()
-            .ok_or(AoCError::new("Parsing Failed"))?
+            .ok_or(AoCError::Parsing)?
             .chars()
             .count();
 
@@ -273,7 +273,7 @@ impl AoCData<'_> for Data {
                     'v' => Tile::Blizzard(Direction::Down),
                     '<' => Tile::Blizzard(Direction::Left),
                     '>' => Tile::Blizzard(Direction::Right),
-                    _ => return Err(AoCError::new("Parsing Failed")),
+                    _ => return Err(AoCError::Parsing),
                 };
                 map.insert(coord, tile);
             }

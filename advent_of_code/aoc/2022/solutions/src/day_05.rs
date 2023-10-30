@@ -22,16 +22,16 @@ impl AoCData<'_> for Data {
     fn try_new(input: &str) -> AoCResult<Self> {
         let (left, instructions_str) = input
             .split_once("\n\n")
-            .ok_or(AoCError::new("Parsing Failed"))?;
+            .ok_or(AoCError::Parsing)?;
         let (stacks_str, platforms) = left
             .rsplit_once('\n')
-            .ok_or(AoCError::new("Parsing Failed"))?;
+            .ok_or(AoCError::Parsing)?;
 
         // parse crates
         let num_stacks = platforms
             .split_whitespace()
             .last()
-            .ok_or(AoCError::new("Parsing Failed"))?
+            .ok_or(AoCError::Parsing)?
             .parse()?;
 
         let mut stacks = vec![Vec::new(); num_stacks];
@@ -42,9 +42,7 @@ impl AoCData<'_> for Data {
                 .into_iter()
                 .enumerate()
             {
-                let second = chunk
-                    .nth(1)
-                    .ok_or(AoCError::new("Parsing Failed"))?;
+                let second = chunk.nth(1).ok_or(AoCError::Parsing)?;
                 if second.is_alphabetic() {
                     stacks[idx].push(second);
                 }
@@ -56,13 +54,13 @@ impl AoCData<'_> for Data {
         for line in instructions_str.lines() {
             let rest = line
                 .strip_prefix("move ")
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             let (amount, rest) = rest
                 .split_once(" from ")
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             let (from, to) = rest
                 .split_once(" to ")
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             let instruction = Instruction {
                 amount: amount.parse()?,
                 from: from.parse::<usize>()? - 1,

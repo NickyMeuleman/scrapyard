@@ -195,7 +195,7 @@ impl AoCData<'_> for Data {
             }
         }
 
-        Err(AoCError::new("Solving Failed"))
+        Err(AoCError::Solving)
     }
 
     fn part_2(&self) -> AoCResult<impl Display> {
@@ -257,7 +257,7 @@ impl AoCData<'_> for Data {
             checks.rotate_left(1);
         }
 
-        Err(AoCError::new("Solving Failed"))
+        Err(AoCError::Solving)
     }
 }
 

@@ -129,7 +129,7 @@ impl AoCData<'_> for Data {
             .map(|c| match c {
                 '<' => Ok(Jet::Left),
                 '>' => Ok(Jet::Right),
-                _ => Err(AoCError::new("Parsing Failed")),
+                _ => Err(AoCError::Parsing),
             })
             .collect::<AoCResult<_>>()?;
 

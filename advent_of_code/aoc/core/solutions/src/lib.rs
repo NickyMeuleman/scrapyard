@@ -14,13 +14,15 @@ pub const LAST_YEAR: u16 = 2023;
 
 // https://rustwasm.github.io/wasm-bindgen/api/wasm_bindgen/struct.JsError.html
 #[derive(Debug, Clone)]
-pub struct AoCError {
-    value: String,
+pub enum AoCError {
+    Parsing,
+    Solving,
+    Custom(String),
 }
 
 impl AoCError {
     pub fn new<T: Into<String>>(t: T) -> Self {
-        Self { value: t.into() }
+        Self::Custom(t.into())
     }
 }
 
@@ -28,7 +30,12 @@ use core::fmt;
 impl std::error::Error for AoCError {}
 impl Display for AoCError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.value)
+        let message = match self {
+            AoCError::Parsing => "Failed to parse",
+            AoCError::Solving => "Failed to solve",
+            AoCError::Custom(msg) => msg,
+        };
+        write!(f, "{}", message)
     }
 }
 

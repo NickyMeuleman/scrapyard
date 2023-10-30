@@ -58,9 +58,9 @@ impl AoCData<'_> for Data {
 
             let (_, items) = lines
                 .next()
-                .ok_or(AoCError::new("Failed Parsing"))?
+                .ok_or(AoCError::Parsing)?
                 .split_once(": ")
-                .ok_or(AoCError::new("Failed Parsing"))?;
+                .ok_or(AoCError::Parsing)?;
             let items = items
                 .split_terminator(", ")
                 .filter_map(|s| s.parse().ok())
@@ -68,12 +68,12 @@ impl AoCData<'_> for Data {
 
             let (_, operation) = lines
                 .next()
-                .ok_or(AoCError::new("Failed Parsing"))?
+                .ok_or(AoCError::Parsing)?
                 .split_once("= old ")
-                .ok_or(AoCError::new("Failed Parsing"))?;
+                .ok_or(AoCError::Parsing)?;
             let (operator, operand) = operation
                 .split_once(' ')
-                .ok_or(AoCError::new("Failed Parsing"))?;
+                .ok_or(AoCError::Parsing)?;
             let operand = match operand {
                 "old" => Value::Old,
                 _ => {
@@ -84,21 +84,21 @@ impl AoCData<'_> for Data {
 
             let (_, divisible) = lines
                 .next()
-                .ok_or(AoCError::new("Failed Parsing"))?
+                .ok_or(AoCError::Parsing)?
                 .rsplit_once(' ')
-                .ok_or(AoCError::new("Failed Parsing"))?;
+                .ok_or(AoCError::Parsing)?;
             let divisible = divisible.parse()?;
             let (_, true_recipient) = lines
                 .next()
-                .ok_or(AoCError::new("Failed Parsing"))?
+                .ok_or(AoCError::Parsing)?
                 .rsplit_once(' ')
-                .ok_or(AoCError::new("Failed Parsing"))?;
+                .ok_or(AoCError::Parsing)?;
             let true_recipient = true_recipient.parse()?;
             let (_, false_recipient) = lines
                 .next()
-                .ok_or(AoCError::new("Failed Parsing"))?
+                .ok_or(AoCError::Parsing)?
                 .rsplit_once(' ')
-                .ok_or(AoCError::new("Failed Parsing"))?;
+                .ok_or(AoCError::Parsing)?;
             let false_recipient = false_recipient.parse()?;
 
             let operation = match operator {

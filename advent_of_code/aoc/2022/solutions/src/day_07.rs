@@ -85,7 +85,7 @@ impl<'a> AoCData<'a> for Data<'a> {
             .into_values()
             .filter(|size| available + size >= needed)
             .min()
-            .ok_or(AoCError::new("No minimum found"))?;
+            .ok_or(AoCError::Solving)?;
 
         Ok(result)
     }

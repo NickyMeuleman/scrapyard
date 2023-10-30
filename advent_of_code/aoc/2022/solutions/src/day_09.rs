@@ -34,13 +34,13 @@ impl AoCData<'_> for Data {
         for line in input.lines() {
             let (dir, amount) = line
                 .split_once(' ')
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             let dir = match dir {
                 "U" => Direction::U,
                 "D" => Direction::D,
                 "L" => Direction::L,
                 "R" => Direction::R,
-                _ => return Err(AoCError::new("Parsing Failed")),
+                _ => return Err(AoCError::Parsing),
             };
             let amount = amount.parse()?;
             instructions.push(Instruction { dir, amount });

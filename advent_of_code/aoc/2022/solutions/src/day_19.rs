@@ -234,7 +234,7 @@ impl AoCData<'_> for Data {
             // ore bots cost ore
             let ore_bot_costs = [
                 iter.nth(6)
-                    .ok_or(AoCError::new("Parsing Failed"))?
+                    .ok_or(AoCError::Parsing)?
                     .parse()?,
                 0,
                 0,
@@ -243,7 +243,7 @@ impl AoCData<'_> for Data {
             // clay bots cost ore
             let clay_bot_costs = [
                 iter.nth(5)
-                    .ok_or(AoCError::new("Parsing Failed"))?
+                    .ok_or(AoCError::Parsing)?
                     .parse()?,
                 0,
                 0,
@@ -252,10 +252,10 @@ impl AoCData<'_> for Data {
             // obsidian bots cost ore and clay
             let obsidian_bot_costs = [
                 iter.nth(5)
-                    .ok_or(AoCError::new("Parsing Failed"))?
+                    .ok_or(AoCError::Parsing)?
                     .parse()?,
                 iter.nth(2)
-                    .ok_or(AoCError::new("Parsing Failed"))?
+                    .ok_or(AoCError::Parsing)?
                     .parse()?,
                 0,
                 0,
@@ -263,11 +263,11 @@ impl AoCData<'_> for Data {
             // geode bots cost ore and obsidian
             let geode_bot_costs = [
                 iter.nth(5)
-                    .ok_or(AoCError::new("Parsing Failed"))?
+                    .ok_or(AoCError::Parsing)?
                     .parse()?,
                 0,
                 iter.nth(2)
-                    .ok_or(AoCError::new("Parsing Failed"))?
+                    .ok_or(AoCError::Parsing)?
                     .parse()?,
                 0,
             ];

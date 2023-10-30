@@ -89,7 +89,7 @@ impl AoCData<'_> for Data {
                     .product::<usize>()
             })
             .max()
-            .ok_or(AoCError::new("No maximum found"))?
+            .ok_or(AoCError::Solving)?
             .try_into()?;
 
         Ok(result)

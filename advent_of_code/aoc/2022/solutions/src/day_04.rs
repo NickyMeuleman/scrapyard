@@ -12,7 +12,7 @@ impl AoCData<'_> for Data {
         fn to_range(s: &str) -> AoCResult<[u32; 2]> {
             let (min, max) = s
                 .split_once('-')
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             Ok([min.parse()?, max.parse()?])
         }
 
@@ -20,7 +20,7 @@ impl AoCData<'_> for Data {
         for line in input.lines() {
             let (elf1, elf2) = line
                 .split_once(',')
-                .ok_or(AoCError::new("Parsing Failed"))?;
+                .ok_or(AoCError::Parsing)?;
             pairs.push([to_range(elf1)?, to_range(elf2)?]);
         }
 

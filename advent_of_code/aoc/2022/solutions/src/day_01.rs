@@ -27,7 +27,7 @@ impl<'a> AoCData<'a> for Data<'a> {
         if let Some(max) = result {
             Ok(max)
         } else {
-            Err(AoCError::new("No maximum found"))
+            Err(AoCError::Solving)
         }
     }
 
