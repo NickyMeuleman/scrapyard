@@ -1,7 +1,7 @@
 #![feature(return_position_impl_trait_in_trait)]
 
 pub use aoc_core::{
-    part_helper, Answer, AoCDay, AoCError, AoCResult, Day, Part, Solution, Year, DAYS,
+    part_helper, Answer, AoCData, AoCError, AoCResult, Day, Part, Solution, Year, DAYS,
 };
 
 pub mod day_01;

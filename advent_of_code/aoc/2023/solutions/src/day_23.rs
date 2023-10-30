@@ -1,11 +1,11 @@
 use std::fmt::Display;
 
-use crate::{AoCDay, AoCResult};
+use crate::{AoCData, AoCResult};
 
 #[derive(Debug, Clone)]
 pub struct Data;
 
-impl AoCDay<'_> for Data {
+impl AoCData<'_> for Data {
     fn try_new(_input: &str) -> AoCResult<Self> {
         Ok(Self)
     }
