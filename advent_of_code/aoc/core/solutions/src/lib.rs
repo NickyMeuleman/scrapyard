@@ -78,11 +78,10 @@ pub enum Answer {
     Both(Solution),
 }
 
-#[derive(Debug)]
 pub enum Part {
-    One = 1,
-    Two = 2,
-    Both = 3,
+    One,
+    Two,
+    Both,
 }
 
 impl Part {
