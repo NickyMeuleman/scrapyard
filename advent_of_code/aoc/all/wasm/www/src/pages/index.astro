@@ -108,14 +108,10 @@ import Layout from "../layouts/Layout.astro";
     const part = Number(partInputEl.value);
     const file = event.target.files[0];
     const input = await file.text();
-console.log(year, day, part, input);
+
     let resultHTML;
     try {
-      const solution = await solve(year, day, input, part);
-      console.log(solution);
-      for (let thing in solution) {
-        console.log(thing);
-      }
+      const solution = await solve(year, day, part, input);
       // JS match statements when?
       if (part == 1) {
         resultHTML = `<p>${solution.part1}</p>`;

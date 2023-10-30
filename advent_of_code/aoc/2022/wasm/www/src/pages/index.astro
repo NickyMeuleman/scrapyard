@@ -2,7 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout title="AoC solver">
+<Layout title="AoC 2022 solver">
   <main>
     <svg
       class="astro-a"
@@ -32,7 +32,7 @@ import Layout from "../layouts/Layout.astro";
         </linearGradient>
       </defs>
     </svg>
-    <h1>Welcome to <span class="text-gradient">Advent of Code</span></h1>
+    <h1>Welcome to <span class="text-gradient">Advent of Code 2022</span></h1>
     <div>
       <h2 class="text-gradient">Day:</h2>
       <input id="day" type="number" min="1" max="25" />
@@ -91,7 +91,7 @@ import Layout from "../layouts/Layout.astro";
 
 <script is:inline type="module">
   //@ts-nocheck
-  import init, { solve } from "../pkg/aoc2023_wasm.js";
+  import init, { solve } from "../pkg/aoc2022_wasm.js";
   await init();
 
   const fileInputEl = document.querySelector("#file");
@@ -107,11 +107,7 @@ import Layout from "../layouts/Layout.astro";
 
     let resultHTML;
     try {
-      const solution = await solve(day, input, part);
-      console.log(solution);
-      for (let thing in solution) {
-        console.log(thing);
-      }
+      const solution = await solve(day, part, input);
       // JS match statements when?
       if (part == 1) {
         resultHTML = `<p>${solution.part1}</p>`;
