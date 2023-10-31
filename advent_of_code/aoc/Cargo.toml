@@ -1,0 +1,31 @@
+[workspace]
+resolver = "2"
+members = [ "*/solutions", "*/wasm" ]
+default-members = ["all/solutions"]
+
+[workspace.package]
+authors = ["Nicky Meuleman <nicky.dev@outlook.com>"]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/NickyMeuleman/scrapyard"
+
+# https://doc.rust-lang.org/cargo/reference/profiles.html
+[profile.release]
+# Tell `LLVM` to optimize a certain way
+# for example, the optimization flag possibilities:
+# 's' size
+# 'z' aggressive size
+# 1   speed
+# 2   more speed
+# 3   even more speed (release profile default)
+opt-level = 'z'
+# use link time optimization, slower builds, but faster and smaller
+lto = true
+# abort on panic instead of unwinding the stack, smaller binaries, faster
+# https://doc.rust-lang.org/book/ch09-01-unrecoverable-errors-with-panic.html
+panic = 'abort'
+# More code generation units allows more of a crate to be processed in parallel possibly reducing compile time, but may produce slower code.
+codegen-units = 1
+# strip either symbols or debuginfo from a binary.
+strip = true

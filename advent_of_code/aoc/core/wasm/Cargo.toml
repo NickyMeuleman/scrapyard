@@ -1,0 +1,21 @@
+[package]
+name = "aoc-core-wasm"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Core code related to WebAssembly for Advent of Code crates"
+keywords = ["AoC", "advent-of-code", "wasm", "webassembly"]
+categories = ["wasm"]
+repository.workspace = true
+
+[dependencies]
+aoc-core = { path = "../solutions" }
+wasm-bindgen = "0.2.87"
+wasm-bindgen-futures = "0.4.37"
+
+[lib]
+# https://rustwasm.github.io/wasm-pack/book/tutorials/npm-browser-packages/template-deep-dive/cargo-toml.html#a1-crate-type
+# "cdylib" is necessary for wasm
+# "rlib" because we want to be able to use "use" statements in non-wasm spots like main.rs (for unit testing)
+crate-type = ["cdylib", "rlib"]
