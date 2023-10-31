@@ -12,4 +12,5 @@ repository.workspace = true
 
 [dependencies]
 aoc-core = { path = "../../core/solutions"}
+aoc2022 = { path = "../../2022/solutions"}
 aoc2023 = { path = "../../2023/solutions"}

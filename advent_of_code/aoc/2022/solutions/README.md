@@ -1,4 +1,4 @@
-Solutions to [Advent of Code 2023](https://adventofcode.com/2023) in the [Rust programming language](https://www.rust-lang.org/)
+Solutions to [Advent of Code 2022](https://adventofcode.com/2022) in the [Rust programming language](https://www.rust-lang.org/)
 
 ## Using the CLI to solve days locally
 
@@ -29,7 +29,7 @@ Two example usages of this crate:
 1. For more control, use the `solve_part` function.
 
 ```rust
-use aoc2023::{print_part, solve_part, Answer, Day, Part};
+use aoc2022::{print_part, solve_part, Answer, Day, Part};
 
 fn main() {
     let day = Day::try_new(1).unwrap();

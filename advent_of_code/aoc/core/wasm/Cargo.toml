@@ -7,7 +7,6 @@ license.workspace = true
 description = "Core code related to WebAssembly for Advent of Code crates"
 keywords = ["AoC", "advent-of-code", "wasm", "webassembly"]
 categories = ["wasm"]
-readme = "README.md"
 repository.workspace = true
 
 [dependencies]
