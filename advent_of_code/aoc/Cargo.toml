@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [ "*/solutions", "*/wasm" ]
-default-members = ["all/solutions"]
+default-members = ["2021/solutions"]
 
 [workspace.package]
 authors = ["Nicky Meuleman <nicky.dev@outlook.com>"]
