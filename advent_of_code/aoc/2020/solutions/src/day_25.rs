@@ -50,7 +50,7 @@ impl AoCData<'_> for Data {
     }
 
     fn part_2(&self) -> AoCResult<impl Display> {
-        Ok("")
+        Ok("HoHoHo!")
     }
 }
 
