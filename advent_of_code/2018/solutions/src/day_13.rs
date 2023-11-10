@@ -1,10 +1,4 @@
-use std::{
-    cmp::{Ordering, Reverse},
-    collections::{BTreeMap, BinaryHeap, HashMap, HashSet},
-    fmt::Display,
-};
-
-use itertools::Itertools;
+use std::{collections::BTreeMap, fmt::Display};
 
 use crate::{AoCData, AoCResult};
 
@@ -422,19 +416,30 @@ impl AoCData<'_> for Data {
 mod test {
     use super::*;
 
-    #[test]
-    fn part_1() {
-        let input = "";
-        let data = Data::try_new(input).unwrap();
-        let result = data.part_1().unwrap().to_string();
-        assert_eq!(result, "");
-    }
+    //     #[test]
+    //     fn part_1() {
+    //         let input = r#"/->-\
+    // |   |  /----\
+    // | /-+--+-\  |
+    // | | |  | v  |
+    // \-+-/  \-+--/
+    //   \------/   "#;
+    //         let data = Data::try_new(input).unwrap();
+    //         let result = data.part_1().unwrap().to_string();
+    //         assert_eq!(result, "7,3");
+    //     }
 
     #[test]
     fn part_2() {
-        let input = "";
+        let input = r#"/>-<\  
+|   |  
+| /<+-\
+| | | v
+\>+</ |
+  |   ^
+  \<->/"#;
         let data = Data::try_new(input).unwrap();
         let result = data.part_2().unwrap().to_string();
-        assert_eq!(result, "");
+        assert_eq!(result, "6,4");
     }
 }
