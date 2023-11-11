@@ -29,6 +29,7 @@ pub mod day_22;
 pub mod day_23;
 pub mod day_24;
 pub mod day_25;
+pub mod intcode;
 
 pub fn get_input(day: &Day) -> AoCResult<String> {
     let year = Year::try_new(2019)?;
