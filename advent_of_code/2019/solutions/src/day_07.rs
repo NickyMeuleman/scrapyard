@@ -5,7 +5,7 @@ use itertools::Itertools;
 use crate::{intcode::Computer, AoCData, AoCResult};
 
 #[derive(Debug, Clone)]
-pub struct Data(Vec<i32>);
+pub struct Data(Vec<i64>);
 
 impl AoCData<'_> for Data {
     fn try_new(input: &str) -> AoCResult<Self> {
@@ -23,11 +23,14 @@ impl AoCData<'_> for Data {
         for permutation in phases.iter().permutations(5) {
             let mut val = 0;
             for &phase in permutation {
-                let mut computer = Computer::new();
+                let mut computer: Computer = Default::default();
                 computer.set_memory(self.0.clone());
                 computer.input(phase);
                 computer.input(val);
-                val = computer.run().unwrap();
+                computer.run();
+                val = computer
+                    .last_output()
+                    .unwrap_or_default();
             }
             largest = largest.max(val);
         }
@@ -41,7 +44,7 @@ impl AoCData<'_> for Data {
             // setup once
             let mut amps = Vec::new();
             for phase in &permutation {
-                let mut computer = Computer::new();
+                let mut computer: Computer = Default::default();
                 computer.set_memory(self.0.clone());
                 computer.input(**phase);
                 amps.push(computer);
@@ -53,7 +56,10 @@ impl AoCData<'_> for Data {
                 for (idx, _) in permutation.iter().enumerate() {
                     let curr_amp = &mut amps[idx];
                     curr_amp.input(signal);
-                    if let Some(output) = curr_amp.run() {
+                    curr_amp.run();
+                    if let Some(output) = curr_amp.last_output() {
+                        // lots of looping, clean up memory
+                        curr_amp.outputs.clear();
                         signal = output;
                     } else {
                         break 'outer;
