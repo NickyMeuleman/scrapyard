@@ -7,7 +7,7 @@ pub struct Computer {
     instruction_pointer: usize,
     pub memory: Vec<i64>,
     inputs: VecDeque<i64>,
-    pub outputs: Vec<i64>,
+    pub outputs: VecDeque<i64>,
     relative_base: i64,
 }
 
@@ -122,7 +122,11 @@ impl Computer {
     }
 
     pub fn last_output(&self) -> Option<i64> {
-        self.outputs.last().copied()
+        self.outputs.back().copied()
+    }
+
+    pub fn consume_output(&mut self) -> Option<i64> {
+        self.outputs.pop_front()
     }
 
     // does one operation and returns if program stops running
@@ -160,7 +164,7 @@ impl Computer {
             // produce output, 1 parameter: value of param is added to outputs
             Opcode::Output => {
                 let value = self.read(operation, 1)?;
-                self.outputs.push(value);
+                self.outputs.push_back(value);
                 self.instruction_pointer += 2;
             }
             // jump-if-true, 2 parameters: check-value, jump-value
