@@ -27,7 +27,7 @@ impl AoCData<'_> for Data {
                 computer.set_memory(self.0.clone());
                 computer.input(phase);
                 computer.input(val);
-                computer.run();
+                computer.run()?;
                 val = computer
                     .last_output()
                     .unwrap_or_default();
@@ -56,7 +56,7 @@ impl AoCData<'_> for Data {
                 for (idx, _) in permutation.iter().enumerate() {
                     let curr_amp = &mut amps[idx];
                     curr_amp.input(signal);
-                    curr_amp.run();
+                    curr_amp.run()?;
                     if let Some(output) = curr_amp.last_output() {
                         // lots of looping, clean up memory
                         curr_amp.outputs.clear();

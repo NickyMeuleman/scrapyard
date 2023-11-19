@@ -56,7 +56,7 @@ impl AoCData<'_> for Data {
         computer.set_memory(self.0.clone());
         computer.write_raw(1, 12);
         computer.write_raw(2, 2);
-        computer.run();
+        computer.run()?;
         Ok(computer.read_raw(0))
     }
 
@@ -106,7 +106,7 @@ impl AoCData<'_> for Data {
                 computer.set_memory(self.0.clone());
                 computer.write_raw(1, noun);
                 computer.write_raw(2, verb);
-                computer.run();
+                computer.run()?;
                 if computer.read_raw(0) == 19690720 {
                     return Ok(100 * noun + verb);
                 }

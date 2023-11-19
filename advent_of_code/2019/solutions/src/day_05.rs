@@ -86,7 +86,7 @@ impl AoCData<'_> for Data {
         let mut computer: Computer = Default::default();
         computer.set_memory(self.0.clone());
         computer.input(1);
-        computer.run();
+        computer.run()?;
         computer
             .last_output()
             .ok_or(AoCError::Solving)
@@ -178,7 +178,7 @@ impl AoCData<'_> for Data {
         let mut computer: Computer = Default::default();
         computer.set_memory(self.0.clone());
         computer.input(5);
-        computer.run();
+        computer.run()?;
         computer
             .last_output()
             .ok_or(AoCError::Solving)

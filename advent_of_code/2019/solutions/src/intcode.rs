@@ -42,6 +42,7 @@ impl Opcode {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
     Halted,
     NeedInput,
@@ -219,7 +220,13 @@ impl Computer {
     }
 
     /// run until program halts from a 99 opcode or needs an input to continue
-    pub fn run(&mut self) {
-        while let Ok(Status::Running) = self.operate() {}
+    pub fn run(&mut self) -> AoCResult<Status> {
+        while let Ok(status) = self.operate() {
+            match status {
+                Status::Running => continue,
+                _ => return Ok(status),
+            }
+        }
+        return Err(AoCError::Solving);
     }
 }
