@@ -1,5 +1,8 @@
 use std::fmt::Display;
 
+use aoc_core::AoCError;
+use itertools::Itertools;
+
 use crate::{AoCData, AoCResult};
 
 use std::{collections::HashMap, ops::RangeInclusive};
@@ -60,12 +63,22 @@ struct PartRange {
     s: RangeInclusive<usize>,
 }
 
+#[derive(Debug, Clone)]
+enum Apply {
+    FullPass,
+    FullFail,
+    Split { pass: PartRange, fail: PartRange },
+}
+
 impl Part {
-    fn accepted(&self, loc: Dest, workflows: &HashMap<&str, Vec<Rule>>) -> bool {
+    fn accepted(&self, loc: Dest, workflows: &HashMap<&str, Vec<Rule>>) -> AoCResult<bool> {
         match loc {
-            Dest::Final(end) => matches!(end, Final::Accept),
+            Dest::Final(end) => Ok(matches!(end, Final::Accept)),
             Dest::WorkFlow(name) => {
-                for rule in workflows.get(name).unwrap() {
+                for rule in workflows
+                    .get(name)
+                    .ok_or(AoCError::Solving)?
+                {
                     match rule {
                         Rule::Check(check) => {
                             let n = match check.part {
@@ -87,7 +100,7 @@ impl Part {
                         Rule::Last(dest) => return self.accepted(*dest, workflows),
                     }
                 }
-                panic!("Could not determine if part is accepted")
+                Err(AoCError::Solving)
             }
         }
     }
@@ -141,173 +154,224 @@ impl Part {
     //     }
 }
 
-fn parse_workflows(s: &str) -> HashMap<&str, Vec<Rule>> {
+fn parse_workflows(s: &str) -> AoCResult<HashMap<&str, Vec<Rule>>> {
     s.lines()
         .map(|line| {
-            let line = line.strip_suffix("}").unwrap();
-            let (name, rules) = line.split_once("{").unwrap();
-            let (checks, final_dest) = rules.rsplit_once(",").unwrap();
+            let line = line
+                .strip_suffix("}")
+                .ok_or(AoCError::Parsing)?;
+            let (name, rules) = line
+                .split_once("{")
+                .ok_or(AoCError::Parsing)?;
+            let (checks, final_dest) = rules
+                .rsplit_once(",")
+                .ok_or(AoCError::Parsing)?;
             let last_dest = match final_dest {
                 "A" => Dest::Final(Final::Accept),
                 "R" => Dest::Final(Final::Reject),
                 name => Dest::WorkFlow(name),
             };
 
-            let rules = checks
+            let rules: Vec<Rule> = checks
                 .split(",")
                 .map(|check| {
-                    let (check, dest) = check.split_once(":").unwrap();
+                    let (check, dest) = check
+                        .split_once(":")
+                        .ok_or(AoCError::Parsing)?;
                     let part = match &check[0..1] {
                         "x" => PartKind::X,
                         "m" => PartKind::M,
                         "a" => PartKind::A,
                         "s" => PartKind::S,
-                        _ => panic!("Invalid part kind"),
+                        _ => return Err(AoCError::Parsing),
                     };
                     let operator = match &check[1..2] {
                         "<" => Operator::LessThan,
                         ">" => Operator::GreaterThan,
-                        _ => panic!("Invalid operator"),
+                        _ => return Err(AoCError::Parsing),
                     };
-                    let rhs: usize = check[2..].parse().unwrap();
+                    let rhs: usize = check[2..]
+                        .parse()
+                        .map_err(|_| AoCError::Parsing)?;
                     let dest = match dest {
                         "A" => Dest::Final(Final::Accept),
                         "R" => Dest::Final(Final::Reject),
                         name => Dest::WorkFlow(name),
                     };
 
-                    Check {
+                    Ok(Check {
                         part,
                         operator,
                         rhs,
                         dest,
-                    }
+                    })
                 })
-                .map(|check| Rule::Check(check))
+                .map_ok(|check| Rule::Check(check))
+                .collect::<AoCResult<_>>()?;
+
+            let rules = rules
+                .into_iter()
                 .chain(std::iter::once(match last_dest {
                     Dest::WorkFlow(_) => Rule::Last(last_dest),
                     Dest::Final(_) => Rule::Last(last_dest),
                 }))
                 .collect();
 
-            (name, rules)
+            Ok((name, rules))
         })
         .collect()
 }
 
-fn parse_parts(s: &str) -> Vec<Part> {
+fn parse_parts(s: &str) -> AoCResult<Vec<Part>> {
     s.lines()
         .map(|line| {
             let line = line
                 .strip_prefix("{")
-                .unwrap()
+                .ok_or(AoCError::Parsing)?
                 .strip_suffix("}")
-                .unwrap();
-            line.split(",")
-                .map(|s| s.split_once("=").unwrap())
-                .fold(
+                .ok_or(AoCError::Parsing)?;
+
+            let part: Part = line
+                .split(",")
+                .map(|s| {
+                    s.split_once("=")
+                        .ok_or(AoCError::Parsing)
+                })
+                .try_fold(
                     Part {
                         x: 0,
                         m: 0,
                         a: 0,
                         s: 0,
                     },
-                    |mut part, (xmas, n)| {
-                        let n = n.parse().unwrap();
+                    |mut part, item| {
+                        let (xmas, n) = item?;
+                        let n = n
+                            .parse()
+                            .map_err(|_| AoCError::Parsing)?;
                         match xmas {
                             "x" => part.x = n,
                             "m" => part.m = n,
                             "a" => part.a = n,
                             "s" => part.s = n,
-                            _ => panic!("Inval xmas part id"),
+                            _ => return Err(AoCError::Parsing),
                         };
-                        part
+                        Ok(part)
                     },
-                )
+                )?;
+
+            Ok(part)
         })
         .collect()
 }
 
 impl PartRange {
-    fn accepted(&self, loc: Dest, workflows: &HashMap<&str, Vec<Rule>>) -> Vec<Self> {
+    fn set_xmas(mut self, kind: &PartKind, range: RangeInclusive<usize>) -> Self {
+        match kind {
+            PartKind::X => self.x = range,
+            PartKind::M => self.m = range,
+            PartKind::A => self.a = range,
+            PartKind::S => self.s = range,
+        };
+        self
+    }
+
+    fn applies_to(&self, check: &Check) -> Apply {
+        let range = match check.part {
+            PartKind::X => self.x.clone(),
+            PartKind::M => self.m.clone(),
+            PartKind::A => self.a.clone(),
+            PartKind::S => self.s.clone(),
+        };
+        match check.operator {
+            Operator::LessThan => {
+                if *range.end() < check.rhs {
+                    // start -- end -- rhs
+                    Apply::FullPass
+                } else if check.rhs <= *range.start() {
+                    // rhs -- start -- end
+                    Apply::FullFail
+                } else {
+                    // start -- rhs -- end
+                    // passing: start..=rhs-1
+                    // failing: rhs..=end
+                    let pass_range = *range.start()..=(check.rhs - 1);
+                    let fail_range = check.rhs..=*range.end();
+                    Apply::Split {
+                        pass: self
+                            .clone()
+                            .set_xmas(&check.part, pass_range),
+                        fail: self
+                            .clone()
+                            .set_xmas(&check.part, fail_range),
+                    }
+                }
+            }
+            Operator::GreaterThan => {
+                if *range.start() > check.rhs {
+                    // rhs -- start -- end
+                    Apply::FullPass
+                } else if *range.end() <= check.rhs {
+                    // start -- end -- rhs
+                    Apply::FullFail
+                } else {
+                    // start -- rhs -- end
+                    // passing: rhs+1..=end
+                    // failing: start..=rhs
+                    let pass_range = (check.rhs + 1)..=*range.end();
+                    let fail_range = *range.start()..=check.rhs;
+                    Apply::Split {
+                        pass: self
+                            .clone()
+                            .set_xmas(&check.part, pass_range),
+                        fail: self
+                            .clone()
+                            .set_xmas(&check.part, fail_range),
+                    }
+                }
+            }
+        }
+    }
+
+    fn accepted(&self, loc: Dest, workflows: &HashMap<&str, Vec<Rule>>) -> AoCResult<Vec<Self>> {
         match loc {
             Dest::Final(end) => {
                 if matches!(end, Final::Accept) {
-                    vec![self.clone()]
+                    Ok(vec![self.clone()])
                 } else {
-                    vec![]
+                    Ok(vec![])
                 }
             }
             Dest::WorkFlow(name) => {
-                // keep track of a valid range inside this workflow, updated when a rule fails
+                // keep track of a valid range inside this workflow
                 let mut working_range = self.clone();
                 let mut valid_ranges = Vec::new();
 
-                for rule in workflows.get(name).unwrap() {
+                for rule in workflows
+                    .get(name)
+                    .ok_or(AoCError::Solving)?
+                {
                     match rule {
                         Rule::Check(check) => {
-                            let range = match check.part {
-                                PartKind::X => working_range.x.clone(),
-                                PartKind::M => working_range.m.clone(),
-                                PartKind::A => working_range.a.clone(),
-                                PartKind::S => working_range.s.clone(),
-                            };
-                            match check.operator {
-                                Operator::LessThan => {
-                                    if *range.end() < check.rhs {
-                                        valid_ranges
-                                            .extend(working_range.accepted(check.dest, workflows))
-                                    } else {
-                                        if *range.start() >= check.rhs {
-                                            // total failure, end current workflow
-                                            break;
-                                        }
-                                        let new_range = *range.start()..=check.rhs - 1;
-                                        let mut new_partrange = working_range.clone();
-                                        match check.part {
-                                            PartKind::X => new_partrange.x = new_range,
-                                            PartKind::M => new_partrange.m = new_range,
-                                            PartKind::A => new_partrange.a = new_range,
-                                            PartKind::S => new_partrange.s = new_range,
-                                        };
-                                        valid_ranges
-                                            .extend(new_partrange.accepted(check.dest, workflows));
-                                        // update working range so it would have passed
-                                        working_range = new_partrange;
-                                    }
-                                }
-                                Operator::GreaterThan => {
-                                    if *range.start() > check.rhs {
-                                        valid_ranges
-                                            .extend(working_range.accepted(check.dest, workflows))
-                                    } else {
-                                        if *range.end() <= check.rhs {
-                                            // total failure, end current workflow
-                                            break;
-                                        }
-                                        let new_range = check.rhs..=*range.end();
-                                        let mut new_partrange = working_range.clone();
-                                        match check.part {
-                                            PartKind::X => new_partrange.x = new_range,
-                                            PartKind::M => new_partrange.m = new_range,
-                                            PartKind::A => new_partrange.a = new_range,
-                                            PartKind::S => new_partrange.s = new_range,
-                                        };
-                                        valid_ranges
-                                            .extend(new_partrange.accepted(check.dest, workflows));
-                                        // update working range so it would have passed
-                                        working_range = new_partrange;
-                                    }
+                            match working_range.applies_to(check) {
+                                Apply::FullPass => valid_ranges
+                                    .extend(working_range.accepted(check.dest, workflows)?),
+                                Apply::FullFail => (),
+                                Apply::Split { pass, fail } => {
+                                    // move onto new destination with passing range
+                                    valid_ranges.extend(pass.accepted(check.dest, workflows)?);
+                                    // move onto next check in this workflow, update the working range
+                                    working_range = fail;
                                 }
                             }
                         }
                         Rule::Last(dest) => {
-                            valid_ranges.extend(working_range.accepted(*dest, workflows))
+                            valid_ranges.extend(working_range.accepted(*dest, workflows)?)
                         }
                     }
                 }
 
-                valid_ranges
+                Ok(valid_ranges)
             }
         }
     }
@@ -318,19 +382,26 @@ pub struct Data<'a>(HashMap<&'a str, Vec<Rule<'a>>>, Vec<Part>);
 
 impl<'a> AoCData<'a> for Data<'a> {
     fn try_new(input: &'a str) -> AoCResult<Self> {
-        let (workflows, parts) = input.split_once("\n\n").unwrap();
-        Ok(Self(parse_workflows(workflows), parse_parts(parts)))
+        let (workflows, parts) = input
+            .split_once("\n\n")
+            .ok_or(AoCError::Parsing)?;
+
+        Ok(Self(parse_workflows(workflows)?, parse_parts(parts)?))
     }
 
     fn part_1(&self) -> AoCResult<impl Display> {
-        let sum: usize = self
+        let sum = self
             .1
             .iter()
-            .filter(|part| part.accepted(Dest::WorkFlow("in"), &self.0))
+            .map(|&part| {
+                let pass = part.accepted(Dest::WorkFlow("in"), &self.0)?;
+                Ok((pass, part))
+            })
             // non-recursive version
             // .filter(|part| part.accepted(&workflows))
-            .map(|part| part.x + part.m + part.a + part.s)
-            .sum();
+            .filter_ok(|(pass, _)| *pass)
+            .map_ok(|(_, part)| part.x + part.m + part.a + part.s)
+            .sum::<AoCResult<usize>>()?;
 
         Ok(sum)
     }
@@ -342,7 +413,7 @@ impl<'a> AoCData<'a> for Data<'a> {
             a: (1..=4_000),
             s: (1..=4_000),
         }
-        .accepted(Dest::WorkFlow("in"), &self.0);
+        .accepted(Dest::WorkFlow("in"), &self.0)?;
 
         let sum: usize = valid_ranges
             .into_iter()
@@ -364,17 +435,49 @@ mod test {
 
     #[test]
     fn part_1() {
-        let input = "";
+        let input = "px{a<2006:qkq,m>2090:A,rfg}
+pv{a>1716:R,A}
+lnx{m>1548:A,A}
+rfg{s<537:gd,x>2440:R,A}
+qs{s>3448:A,lnx}
+qkq{x<1416:A,crn}
+crn{x>2662:A,R}
+in{s<1351:px,qqz}
+qqz{s>2770:qs,m<1801:hdj,R}
+gd{a>3333:R,R}
+hdj{m>838:A,pv}
+
+{x=787,m=2655,a=1222,s=2876}
+{x=1679,m=44,a=2067,s=496}
+{x=2036,m=264,a=79,s=2244}
+{x=2461,m=1339,a=466,s=291}
+{x=2127,m=1623,a=2188,s=1013}";
         let data = Data::try_new(input).unwrap();
         let result = data.part_1().unwrap().to_string();
-        assert_eq!(result, "");
+        assert_eq!(result, "19114");
     }
 
     #[test]
     fn part_2() {
-        let input = "";
+        let input = "px{a<2006:qkq,m>2090:A,rfg}
+pv{a>1716:R,A}
+lnx{m>1548:A,A}
+rfg{s<537:gd,x>2440:R,A}
+qs{s>3448:A,lnx}
+qkq{x<1416:A,crn}
+crn{x>2662:A,R}
+in{s<1351:px,qqz}
+qqz{s>2770:qs,m<1801:hdj,R}
+gd{a>3333:R,R}
+hdj{m>838:A,pv}
+
+{x=787,m=2655,a=1222,s=2876}
+{x=1679,m=44,a=2067,s=496}
+{x=2036,m=264,a=79,s=2244}
+{x=2461,m=1339,a=466,s=291}
+{x=2127,m=1623,a=2188,s=1013}";
         let data = Data::try_new(input).unwrap();
         let result = data.part_2().unwrap().to_string();
-        assert_eq!(result, "");
+        assert_eq!(result, "167409079868000");
     }
 }
