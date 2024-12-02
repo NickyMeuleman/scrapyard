@@ -1,5 +1,3 @@
-#![feature(return_position_impl_trait_in_trait)]
-
 use std::{
     env,
     fmt::Display,
@@ -10,7 +8,7 @@ use std::{
 };
 
 pub const DAYS: u8 = 25;
-pub const LAST_YEAR: u16 = 2023;
+pub const LAST_YEAR: u16 = 2024;
 
 // https://rustwasm.github.io/wasm-bindgen/api/wasm_bindgen/struct.JsError.html
 #[derive(Debug, Clone)]

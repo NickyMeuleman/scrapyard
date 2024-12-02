@@ -21,3 +21,4 @@ aoc2020 = { path = "../../2020/solutions"}
 aoc2021 = { path = "../../2021/solutions"}
 aoc2022 = { path = "../../2022/solutions"}
 aoc2023 = { path = "../../2023/solutions"}
+aoc2024 = { path = "../../2024/solutions"}

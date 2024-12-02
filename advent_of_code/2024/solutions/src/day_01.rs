@@ -1,8 +1,5 @@
-use std::{collections::HashMap, fmt::Display};
-
-use aoc_core::AoCError;
-
 use crate::{AoCData, AoCResult};
+use std::{collections::HashMap, fmt::Display};
 
 #[derive(Debug, Clone)]
 pub struct Data<'a>(&'a str);

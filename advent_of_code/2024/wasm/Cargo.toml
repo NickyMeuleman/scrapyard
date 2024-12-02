@@ -13,8 +13,8 @@ repository.workspace = true
 [dependencies]
 aoc2024 = { path = "../solutions" }
 aoc-core-wasm ={ path = "../../core/wasm"}
-wasm-bindgen = "0.2.87"
-wasm-bindgen-futures = "0.4.37"
+wasm-bindgen = "0.2.97"
+wasm-bindgen-futures = "0.4.47"
 
 [lib]
 # https://rustwasm.github.io/wasm-pack/book/tutorials/npm-browser-packages/template-deep-dive/cargo-toml.html#a1-crate-type
