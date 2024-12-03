@@ -1,5 +1,5 @@
-#![feature(return_position_impl_trait_in_trait)]
 #![feature(iter_array_chunks)]
+#![feature(extend_one)]
 
 pub use aoc_core::{
     part_helper, Answer, AoCData, AoCError, AoCResult, Day, Part, Solution, Year, DAYS,
