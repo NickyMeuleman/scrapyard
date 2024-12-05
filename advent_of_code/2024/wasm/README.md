@@ -88,3 +88,30 @@ Found 17 outliers among 100 measurements (17.00%)
   8 (8.00%) low mild
   2 (2.00%) high mild
   7 (7.00%) high severe
+
+### Day 05
+
+Day 05/Parsing          time:   [2.3839 ns 2.3858 ns 2.3882 ns]
+Found 10 outliers among 100 measurements (10.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+  7 (7.00%) high severe
+Day 05/Part 1           time:   [438.23 µs 439.08 µs 439.79 µs]
+Found 30 outliers among 100 measurements (30.00%)
+  21 (21.00%) low severe
+  2 (2.00%) low mild
+  1 (1.00%) high mild
+  6 (6.00%) high severe
+Day 05/Part 2           time:   [698.76 µs 700.56 µs 702.12 µs]
+Found 22 outliers among 100 measurements (22.00%)
+  13 (13.00%) low severe
+  4 (4.00%) low mild
+  5 (5.00%) high severe
+Benchmarking Day 05/Both parts: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.8s, enable flat sampling, or reduce sample count to 60.
+Day 05/Both parts       time:   [1.1469 ms 1.1490 ms 1.1508 ms]
+Found 22 outliers among 100 measurements (22.00%)
+  12 (12.00%) low severe
+  1 (1.00%) low mild
+  5 (5.00%) high mild
+  4 (4.00%) high severe
