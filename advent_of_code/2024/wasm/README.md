@@ -115,3 +115,19 @@ Found 22 outliers among 100 measurements (22.00%)
   1 (1.00%) low mild
   5 (5.00%) high mild
   4 (4.00%) high severe
+
+### Day 06
+
+Optimized part2 runs slower somehow, so I kept the unoptimized version for part2
+
+Day 06/Parsing          time:   [2.4627 ns 2.4898 ns 2.5211 ns]
+Found 17 outliers among 100 measurements (17.00%)
+  5 (5.00%) high mild
+  12 (12.00%) high severe
+Day 06/Part 1           time:   [54.827 µs 55.424 µs 56.140 µs]
+Found 14 outliers among 100 measurements (14.00%)
+  8 (8.00%) high mild
+  6 (6.00%) high severe
+Benchmarking Day 06/Part 2: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 350.8s, or reduce sample count to 10.
+Day 06/Part 2           time:   [3.5235 s 3.5280 s 3.5324 s]
