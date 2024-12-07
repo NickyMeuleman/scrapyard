@@ -131,3 +131,24 @@ Found 14 outliers among 100 measurements (14.00%)
 Benchmarking Day 06/Part 2: Warming up for 3.0000 s
 Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 350.8s, or reduce sample count to 10.
 Day 06/Part 2           time:   [3.5235 s 3.5280 s 3.5324 s]
+
+### Day 07
+
+Day 07/Parsing          time:   [334.10 µs 335.21 µs 336.35 µs]
+Found 19 outliers among 100 measurements (19.00%)
+  10 (10.00%) low mild
+  4 (4.00%) high mild
+  5 (5.00%) high severe
+Day 07/Part 1           time:   [142.30 µs 142.88 µs 143.44 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Day 07/Part 2           time:   [598.13 µs 599.37 µs 600.72 µs]
+Found 23 outliers among 100 measurements (23.00%)
+  4 (4.00%) low severe
+  7 (7.00%) low mild
+  4 (4.00%) high mild
+  8 (8.00%) high severe
+Day 07/Both parts       time:   [765.39 µs 767.47 µs 769.44 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
