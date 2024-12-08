@@ -152,3 +152,29 @@ Found 23 outliers among 100 measurements (23.00%)
 Day 07/Both parts       time:   [765.39 µs 767.47 µs 769.44 µs]
 Found 1 outliers among 100 measurements (1.00%)
   1 (1.00%) high severe
+
+### Day 08
+
+Day 08/Parsing          time:   [20.718 µs 20.788 µs 20.867 µs]
+Found 17 outliers among 100 measurements (17.00%)
+  1 (1.00%) low mild
+  9 (9.00%) high mild
+  7 (7.00%) high severe
+Day 08/Part 1           time:   [31.103 µs 31.173 µs 31.241 µs]
+Found 21 outliers among 100 measurements (21.00%)
+  3 (3.00%) low severe
+  9 (9.00%) low mild
+  2 (2.00%) high mild
+  7 (7.00%) high severe
+Day 08/Part 2           time:   [101.04 µs 101.29 µs 101.54 µs]
+Found 22 outliers among 100 measurements (22.00%)
+  5 (5.00%) low severe
+  7 (7.00%) low mild
+  3 (3.00%) high mild
+  7 (7.00%) high severe
+Day 08/Both parts       time:   [134.07 µs 134.42 µs 134.76 µs]
+Found 18 outliers among 100 measurements (18.00%)
+  4 (4.00%) low severe
+  5 (5.00%) low mild
+  4 (4.00%) high mild
+  5 (5.00%) high severe
