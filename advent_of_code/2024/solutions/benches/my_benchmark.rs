@@ -1,5 +1,6 @@
 use aoc2024::{
-    day_01, day_02, day_03, day_04, day_05, day_06, day_07, day_08, get_input, AoCData, Day, DAYS,
+    day_01, day_02, day_03, day_04, day_05, day_06, day_07, day_08, day_09, get_input, AoCData,
+    Day, DAYS,
 };
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 
@@ -21,7 +22,7 @@ pub fn bench_day(c: &mut Criterion, day: &Day) {
         6 => day_helper::<day_06::Data>(c, day, &input),
         7 => day_helper::<day_07::Data>(c, day, &input),
         8 => day_helper::<day_08::Data>(c, day, &input),
-        // 9 => day_helper::<day_09::Data>(c, day, &input),
+        9 => day_helper::<day_09::Data>(c, day, &input),
         // 10 => day_helper::<day_10::Data>(c, day, &input),
         // 11 => day_helper::<day_11::Data>(c, day, &input),
         // 12 => day_helper::<day_12::Data>(c, day, &input),
