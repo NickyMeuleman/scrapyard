@@ -1,3 +1,6 @@
+// Blog writeup with simpler Rust code (I should handle errors here):
+// https://nickymeuleman.netlify.app/blog/aoc2024-day09/
+
 use aoc_core::Solution;
 
 use crate::{AoCData, AoCResult};
