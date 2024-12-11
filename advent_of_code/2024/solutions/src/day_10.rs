@@ -1,5 +1,5 @@
 // Blog writeup with simpler Rust code (I should handle errors here):
-// https://nickymeuleman.netlify.app/blog/aoc2024-day09/
+// https://nickymeuleman.netlify.app/blog/aoc2024-day10/
 
 use aoc_core::Solution;
 
