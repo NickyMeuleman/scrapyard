@@ -247,3 +247,24 @@ Found 11 outliers among 100 measurements (11.00%)
   6 (6.00%) low mild
   2 (2.00%) high mild
   3 (3.00%) high severe
+
+### Day 12
+
+Day 12/Parsing          time:   [2.1401 ms 2.1464 ms 2.1528 ms]
+Found 5 outliers among 100 measurements (5.00%)
+  5 (5.00%) high mild
+Day 12/Part 1           time:   [16.958 ms 17.003 ms 17.050 ms]
+Found 7 outliers among 100 measurements (7.00%)
+  1 (1.00%) low mild
+  5 (5.00%) high mild
+  1 (1.00%) high severe
+Day 12/Part 2           time:   [19.617 ms 19.666 ms 19.716 ms]
+Found 10 outliers among 100 measurements (10.00%)
+  3 (3.00%) low mild
+  7 (7.00%) high mild
+Day 12/Both parts       time:   [36.725 ms 36.835 ms 36.971 ms]
+Found 23 outliers among 100 measurements (23.00%)
+  2 (2.00%) low severe
+  6 (6.00%) low mild
+  4 (4.00%) high mild
+  11 (11.00%) high severe
