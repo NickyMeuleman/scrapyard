@@ -268,3 +268,21 @@ Found 23 outliers among 100 measurements (23.00%)
   6 (6.00%) low mild
   4 (4.00%) high mild
   11 (11.00%) high severe
+
+### Day 13
+
+Day 13/Parsing          time:   [119.05 µs 119.39 µs 119.74 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Day 13/Part 1           time:   [5.7630 µs 5.7820 µs 5.8023 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Day 13/Part 2           time:   [5.8319 µs 5.8531 µs 5.8758 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  3 (3.00%) high mild
+  7 (7.00%) high severe
+Benchmarking Day 13/Both parts: Collecting 100 samples in estimated 5.0339 s (237k iteratiDay 13/Both parts       time:   [12.266 µs 12.318 µs 12.377 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high severe
