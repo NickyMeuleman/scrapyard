@@ -1,3 +1,6 @@
+// Blog writeup with simpler Rust code (I should handle errors here):
+// https://nickymeuleman.netlify.app/blog/aoc2024-day13/
+
 use crate::{AoCData, AoCResult};
 use itertools::Itertools;
 use std::fmt::Display;
@@ -17,9 +20,11 @@ impl Point {
 }
 
 fn solve(a: &Point, b: &Point, prize: &Point) -> Option<i64> {
+    // lines are never parallel in this question
+    debug_assert!(((a.y as f64 / a.x as f64) - (b.y as f64 / b.x as f64)).abs() > f64::EPSILON);
+
     let na = ((prize.x * b.y) - (prize.y * b.x)) / ((a.x * b.y) - (a.y * b.x));
     let nb = (prize.x - na * a.x) / b.x;
-    // the two linear equations could be parallell or overlap, check if a single solution exists
     let solution = Point::new(na * a.x + nb * b.x, na * a.y + nb * b.y);
     (&solution == prize).then_some(3 * na + nb)
 }
