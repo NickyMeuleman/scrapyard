@@ -286,3 +286,27 @@ Found 10 outliers among 100 measurements (10.00%)
 Benchmarking Day 13/Both parts: Collecting 100 samples in estimated 5.0339 s (237k iteratiDay 13/Both parts       time:   [12.266 µs 12.318 µs 12.377 µs]
 Found 2 outliers among 100 measurements (2.00%)
   2 (2.00%) high severe
+
+### Day 14
+
+Day 14/Part 1           time:   [9.0762 µs 9.1001 µs 9.1251 µs]
+Found 26 outliers among 100 measurements (26.00%)
+  8 (8.00%) low severe
+  2 (2.00%) low mild
+  3 (3.00%) high mild
+  13 (13.00%) high severe
+Benchmarking Day 14/Part 2: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 13.7s, or reduce sample count to 30.
+Day 14/Part 2           time:   [136.68 ms 136.90 ms 137.13 ms]
+Found 12 outliers among 100 measurements (12.00%)
+  2 (2.00%) low severe
+  5 (5.00%) low mild
+  4 (4.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Day 14/Both parts: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 13.8s, or reduce sample count to 30.
+Benchmarking Day 14/Both parts: Collecting 100 samples in estimated 13.818 s (100 iteratioDay 14/Both parts       time:   [137.29 ms 137.59 ms 137.90 ms]
+Found 9 outliers among 100 measurements (9.00%)
+  5 (5.00%) low mild
+  2 (2.00%) high mild
+  2 (2.00%) high severe
