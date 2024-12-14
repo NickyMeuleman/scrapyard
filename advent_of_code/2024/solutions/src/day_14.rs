@@ -1,3 +1,6 @@
+// Blog writeup with simpler Rust code (I should handle errors here):
+// https://nickymeuleman.netlify.app/blog/aoc2024-day14/
+
 use crate::{AoCData, AoCResult};
 use aoc_core::AoCError;
 use itertools::Itertools;
