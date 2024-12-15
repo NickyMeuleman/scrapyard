@@ -1,3 +1,6 @@
+// Blog writeup with simpler Rust code (I should handle errors here):
+// https://nickymeuleman.netlify.app/blog/aoc2024-day15/
+
 use crate::{AoCData, AoCResult};
 use std::{
     collections::{HashMap, HashSet, VecDeque},

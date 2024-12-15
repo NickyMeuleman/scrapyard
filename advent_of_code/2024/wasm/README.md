@@ -310,3 +310,23 @@ Found 9 outliers among 100 measurements (9.00%)
   5 (5.00%) low mild
   2 (2.00%) high mild
   2 (2.00%) high severe
+
+### Day 15
+
+Day 15/Parsing          time:   [2.3841 ns 2.3931 ns 2.4025 ns]
+Found 7 outliers among 100 measurements (7.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+  4 (4.00%) high severe
+Day 15/Part 1           time:   [8.8277 ms 8.8553 ms 8.8835 ms]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+Day 15/Part 2           time:   [10.438 ms 10.472 ms 10.508 ms]
+Found 4 outliers among 100 measurements (4.00%)
+  3 (3.00%) high mild
+  1 (1.00%) high severe
+Day 15/Both parts       time:   [19.388 ms 19.437 ms 19.488 ms]
+Found 13 outliers among 100 measurements (13.00%)
+  5 (5.00%) low mild
+  4 (4.00%) high mild
+  4 (4.00%) high severe
