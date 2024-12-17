@@ -1,8 +1,14 @@
+// Blog writeup with simpler Rust code (I should handle errors here):
+// https://nickymeuleman.netlify.app/blog/aoc2024-day16/
+
+use aoc_core::AoCError;
+
 use crate::{AoCData, AoCResult};
 use std::{
     cmp::Ordering,
     collections::{BinaryHeap, HashMap, HashSet},
-    fmt::Display, rc::Rc,
+    fmt::Display,
+    rc::Rc,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -90,7 +96,7 @@ pub struct Data {
     end: Point,
 }
 
-fn shortest_path(map: &HashMap<Point, Tile>, start: Point, end: Point) -> u32 {
+fn shortest_path(map: &HashMap<Point, Tile>, start: Point, end: Point) -> Result<u32, AoCError> {
     // total cost to reach a point facing a direction
     let mut shortest: HashMap<(Point, Point), u32> = HashMap::new();
     // priority queue with ordering so the Node with the lowest cost gets popped first
@@ -108,7 +114,7 @@ fn shortest_path(map: &HashMap<Point, Tile>, start: Point, end: Point) -> u32 {
         // did we pop our goal position off the pq?
         // if so, it is guaranteed to have the lowest cost, and we're done
         if node.pos == end {
-            return node.cost;
+            return Ok(node.cost);
         }
 
         // did we pop something off the pq that got a lower-cost route to it in between the time it was added to the pq and popped off the pq?
@@ -148,7 +154,7 @@ fn shortest_path(map: &HashMap<Point, Tile>, start: Point, end: Point) -> u32 {
         }
     }
 
-    unreachable!("No path found")
+    Err(AoCError::Solving)
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -171,7 +177,11 @@ impl PartialOrd for Node2 {
     }
 }
 
-fn shortest_paths_positions(map: &HashMap<Point, Tile>, start: Point, end: Point) -> usize {
+fn shortest_paths_positions(
+    map: &HashMap<Point, Tile>,
+    start: Point,
+    end: Point,
+) -> Result<usize, AoCError> {
     // keep track of all positions along a shortest path
     let mut best_positions = HashSet::new();
     best_positions.insert(start);
@@ -237,7 +247,7 @@ fn shortest_paths_positions(map: &HashMap<Point, Tile>, start: Point, end: Point
         }
     }
 
-    best_positions.len()
+    Ok(best_positions.len())
 }
 
 impl AoCData<'_> for Data {
@@ -253,7 +263,7 @@ impl AoCData<'_> for Data {
                     '#' => Tile::Wall,
                     'E' => Tile::End,
                     'S' => Tile::Start,
-                    _ => panic!("at the disco"),
+                    _ => return Err(AoCError::Parsing),
                 };
                 if tile == Tile::Start {
                     start = point;
@@ -269,12 +279,12 @@ impl AoCData<'_> for Data {
 
     fn part_1(&self) -> AoCResult<impl Display> {
         // classic Dijkstra
-        Ok(shortest_path(&self.map, self.start, self.end))
+        shortest_path(&self.map, self.start, self.end)
     }
 
     fn part_2(&self) -> AoCResult<impl Display> {
         // Dijkstra, keeping track of all best paths
-        Ok(shortest_paths_positions(&self.map, self.start, self.end))
+        shortest_paths_positions(&self.map, self.start, self.end)
     }
 }
 
@@ -304,7 +314,6 @@ mod test {
         assert_eq!(result, "7036");
     }
 
-
     #[test]
     fn part_1_2() {
         let input = "#################
@@ -328,7 +337,6 @@ mod test {
         let result = data.part_1().unwrap().to_string();
         assert_eq!(result, "11048");
     }
-
 
     #[test]
     fn part_2() {
