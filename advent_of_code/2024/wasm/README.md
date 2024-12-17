@@ -330,3 +330,35 @@ Found 13 outliers among 100 measurements (13.00%)
   5 (5.00%) low mild
   4 (4.00%) high mild
   4 (4.00%) high severe
+
+---
+
+NEW PC
+
+---
+
+### Day 16
+
+Day 16/Parsing          time:   [1.0559 ms 1.0561 ms 1.0564 ms]
+Found 12 outliers among 100 measurements (12.00%)
+  1 (1.00%) low mild
+  4 (4.00%) high mild
+  7 (7.00%) high severe
+Benchmarking Day 16/Part 1: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.2s, or reduce sample count to 90.
+Day 16/Part 1           time:   [52.208 ms 52.227 ms 52.249 ms]
+Found 6 outliers among 100 measurements (6.00%)
+  4 (4.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Day 16/Part 2: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.8s, or reduce sample count to 80.
+Day 16/Part 2           time:   [58.263 ms 58.297 ms 58.336 ms]
+Found 5 outliers among 100 measurements (5.00%)
+  3 (3.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Day 16/Both parts: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 11.1s, or reduce sample count to 40.
+Day 16/Both parts       time:   [110.52 ms 110.57 ms 110.63 ms]
+Found 7 outliers among 100 measurements (7.00%)
+  6 (6.00%) high mild
+  1 (1.00%) high severe

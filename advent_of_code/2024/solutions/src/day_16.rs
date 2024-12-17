@@ -2,7 +2,7 @@ use crate::{AoCData, AoCResult};
 use std::{
     cmp::Ordering,
     collections::{BinaryHeap, HashMap, HashSet},
-    fmt::Display,
+    fmt::Display, rc::Rc,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -155,7 +155,7 @@ fn shortest_path(map: &HashMap<Point, Tile>, start: Point, end: Point) -> u32 {
 struct Node2 {
     pos: Point,
     dir: Point,
-    from: Option<Box<Node2>>,
+    from: Option<Rc<Node2>>,
     cost: u32,
 }
 
@@ -200,11 +200,11 @@ fn shortest_paths_positions(map: &HashMap<Point, Tile>, start: Point, end: Point
                 break;
             }
             // reconstruct the path
-            let mut curr = node;
+            let mut curr = Rc::new(node);
             while curr.pos != start {
                 best_positions.insert(curr.pos);
-                if let Some(prev) = curr.from {
-                    curr = *prev;
+                if let Some(prev) = &curr.from {
+                    curr = prev.clone();
                 }
             }
             continue;
@@ -232,7 +232,7 @@ fn shortest_paths_positions(map: &HashMap<Point, Tile>, start: Point, end: Point
                 dir: new_dir,
                 cost: new_cost,
                 // remember where this node came from
-                from: Some(Box::new(node.clone())),
+                from: Some(Rc::new(node.clone())),
             });
         }
     }
