@@ -362,3 +362,23 @@ Day 16/Both parts       time:   [110.52 ms 110.57 ms 110.63 ms]
 Found 7 outliers among 100 measurements (7.00%)
   6 (6.00%) high mild
   1 (1.00%) high severe
+
+### Day 17
+
+Day 17/Parsing          time:   [306.02 ns 306.14 ns 306.26 ns]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+Day 17/Part 1           time:   [381.22 ns 381.94 ns 382.67 ns]
+Found 7 outliers among 100 measurements (7.00%)
+  6 (6.00%) low mild
+  1 (1.00%) high mild
+Day 17/Part 2           time:   [9.0349 µs 9.0719 µs 9.1034 µs]
+Found 21 outliers among 100 measurements (21.00%)
+  20 (20.00%) high mild
+  1 (1.00%) high severe
+Day 17/Both parts       time:   [9.4437 µs 9.4771 µs 9.5063 µs]
+Found 12 outliers among 100 measurements (12.00%)
+  2 (2.00%) low severe
+  7 (7.00%) low mild
+  1 (1.00%) high mild
+  2 (2.00%) high severe
