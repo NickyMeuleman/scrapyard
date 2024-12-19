@@ -20,7 +20,7 @@ pub mod day_15;
 pub mod day_16;
 pub mod day_17;
 pub mod day_18;
-// pub mod day_19;
+pub mod day_19;
 // pub mod day_20;
 // pub mod day_21;
 // pub mod day_22;
@@ -58,7 +58,7 @@ pub fn solve_part(day: &Day, part: &Part, input: &str) -> AoCResult<Answer> {
         16 => part_helper::<day_16::Data>(part, input),
         17 => part_helper::<day_17::Data>(part, input),
         18 => part_helper::<day_18::Data>(part, input),
-        // 19 => part_helper::<day_19::Data>(part, input),
+        19 => part_helper::<day_19::Data>(part, input),
         // 20 => part_helper::<day_20::Data>(part, input),
         // 21 => part_helper::<day_21::Data>(part, input),
         // 22 => part_helper::<day_22::Data>(part, input),

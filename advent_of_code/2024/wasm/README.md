@@ -398,3 +398,23 @@ Day 18/Both parts       time:   [3.5106 ms 3.5123 ms 3.5143 ms]
 Found 10 outliers among 100 measurements (10.00%)
   6 (6.00%) high mild
   4 (4.00%) high severe
+
+### Day 19
+
+Day 19/Parsing          time:   [10.632 µs 10.636 µs 10.641 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  4 (4.00%) high mild
+Day 19/Part 1           time:   [19.496 ms 19.526 ms 19.573 ms]
+Found 6 outliers among 100 measurements (6.00%)
+  2 (2.00%) high mild
+  4 (4.00%) high severe
+Day 19/Part 2           time:   [20.807 ms 20.877 ms 20.946 ms]
+Found 8 outliers among 100 measurements (8.00%)
+  6 (6.00%) low severe
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Day 19/Both parts       time:   [41.488 ms 41.503 ms 41.518 ms]
+Found 15 outliers among 100 measurements (15.00%)
+  7 (7.00%) low mild
+  7 (7.00%) high mild
+  1 (1.00%) high severe
