@@ -418,3 +418,26 @@ Found 15 outliers among 100 measurements (15.00%)
   7 (7.00%) low mild
   7 (7.00%) high mild
   1 (1.00%) high severe
+
+### Day 20
+
+Day 20/Parsing          time:   [1.0521 ms 1.0527 ms 1.0538 ms]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking Day 20/Part 1: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 10.7s, or reduce sample count to 40.
+Day 20/Part 1           time:   [107.18 ms 107.27 ms 107.36 ms]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking Day 20/Part 2: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 11.8s, or reduce sample count to 40.
+Day 20/Part 2           time:   [118.05 ms 118.11 ms 118.19 ms]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+Benchmarking Day 20/Both parts: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 22.4s, or reduce sample count to 20.
+Day 20/Both parts       time:   [224.31 ms 224.50 ms 224.69 ms]
+Found 4 outliers among 100 measurements (4.00%)
+  4 (4.00%) low mild
