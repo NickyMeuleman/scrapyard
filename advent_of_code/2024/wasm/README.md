@@ -441,3 +441,24 @@ Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target
 Day 20/Both parts       time:   [224.31 ms 224.50 ms 224.69 ms]
 Found 4 outliers among 100 measurements (4.00%)
   4 (4.00%) low mild
+
+### Day 21
+
+Day 21/Parsing          time:   [126.16 ns 126.27 ns 126.39 ns]
+Found 5 outliers among 100 measurements (5.00%)
+  4 (4.00%) high mild
+  1 (1.00%) high severe
+Day 21/Part 1           time:   [704.60 µs 704.96 µs 705.38 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  4 (4.00%) high mild
+  1 (1.00%) high severe
+Day 21/Part 2           time:   [7.6087 ms 7.6189 ms 7.6299 ms]
+Found 24 outliers among 100 measurements (24.00%)
+  21 (21.00%) high mild
+  3 (3.00%) high severe
+Day 21/Both parts       time:   [8.4048 ms 8.4187 ms 8.4318 ms]
+Found 30 outliers among 100 measurements (30.00%)
+  21 (21.00%) low severe
+  1 (1.00%) low mild
+  3 (3.00%) high mild
+  5 (5.00%) high severe
