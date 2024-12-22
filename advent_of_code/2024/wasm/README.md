@@ -462,3 +462,16 @@ Found 30 outliers among 100 measurements (30.00%)
   1 (1.00%) low mild
   3 (3.00%) high mild
   5 (5.00%) high severe
+
+### Day 22
+
+Day 22/Parsing          time:   [812.97 ps 813.26 ps 813.61 ps]
+Found 12 outliers among 100 measurements (12.00%)
+  4 (4.00%) high mild
+  8 (8.00%) high severe
+Day 22/Part 1           time:   [6.8428 ms 6.8433 ms 6.8438 ms]
+Found 7 outliers among 100 measurements (7.00%)
+  7 (7.00%) high mild
+Benchmarking Day 22/Part 2: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 48.8s, or reduce sample count to 10.
+Day 22/Part 2           time:   [486.13 ms 486.63 ms 487.35 ms]
