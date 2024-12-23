@@ -475,3 +475,28 @@ Found 7 outliers among 100 measurements (7.00%)
 Benchmarking Day 22/Part 2: Warming up for 3.0000 s
 Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 48.8s, or reduce sample count to 10.
 Day 22/Part 2           time:   [486.13 ms 486.63 ms 487.35 ms]
+
+### Day 23
+
+Day 23/Parsing          time:   [533.07 µs 533.90 µs 535.09 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  3 (3.00%) low mild
+  3 (3.00%) high mild
+  4 (4.00%) high severe
+Day 23/Part 1           time:   [418.42 µs 418.50 µs 418.58 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  1 (1.00%) low severe
+  4 (4.00%) high mild
+  3 (3.00%) high severe
+Benchmarking Day 23/Part 2: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 11.5s, or reduce sample count to 40.
+Day 23/Part 2           time:   [115.37 ms 115.43 ms 115.51 ms]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking Day 23/Both parts: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 11.6s, or reduce sample count to 40.
+Day 23/Both parts       time:   [116.41 ms 116.75 ms 117.19 ms]
+Found 6 outliers among 100 measurements (6.00%)
+  1 (1.00%) high mild
+  5 (5.00%) high severe
