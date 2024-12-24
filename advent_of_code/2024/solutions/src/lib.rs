@@ -25,7 +25,7 @@ pub mod day_20;
 pub mod day_21;
 pub mod day_22;
 pub mod day_23;
-// pub mod day_24;
+pub mod day_24;
 // pub mod day_25;
 
 pub fn get_input(day: &Day) -> AoCResult<String> {
@@ -63,7 +63,7 @@ pub fn solve_part(day: &Day, part: &Part, input: &str) -> AoCResult<Answer> {
         21 => part_helper::<day_21::Data>(part, input),
         22 => part_helper::<day_22::Data>(part, input),
         23 => part_helper::<day_23::Data>(part, input),
-        // 24 => part_helper::<day_24::Data>(part, input),
+        24 => part_helper::<day_24::Data>(part, input),
         // 25 => part_helper::<day_25::Data>(part, input),
         n => Err(AoCError::new(format!(
             "Trying to solve an invalid day, found day: {n}"
