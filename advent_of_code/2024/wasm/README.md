@@ -500,3 +500,29 @@ Day 23/Both parts       time:   [116.41 ms 116.75 ms 117.19 ms]
 Found 6 outliers among 100 measurements (6.00%)
   1 (1.00%) high mild
   5 (5.00%) high severe
+
+### Day 24
+
+Day 24/Parsing          time:   [29.239 µs 29.388 µs 29.558 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  1 (1.00%) high mild
+  5 (5.00%) high severe
+Day 24/Part 1           time:   [24.347 µs 24.354 µs 24.361 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  3 (3.00%) low mild
+  2 (2.00%) high mild
+  4 (4.00%) high severe
+Benchmarking Day 24/Part 2: Warming up for 3.0000 s
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 8.0s, or reduce sample count to 60.
+Day 24/Part 2           time:   [79.810 ms 79.841 ms 79.876 ms]
+
+### Day 25
+
+Day 25/Parsing          time:   [152.80 µs 152.84 µs 152.90 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  4 (4.00%) high mild
+  1 (1.00%) high severe
+Day 25/Part 1           time:   [184.88 µs 186.20 µs 187.58 µs]
+Found 13 outliers among 100 measurements (13.00%)
+  5 (5.00%) high mild
+  8 (8.00%) high severe
