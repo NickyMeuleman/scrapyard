@@ -553,7 +553,7 @@ mod test {
         let data = Data::try_new(input).unwrap();
         let targets = targets(&data.map, &Kind::Elf);
         let in_range = in_range(&targets, &data.map);
-        let elf = Point { row: 1, col: 1 };
+        let elf = Point { row: 1, col: 2 };
         let nearest: Vec<_> = nearest_with_firsts(elf, in_range, &data.map)
             .into_iter()
             .map(|(p, _)| p)
@@ -583,7 +583,7 @@ mod test {
         let data = Data::try_new(input).unwrap();
         let targets = targets(&data.map, &Kind::Elf);
         let in_range = in_range(&targets, &data.map);
-        let elf = Point { row: 1, col: 1 };
+        let elf = Point { row: 1, col: 2 };
         let (chosen, _) = chosen_and_first(elf, in_range, &data.map);
         let mut vec_2d = make_2d_vec(&data.map);
         vec_2d[chosen.row as usize][chosen.col as usize] = '+';
@@ -593,6 +593,32 @@ mod test {
             "#######
 #.E...#
 #...+.#
+#...G.#
+#######"
+        );
+    }
+
+    #[test]
+    fn correct_step() {
+        let input = "#######
+#.E...#
+#.....#
+#...G.#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let targets = targets(&data.map, &Kind::Elf);
+        let in_range = in_range(&targets, &data.map);
+        let elf = Point { row: 1, col: 2 };
+        let (_, first) = chosen_and_first(elf, in_range, &data.map);
+        let mut vec_2d = make_2d_vec(&data.map);
+        vec_2d[elf.row as usize][elf.col as usize] = '.';
+        vec_2d[first.row as usize][first.col as usize] = 'E';
+        let result = vec2d_to_string(vec_2d);
+        assert_eq!(
+            result,
+            "#######
+#..E..#
+#.....#
 #...G.#
 #######"
         );
