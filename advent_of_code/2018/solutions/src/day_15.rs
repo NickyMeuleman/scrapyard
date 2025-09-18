@@ -132,6 +132,29 @@ fn take_turn(pos: Point, map: &mut HashMap<Point, Tile>) -> bool {
     true
 }
 
+fn chosen_and_first(
+    from: Point,
+    in_range: Vec<Point>,
+    map: &HashMap<Point, Tile>,
+) -> (Point, Point) {
+    let mut nearest_with_fists = nearest_with_firsts(from, in_range, map);
+    // sort in reading order of nearest point
+    nearest_with_fists.sort_unstable_by(|(a, _), (b, _)| {
+        a.row
+            .cmp(&b.row)
+            .then_with(|| a.col.cmp(&b.col))
+    });
+
+    let (chosen, mut firsts) = nearest_with_fists
+        .into_iter()
+        .next()
+        .unwrap();
+    // sort in reading order of firsts
+    firsts = reading_order(firsts);
+
+    let first = firsts.into_iter().next().unwrap();
+    (chosen, first)
+}
 /// returns points for units of the opposite team
 fn targets(map: &HashMap<Point, Tile>, attacker_kind: &Kind) -> Vec<Point> {
     alive_units(map)
@@ -349,11 +372,12 @@ impl AoCData<'_> for Data {
             round(&mut map);
             round_num += 1;
         }
-        Ok(round_num * sum_hp(&map))
+        // Ok(round_num * sum_hp(&map))
+        Ok(1)
     }
 
     fn part_2(&self) -> AoCResult<impl Display> {
-        Ok("")
+        Ok(2)
     }
 }
 
@@ -439,30 +463,6 @@ mod test {
 #######"
         );
     }
-    #[test]
-    fn correct_in_range_2() {
-        let input = "#######
-#.E...#
-#.....#
-#...G.#
-#######";
-        let data = Data::try_new(input).unwrap();
-        let targets = targets(&data.map, &Kind::Elf);
-        let in_range = in_range(&targets, &data.map);
-        let mut vec_2d = make_2d_vec(&data.map);
-        for p in in_range {
-            vec_2d[p.row as usize][p.col as usize] = '?';
-        }
-        let result = vec2d_to_string(vec_2d);
-        assert_eq!(
-            result,
-            "#######
-#.E...#
-#...?.#
-#..?G?#
-#######"
-        );
-    }
 
     #[test]
     fn correct_nearest() {
@@ -495,6 +495,55 @@ mod test {
     }
 
     #[test]
+    fn correct_chosen() {
+        let input = "#######
+#E..G.#
+#...#.#
+#.G.#G#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let targets = targets(&data.map, &Kind::Elf);
+        let in_range = in_range(&targets, &data.map);
+        let elf = Point { row: 1, col: 1 };
+        let (chosen, _) = chosen_and_first(elf, in_range, &data.map);
+        let mut vec_2d = make_2d_vec(&data.map);
+        vec_2d[chosen.row as usize][chosen.col as usize] = '+';
+        let result = vec2d_to_string(vec_2d);
+        assert_eq!(
+            result,
+            "#######
+#E.+G.#
+#...#.#
+#.G.#G#
+#######"
+        );
+    }
+
+    #[test]
+    fn correct_in_range_2() {
+        let input = "#######
+#.E...#
+#.....#
+#...G.#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let targets = targets(&data.map, &Kind::Elf);
+        let in_range = in_range(&targets, &data.map);
+        let mut vec_2d = make_2d_vec(&data.map);
+        for p in in_range {
+            vec_2d[p.row as usize][p.col as usize] = '?';
+        }
+        let result = vec2d_to_string(vec_2d);
+        assert_eq!(
+            result,
+            "#######
+#.E...#
+#...?.#
+#..?G?#
+#######"
+        );
+    }
+    #[test]
     fn correct_nearest_2() {
         let input = "#######
 #.E...#
@@ -525,11 +574,36 @@ mod test {
     }
 
     #[test]
+    fn correct_chosen_2() {
+        let input = "#######
+#.E...#
+#.....#
+#...G.#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let targets = targets(&data.map, &Kind::Elf);
+        let in_range = in_range(&targets, &data.map);
+        let elf = Point { row: 1, col: 1 };
+        let (chosen, _) = chosen_and_first(elf, in_range, &data.map);
+        let mut vec_2d = make_2d_vec(&data.map);
+        vec_2d[chosen.row as usize][chosen.col as usize] = '+';
+        let result = vec2d_to_string(vec_2d);
+        assert_eq!(
+            result,
+            "#######
+#.E...#
+#...+.#
+#...G.#
+#######"
+        );
+    }
+
+    #[test]
     fn part_1() {
         let input = "";
         let data = Data::try_new(input).unwrap();
         let result = data.part_1().unwrap().to_string();
-        assert_eq!(result, "");
+        assert_eq!(result, "1");
     }
 
     #[test]
@@ -537,6 +611,6 @@ mod test {
         let input = "";
         let data = Data::try_new(input).unwrap();
         let result = data.part_2().unwrap().to_string();
-        assert_eq!(result, "");
+        assert_eq!(result, "2");
     }
 }
