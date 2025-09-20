@@ -13,6 +13,7 @@ struct Point {
     row: u32,
     col: u32,
 }
+
 impl Point {
     fn neighbours(&self, rows: usize, cols: usize) -> Vec<Point> {
         let mut res = Vec::new();
@@ -74,7 +75,7 @@ pub struct Data {
 
 fn alive_units(unit_ids: &[u32], units: &HashMap<u32, Mob>) -> Vec<u32> {
     unit_ids
-        .into_iter()
+        .iter()
         .filter(|&id| units[id].hp > 0)
         .copied()
         .collect()
@@ -82,7 +83,7 @@ fn alive_units(unit_ids: &[u32], units: &HashMap<u32, Mob>) -> Vec<u32> {
 
 fn reading_order(unit_ids: &[u32], units: &HashMap<u32, Mob>) -> Vec<u32> {
     unit_ids
-        .into_iter()
+        .iter()
         .sorted_unstable_by(|&a, &b| {
             let a = &units[a];
             let b = &units[b];
@@ -97,7 +98,7 @@ fn reading_order(unit_ids: &[u32], units: &HashMap<u32, Mob>) -> Vec<u32> {
 
 fn targets(attacker_kind: &Kind, unit_ids: &[u32], units: &HashMap<u32, Mob>) -> Vec<u32> {
     unit_ids
-        .into_iter()
+        .iter()
         .filter(|&id| units[id].kind != *attacker_kind)
         .copied()
         .collect()
@@ -107,7 +108,7 @@ fn in_range(unit_ids: &[u32], units: &HashMap<u32, Mob>, map: &HashMap<Point, Ti
     let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
     let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
     unit_ids
-        .into_iter()
+        .iter()
         .flat_map(|id| {
             let target = &units[id];
             target.pos.neighbours(rows, cols)
@@ -513,190 +514,212 @@ mod test {
         );
     }
 
-    //     #[test]
-    //     fn correct_in_range() {
-    //         let input = "#######
-    // #E..G.#
-    // #...#.#
-    // #.G.#G#
-    // #######";
-    //         let data = Data::try_new(input).unwrap();
-    //         let targets = targets(&data.map, &Kind::Elf);
-    //         let in_range = in_range(&targets, &data.map);
-    //         let mut vec_2d = make_2d_vec(&data.map);
-    //         for p in in_range {
-    //             vec_2d[p.row as usize][p.col as usize] = '?';
-    //         }
-    //         let result = vec2d_to_string(vec_2d);
-    //         assert_eq!(
-    //             result,
-    //             "#######
-    // #E.?G?#
-    // #.?.#?#
-    // #?G?#G#
-    // #######"
-    //         );
-    //     }
-    //
-    //     #[test]
-    //     fn correct_nearest() {
-    //         let input = "#######
-    // #E..G.#
-    // #...#.#
-    // #.G.#G#
-    // #######";
-    //         let data = Data::try_new(input).unwrap();
-    //         let targets = targets(&data.map, &Kind::Elf);
-    //         let in_range = in_range(&targets, &data.map);
-    //         let elf = Point { row: 1, col: 1 };
-    //         let nearest: Vec<_> = nearest_with_firsts(elf, in_range, &data.map)
-    //             .into_iter()
-    //             .map(|(p, _)| p)
-    //             .collect();
-    //         let mut vec_2d = make_2d_vec(&data.map);
-    //         for p in nearest {
-    //             vec_2d[p.row as usize][p.col as usize] = '!';
-    //         }
-    //         let result = vec2d_to_string(vec_2d);
-    //         assert_eq!(
-    //             result,
-    //             "#######
-    // #E.!G.#
-    // #.!.#.#
-    // #!G.#G#
-    // #######"
-    //         );
-    //     }
-    //
-    //     #[test]
-    //     fn correct_chosen() {
-    //         let input = "#######
-    // #E..G.#
-    // #...#.#
-    // #.G.#G#
-    // #######";
-    //         let data = Data::try_new(input).unwrap();
-    //         let targets = targets(&data.map, &Kind::Elf);
-    //         let in_range = in_range(&targets, &data.map);
-    //         let elf = Point { row: 1, col: 1 };
-    //         let (chosen, _) = chosen_and_first(elf, in_range, &data.map);
-    //         let mut vec_2d = make_2d_vec(&data.map);
-    //         vec_2d[chosen.row as usize][chosen.col as usize] = '+';
-    //         let result = vec2d_to_string(vec_2d);
-    //         assert_eq!(
-    //             result,
-    //             "#######
-    // #E.+G.#
-    // #...#.#
-    // #.G.#G#
-    // #######"
-    //         );
-    //     }
-    //
-    //     #[test]
-    //     fn correct_in_range_2() {
-    //         let input = "#######
-    // #.E...#
-    // #.....#
-    // #...G.#
-    // #######";
-    //         let data = Data::try_new(input).unwrap();
-    //         let targets = targets(&data.map, &Kind::Elf);
-    //         let in_range = in_range(&targets, &data.map);
-    //         let mut vec_2d = make_2d_vec(&data.map);
-    //         for p in in_range {
-    //             vec_2d[p.row as usize][p.col as usize] = '?';
-    //         }
-    //         let result = vec2d_to_string(vec_2d);
-    //         assert_eq!(
-    //             result,
-    //             "#######
-    // #.E...#
-    // #...?.#
-    // #..?G?#
-    // #######"
-    //         );
-    //     }
-    //     #[test]
-    //     fn correct_nearest_2() {
-    //         let input = "#######
-    // #.E...#
-    // #.....#
-    // #...G.#
-    // #######";
-    //         let data = Data::try_new(input).unwrap();
-    //         let targets = targets(&data.map, &Kind::Elf);
-    //         let in_range = in_range(&targets, &data.map);
-    //         let elf = Point { row: 1, col: 2 };
-    //         let nearest: Vec<_> = nearest_with_firsts(elf, in_range, &data.map)
-    //             .into_iter()
-    //             .map(|(p, _)| p)
-    //             .collect();
-    //         let mut vec_2d = make_2d_vec(&data.map);
-    //         for p in nearest {
-    //             vec_2d[p.row as usize][p.col as usize] = '!';
-    //         }
-    //         let result = vec2d_to_string(vec_2d);
-    //         assert_eq!(
-    //             result,
-    //             "#######
-    // #.E...#
-    // #...!.#
-    // #..!G.#
-    // #######"
-    //         );
-    //     }
-    //
-    //     #[test]
-    //     fn correct_chosen_2() {
-    //         let input = "#######
-    // #.E...#
-    // #.....#
-    // #...G.#
-    // #######";
-    //         let data = Data::try_new(input).unwrap();
-    //         let targets = targets(&data.map, &Kind::Elf);
-    //         let in_range = in_range(&targets, &data.map);
-    //         let elf = Point { row: 1, col: 2 };
-    //         let (chosen, _) = chosen_and_first(elf, in_range, &data.map);
-    //         let mut vec_2d = make_2d_vec(&data.map);
-    //         vec_2d[chosen.row as usize][chosen.col as usize] = '+';
-    //         let result = vec2d_to_string(vec_2d);
-    //         assert_eq!(
-    //             result,
-    //             "#######
-    // #.E...#
-    // #...+.#
-    // #...G.#
-    // #######"
-    //         );
-    //     }
-    //
-    //     #[test]
-    //     fn correct_step() {
-    //         let input = "#######
-    // #.E...#
-    // #.....#
-    // #...G.#
-    // #######";
-    //         let data = Data::try_new(input).unwrap();
-    //         let targets = targets(&data.map, &Kind::Elf);
-    //         let in_range = in_range(&targets, &data.map);
-    //         let elf = Point { row: 1, col: 2 };
-    //         let (_, first) = chosen_and_first(elf, in_range, &data.map);
-    //         let mut vec_2d = make_2d_vec(&data.map);
-    //         vec_2d[elf.row as usize][elf.col as usize] = '.';
-    //         vec_2d[first.row as usize][first.col as usize] = 'E';
-    //         let result = vec2d_to_string(vec_2d);
-    //         assert_eq!(
-    //             result,
-    //             "#######
-    // #..E..#
-    // #.....#
-    // #...G.#
-    // #######"
-    //         );
-    //     }
+    #[test]
+    fn correct_in_range() {
+        let input = "#######
+#E..G.#
+#...#.#
+#.G.#G#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let mut vec_2d = make_2d_vec(&data.map, &data.units);
+
+        let unit_ids: Vec<_> = data.units.keys().copied().collect();
+        let targets = targets(&Kind::Elf, &unit_ids, &data.units);
+        let in_range = in_range(&targets, &data.units, &data.map);
+
+        for point in in_range {
+            vec_2d[point.row as usize][point.col as usize] = '?';
+        }
+        let result = vec2d_to_string(vec_2d);
+        assert_eq!(
+            result,
+            "#######
+#E.?G?#
+#.?.#?#
+#?G?#G#
+#######"
+        );
+    }
+
+    #[test]
+    fn correct_nearest() {
+        let input = "#######
+#E..G.#
+#...#.#
+#.G.#G#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let mut vec_2d = make_2d_vec(&data.map, &data.units);
+
+        let elf_pos = Point { row: 1, col: 1 };
+        let unit_ids: Vec<_> = data.units.keys().copied().collect();
+        let targets = targets(&Kind::Elf, &unit_ids, &data.units);
+        let in_range = in_range(&targets, &data.units, &data.map);
+        let nearest: Vec<_> = nearest_with_firsts(elf_pos, in_range, &data.map)
+            .into_iter()
+            .map(|(p, _)| p)
+            .collect();
+
+        for p in nearest {
+            vec_2d[p.row as usize][p.col as usize] = '!';
+        }
+        let result = vec2d_to_string(vec_2d);
+        assert_eq!(
+            result,
+            "#######
+#E.!G.#
+#.!.#.#
+#!G.#G#
+#######"
+        );
+    }
+
+    #[test]
+    fn correct_chosen() {
+        let input = "#######
+#E..G.#
+#...#.#
+#.G.#G#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let mut vec_2d = make_2d_vec(&data.map, &data.units);
+
+        let elf_pos = Point { row: 1, col: 1 };
+        let unit_ids: Vec<_> = data.units.keys().copied().collect();
+        let targets = targets(&Kind::Elf, &unit_ids, &data.units);
+        let in_range = in_range(&targets, &data.units, &data.map);
+        let (chosen, _) = chosen_and_first(elf_pos, in_range, &data.map);
+
+        vec_2d[chosen.row as usize][chosen.col as usize] = '+';
+        let result = vec2d_to_string(vec_2d);
+        assert_eq!(
+            result,
+            "#######
+#E.+G.#
+#...#.#
+#.G.#G#
+#######"
+        );
+    }
+
+    #[test]
+    fn correct_in_range_2() {
+        let input = "#######
+#.E...#
+#.....#
+#...G.#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let mut vec_2d = make_2d_vec(&data.map, &data.units);
+
+        let unit_ids: Vec<_> = data.units.keys().copied().collect();
+        let targets = targets(&Kind::Elf, &unit_ids, &data.units);
+        let in_range = in_range(&targets, &data.units, &data.map);
+
+        for point in in_range {
+            vec_2d[point.row as usize][point.col as usize] = '?';
+        }
+        let result = vec2d_to_string(vec_2d);
+        assert_eq!(
+            result,
+            "#######
+#.E...#
+#...?.#
+#..?G?#
+#######"
+        );
+    }
+
+    #[test]
+    fn correct_nearest_2() {
+        let input = "#######
+#.E...#
+#.....#
+#...G.#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let mut vec_2d = make_2d_vec(&data.map, &data.units);
+
+        let elf_pos = Point { row: 1, col: 2 };
+        let unit_ids: Vec<_> = data.units.keys().copied().collect();
+        let targets = targets(&Kind::Elf, &unit_ids, &data.units);
+        let in_range = in_range(&targets, &data.units, &data.map);
+        let nearest: Vec<_> = nearest_with_firsts(elf_pos, in_range, &data.map)
+            .into_iter()
+            .map(|(p, _)| p)
+            .collect();
+
+        for p in nearest {
+            vec_2d[p.row as usize][p.col as usize] = '!';
+        }
+        let result = vec2d_to_string(vec_2d);
+        assert_eq!(
+            result,
+            "#######
+#.E...#
+#...!.#
+#..!G.#
+#######"
+        );
+    }
+
+    #[test]
+    fn correct_chosen_2() {
+        let input = "#######
+#.E...#
+#.....#
+#...G.#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let mut vec_2d = make_2d_vec(&data.map, &data.units);
+
+        let elf_pos = Point { row: 1, col: 2 };
+        let unit_ids: Vec<_> = data.units.keys().copied().collect();
+        let targets = targets(&Kind::Elf, &unit_ids, &data.units);
+        let in_range = in_range(&targets, &data.units, &data.map);
+        let (chosen, _) = chosen_and_first(elf_pos, in_range, &data.map);
+
+        vec_2d[chosen.row as usize][chosen.col as usize] = '+';
+        let result = vec2d_to_string(vec_2d);
+        assert_eq!(
+            result,
+            "#######
+#.E...#
+#...+.#
+#...G.#
+#######"
+        );
+    }
+
+    #[test]
+    fn correct_step() {
+        let input = "#######
+#.E...#
+#.....#
+#...G.#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let mut vec_2d = make_2d_vec(&data.map, &data.units);
+
+        let elf_pos = Point { row: 1, col: 2 };
+        let unit_ids: Vec<_> = data.units.keys().copied().collect();
+        let targets = targets(&Kind::Elf, &unit_ids, &data.units);
+        let in_range = in_range(&targets, &data.units, &data.map);
+        let (_, first) = chosen_and_first(elf_pos, in_range, &data.map);
+
+        vec_2d[elf_pos.row as usize][elf_pos.col as usize] = '.';
+        vec_2d[first.row as usize][first.col as usize] = 'E';
+        let result = vec2d_to_string(vec_2d);
+        assert_eq!(
+            result,
+            "#######
+#..E..#
+#.....#
+#...G.#
+#######"
+        );
+    }
 
     #[test]
     fn part_1() {
