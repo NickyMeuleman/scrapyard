@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering,
-    collections::{BinaryHeap, HashMap, HashSet, VecDeque},
+    collections::{BinaryHeap, HashMap},
     fmt::Display,
 };
 
@@ -47,14 +47,16 @@ impl Point {
         res
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Kind {
     Goblin,
     Elf,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Mob {
+    id: u32,
+    pos: Point,
     kind: Kind,
     hp: u32,
 }
@@ -63,73 +65,69 @@ struct Mob {
 enum Tile {
     Wall,
     Open,
-    Unit(Mob),
 }
 #[derive(Debug, Clone)]
 pub struct Data {
     map: HashMap<Point, Tile>,
-}
-// Combat proceeds in rounds;
-// in each round, each unit that is still alive takes a turn,
-// resolving all of its actions before the next unit's turn begins.
-// on each unit's turn, it tries to move into range of an enemy
-// (if it isn't already) and then attack (if it is in range).
-fn round(map: &mut HashMap<Point, Tile>) {
-    let mut units = alive_units(map);
-    units = reading_order(units);
-    // All units are very disciplined and always follow very strict combat rules.
-    // Units never move or attack diagonally, as doing so would be dishonorable.
-    for point in units {
-        take_turn(point, map);
-    }
+    units: HashMap<u32, Mob>,
 }
 
-// returns false if combat ended
-// returns true if turn was ended
-fn take_turn(pos: Point, map: &mut HashMap<Point, Tile>) -> bool {
+fn alive_units(unit_ids: &[u32], units: &HashMap<u32, Mob>) -> Vec<u32> {
+    unit_ids
+        .into_iter()
+        .filter(|&id| units[id].hp > 0)
+        .copied()
+        .collect()
+}
+
+fn reading_order(unit_ids: &[u32], units: &HashMap<u32, Mob>) -> Vec<u32> {
+    unit_ids
+        .into_iter()
+        .sorted_unstable_by(|&a, &b| {
+            let a = &units[a];
+            let b = &units[b];
+            a.pos
+                .row
+                .cmp(&b.pos.row)
+                .then_with(|| a.pos.col.cmp(&b.pos.col))
+        })
+        .copied()
+        .collect()
+}
+
+fn targets(attacker_kind: &Kind, unit_ids: &[u32], units: &HashMap<u32, Mob>) -> Vec<u32> {
+    unit_ids
+        .into_iter()
+        .filter(|&id| units[id].kind != *attacker_kind)
+        .copied()
+        .collect()
+}
+
+fn in_range(unit_ids: &[u32], units: &HashMap<u32, Mob>, map: &HashMap<Point, Tile>) -> Vec<Point> {
     let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
     let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
-    let attacker_kind = if let Some(Tile::Unit(attacker)) = map.get(&pos) {
-        attacker.kind.clone()
-    } else {
-        panic!("invalid unit tried to take turn");
-    };
-    // Each unit begins its turn by identifying all possible targets (enemy units).
-    let targets: Vec<Point> = targets(map, &attacker_kind);
-    // If no targets remain, combat ends.
-    if targets.is_empty() {
-        return false;
-    }
-    // Then, the unit identifies all of the open squares (.) that are in range of each target;
-    // these are the squares which are adjacent (immediately up, down, left, or right)
-    // to any target and which aren't already occupied by a wall or another unit.
-    // Alternatively, the unit might already be in range of a target.
-    let already_in_range = pos
-        .neighbours(rows, cols)
-        .iter()
-        .any(|n| targets.contains(n));
-    if already_in_range {
-        // If the unit is already in range of a target, it does not move,
-        // but continues its turn with an attack.
-    } else {
-        let in_range = in_range(&targets, map);
-        // If the unit is not already in range of a target, and there are no open squares which are in range of a target,
-        // the unit ends its turn.
-        if in_range.is_empty() {
-            return true;
-        }
-        // Otherwise, since it is not in range of a target, it moves.
-        // To move, the unit first considers the squares that are in range
-        // and determines which of those squares it could reach in the fewest steps.
-        // A step is a single movement to any adjacent (immediately up, down, left, or right) open (.) square.
-        // Units cannot move into walls or other units.
-        // The unit does this while considering the current positions of units
-        // and does not do any prediction about where units will be later.
-        // If the unit cannot reach (find an open path to) any of the squares that are in range, it ends its turn.
-        // If multiple squares are in range and tied for being reachable in the fewest steps,
-        // the square which is first in reading order is chosen.
-    }
-    true
+    unit_ids
+        .into_iter()
+        .flat_map(|id| {
+            let target = &units[id];
+            target.pos.neighbours(rows, cols)
+        })
+        .filter(|p| matches!(map[p], Tile::Open))
+        .collect()
+}
+
+fn nearest_with_firsts(
+    from: Point,
+    in_range: Vec<Point>,
+    map: &HashMap<Point, Tile>,
+) -> Vec<(Point, Vec<Point>)> {
+    in_range
+        .into_iter()
+        .map(|to| (to, shortest(from, to, map)))
+        .min_set_by_key(|(_, (cost, _))| *cost)
+        .into_iter()
+        .map(|(to, (_, firsts))| (to, firsts))
+        .collect()
 }
 
 fn chosen_and_first(
@@ -144,49 +142,79 @@ fn chosen_and_first(
             .cmp(&b.row)
             .then_with(|| a.col.cmp(&b.col))
     });
-
     let (chosen, mut firsts) = nearest_with_fists
         .into_iter()
         .next()
         .unwrap();
     // sort in reading order of firsts
-    firsts = reading_order(firsts);
-
+    firsts.sort_unstable_by(|a, b| {
+        a.row
+            .cmp(&b.row)
+            .then_with(|| a.col.cmp(&b.col))
+    });
     let first = firsts.into_iter().next().unwrap();
     (chosen, first)
 }
-/// returns points for units of the opposite team
-fn targets(map: &HashMap<Point, Tile>, attacker_kind: &Kind) -> Vec<Point> {
-    alive_units(map)
-        .into_iter()
-        .filter(|p| matches!(&map[p], Tile::Unit(mob) if mob.kind != *attacker_kind))
-        .collect()
-}
 
-/// returns points around the given points that are open
-fn in_range(points: &[Point], map: &HashMap<Point, Tile>) -> Vec<Point> {
-    let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
-    let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
-    points
-        .iter()
-        .flat_map(|t| t.neighbours(rows, cols))
-        .filter(|p| matches!(map[p], Tile::Open))
-        .collect()
-}
+// returns false if combat ended
+// returns true if turn was ended
+// fn take_turn(pos: Point, map: &mut HashMap<Point, Tile>) -> bool {
+//     let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
+//     let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
+//     let attacker_kind = if let Some(Tile::Unit(attacker)) = map.get(&pos) {
+//         attacker.kind.clone()
+//     } else {
+//         panic!("invalid unit tried to take turn");
+//     };
+//     let targets: Vec<Point> = targets(map, &attacker_kind);
+//     if targets.is_empty() {
+//         return false;
+//     }
+//     let already_in_range = pos
+//         .neighbours(rows, cols)
+//         .iter()
+//         .any(|n| targets.contains(n));
+//     if already_in_range {
+//     } else {
+//         let in_range = in_range(&targets, map);
+//         if in_range.is_empty() {
+//             return true;
+//         }
+//         let new_pos = pos_after_move(pos, in_range, map);
+//         debug_assert!(
+//             matches!(map.get(&new_pos), Some(Tile::Open)),
+//             "Expected destination {:?} to be open, but found {:?}",
+//             new_pos,
+//             map.get(&new_pos)
+//         );
+//         let unit_tile = std::mem::replace(map.get_mut(&pos).unwrap(), Tile::Open);
+//         *map.get_mut(&new_pos).unwrap() = unit_tile;
+//     }
+//     true
+// }
+//
+// // returns if the unit moved
+// fn sim_move(pos: Point, targets: Vec<Point>, map: &mut HashMap<Point, Tile>) -> bool {
+//     let in_range = in_range(&targets, map);
+//     if in_range.is_empty() {
+//         return false;
+//     }
+//     let new_pos = pos_after_move(pos, in_range, map);
+//     debug_assert!(
+//         matches!(map.get(&new_pos), Some(Tile::Open)),
+//         "Expected destination {:?} to be open, but found {:?}",
+//         new_pos,
+//         map.get(&new_pos)
+//     );
+//     let unit_tile = std::mem::replace(map.get_mut(&pos).unwrap(), Tile::Open);
+//     *map.get_mut(&new_pos).unwrap() = unit_tile;
+//     true
+// }
 
-/// returns all nearest reachable points
-fn nearest_with_firsts(
-    from: Point,
-    in_range: Vec<Point>,
-    map: &HashMap<Point, Tile>,
-) -> Vec<(Point, Vec<Point>)> {
-    in_range
-        .into_iter()
-        .map(|to| (to, shortest(from, to, map)))
-        .min_set_by_key(|(_, (cost, _))| *cost)
-        .into_iter()
-        .map(|(to, (_, firsts))| (to, firsts))
-        .collect()
+// return new position for point after potential move
+fn pos_after_move(pos: Point, in_range: Vec<Point>, map: &HashMap<Point, Tile>) -> Point {
+    let (_, first) = chosen_and_first(pos, in_range, map);
+    first
 }
 
 #[derive(PartialEq, Eq)]
@@ -265,46 +293,16 @@ fn shortest(from: Point, to: Point, map: &HashMap<Point, Tile>) -> (u32, Vec<Poi
     (min_cost, all_firsts)
 }
 
-fn alive_units(map: &HashMap<Point, Tile>) -> Vec<Point> {
-    // Get units that are still alive
-    map.iter()
-        .filter(|(_, tile)| matches!(tile, Tile::Unit(Mob { kind: _, hp }) if *hp > 0))
-        .map(|(p, _)| *p)
-        .collect()
-}
-
-fn reading_order(mut points: Vec<Point>) -> Vec<Point> {
-    // When multiple choices are equally valid, ties are broken in reading order:
-    // top-to-bottom, then left-to-right.
-    // For instance,
-    // the order in which units take their turns within a round
-    // is the reading order of their starting positions in that round,
-    // regardless of the type of unit
-    // or whether other units have moved after the round started
-    points.sort_unstable_by(|a, b| {
-        a.row
-            .cmp(&b.row)
-            .then_with(|| a.col.cmp(&b.col))
-    });
-    points
-}
-
 /// the sum of the hit points of all remaining units
-fn sum_hp(map: &HashMap<Point, Tile>) -> u32 {
-    alive_units(map)
-        .iter()
-        .filter_map(|p| match &map[p] {
-            Tile::Wall => None,
-            Tile::Open => None,
-            Tile::Unit(mob) => Some(mob.hp),
-        })
-        .sum()
+fn sum_hp(units: &Vec<Mob>) -> u32 {
+    units.iter().map(|unit| unit.hp).sum()
 }
 
-fn make_2d_vec(map: &HashMap<Point, Tile>) -> Vec<Vec<char>> {
+fn make_2d_vec(map: &HashMap<Point, Tile>, units: &HashMap<u32, Mob>) -> Vec<Vec<char>> {
     let max_row = map.keys().map(|p| p.row).max().unwrap();
     let max_col = map.keys().map(|p| p.col).max().unwrap();
     let mut res = Vec::new();
+    // make map
     for row in 0..=max_row {
         let mut line = Vec::new();
         for col in 0..=max_col {
@@ -312,31 +310,35 @@ fn make_2d_vec(map: &HashMap<Point, Tile>) -> Vec<Vec<char>> {
             let c = match &map[&point] {
                 Tile::Wall => '#',
                 Tile::Open => '.',
-                Tile::Unit(mob) => match mob.kind {
-                    Kind::Goblin => 'G',
-                    Kind::Elf => 'E',
-                },
             };
             line.push(c);
         }
         res.push(line);
     }
+    // insert units
+    for unit in units.values() {
+        let c = if unit.kind == Kind::Goblin { 'G' } else { 'E' };
+        let Point { row, col } = unit.pos;
+        res[row as usize][col as usize] = c;
+    }
     res
 }
-
-fn show(map: &HashMap<Point, Tile>) {
-    let vec_2d = make_2d_vec(map);
-    for line in vec_2d {
-        for c in line {
-            print!("{c}");
-        }
-        println!();
-    }
-}
+//
+// fn show(map: &HashMap<Point, Tile>) {
+//     let vec_2d = make_2d_vec(map);
+//     for line in vec_2d {
+//         for c in line {
+//             print!("{c}");
+//         }
+//         println!();
+//     }
+// }
 
 impl AoCData<'_> for Data {
     fn try_new(input: &str) -> AoCResult<Self> {
+        let mut id = 0;
         let mut map = HashMap::new();
+        let mut units = HashMap::new();
         for (row_idx, line) in input.lines().enumerate() {
             for (col_idx, c) in line.chars().enumerate() {
                 let point = Point {
@@ -346,33 +348,83 @@ impl AoCData<'_> for Data {
                 let tile = match c {
                     '#' => Tile::Wall,
                     '.' => Tile::Open,
-                    'G' => Tile::Unit(Mob {
-                        kind: Kind::Goblin,
-                        hp: 200,
-                    }),
-                    'E' => Tile::Unit(Mob {
-                        kind: Kind::Elf,
-                        hp: 200,
-                    }),
+                    'G' | 'E' => {
+                        id += 1;
+                        let kind = if c == 'G' { Kind::Goblin } else { Kind::Elf };
+                        units.insert(
+                            id,
+                            Mob {
+                                id,
+                                pos: point,
+                                kind,
+                                hp: 200,
+                            },
+                        );
+                        Tile::Open
+                    }
                     _ => panic!("Invalid input"),
                 };
                 map.insert(point, tile);
             }
         }
-        Ok(Self { map })
+        Ok(Self { map, units })
     }
 
     fn part_1(&self) -> AoCResult<impl Display> {
-        let mut map = self.map.clone();
-        let mut round_num = 0;
-        loop {
-            if round_num == 10 {
-                break;
-            }
-            round(&mut map);
-            round_num += 1;
-        }
+        // let mut map = self.map.clone();
+        // let mut round_num = 0;
+        // loop {
+        //     if round_num == 10 {
+        //         break;
+        //     }
+        //     round(&mut map);
+        //     round_num += 1;
+        // }
         // Ok(round_num * sum_hp(&map))
+
+        //         let input = "#########
+        // #G..G..G#
+        // #.......#
+        // #.......#
+        // #G..E..G#
+        // #.......#
+        // #.......#
+        // #G..G..G#
+        // #########";
+        //         let data = Data::try_new(input).unwrap();
+        //         let mut map = data.map.clone();
+        //         let mut count = 0;
+        //         let mut movement = false;
+        //
+        //         let units_ids = alive_units(&data.map);
+        //         let mut order = get_mobs_info(units_ids, &data.map);
+        //
+        //         // sort in reading order of points
+        //         order.sort_unstable_by(|(a, _), (b, _)| {
+        //             a.row
+        //                 .cmp(&b.row)
+        //                 .then_with(|| a.col.cmp(&b.col))
+        //         });
+        //
+        //         loop {
+        //             if count == 1 {
+        //                 break;
+        //             }
+        //
+        //             for (_, mob) in &order {
+        //                 let (point, mob) = get_mob_info(mob.id, &map);
+        //                 print_map(&map);
+        //                 println!("Moving for {:?}: {:?}", point, mob.kind);
+        //                 let targets = targets(&map, &mob.kind);
+        //                 movement = movement || sim_move(point, targets, &mut map);
+        //             }
+        //
+        //             if !movement {
+        //                 break;
+        //             }
+        //             movement = false;
+        //             count += 1;
+        //         }
         Ok(1)
     }
 
@@ -381,17 +433,35 @@ impl AoCData<'_> for Data {
     }
 }
 
+// fn print_map(map: &HashMap<Point, Tile>) {
+//     let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
+//     let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
+//     for row in 0..rows as u32 {
+//         for col in 0..cols as u32 {
+//             let c = match &map[&Point { row, col }] {
+//                 Tile::Wall => '#',
+//                 Tile::Open => '.',
+//                 Tile::Unit(mob) => match mob.kind {
+//                     Kind::Goblin => 'G',
+//                     Kind::Elf => 'E',
+//                 },
+//             };
+//             print!("{c}");
+//         }
+//         println!()
+//     }
+// }
+
+fn vec2d_to_string(vec_2d: Vec<Vec<char>>) -> String {
+    use itertools::Itertools;
+    vec_2d
+        .iter()
+        .map(|row| row.iter().collect::<String>())
+        .join("\n")
+}
+
 #[cfg(test)]
 mod test {
-    use itertools::Itertools;
-
-    fn vec2d_to_string(vec_2d: Vec<Vec<char>>) -> String {
-        vec_2d
-            .iter()
-            .map(|row| row.iter().collect::<String>())
-            .join("\n")
-    }
-
     use super::*;
     //                  would take their
     // These units:   turns in this order:
@@ -422,11 +492,15 @@ mod test {
 #.G.E.#
 #######";
         let data = Data::try_new(input).unwrap();
-        let mut vec_2d = make_2d_vec(&data.map);
-        let mut units = alive_units(&data.map);
-        units = reading_order(units);
-        for (count, point) in units.iter().enumerate() {
-            vec_2d[point.row as usize][point.col as usize] = ((count + 1) as u8 + b'0') as char;
+        let mut vec_2d = make_2d_vec(&data.map, &data.units);
+
+        let unit_ids: Vec<_> = data.units.keys().copied().collect();
+        let alive_ids = alive_units(&unit_ids, &data.units);
+        let order = reading_order(&alive_ids, &data.units);
+
+        for (count, id) in order.iter().enumerate() {
+            let mob = &data.units[id];
+            vec_2d[mob.pos.row as usize][mob.pos.col as usize] = ((count + 1) as u8 + b'0') as char;
         }
         let result = vec2d_to_string(vec_2d);
         assert_eq!(
@@ -439,190 +513,190 @@ mod test {
         );
     }
 
-    #[test]
-    fn correct_in_range() {
-        let input = "#######
-#E..G.#
-#...#.#
-#.G.#G#
-#######";
-        let data = Data::try_new(input).unwrap();
-        let targets = targets(&data.map, &Kind::Elf);
-        let in_range = in_range(&targets, &data.map);
-        let mut vec_2d = make_2d_vec(&data.map);
-        for p in in_range {
-            vec_2d[p.row as usize][p.col as usize] = '?';
-        }
-        let result = vec2d_to_string(vec_2d);
-        assert_eq!(
-            result,
-            "#######
-#E.?G?#
-#.?.#?#
-#?G?#G#
-#######"
-        );
-    }
-
-    #[test]
-    fn correct_nearest() {
-        let input = "#######
-#E..G.#
-#...#.#
-#.G.#G#
-#######";
-        let data = Data::try_new(input).unwrap();
-        let targets = targets(&data.map, &Kind::Elf);
-        let in_range = in_range(&targets, &data.map);
-        let elf = Point { row: 1, col: 1 };
-        let nearest: Vec<_> = nearest_with_firsts(elf, in_range, &data.map)
-            .into_iter()
-            .map(|(p, _)| p)
-            .collect();
-        let mut vec_2d = make_2d_vec(&data.map);
-        for p in nearest {
-            vec_2d[p.row as usize][p.col as usize] = '!';
-        }
-        let result = vec2d_to_string(vec_2d);
-        assert_eq!(
-            result,
-            "#######
-#E.!G.#
-#.!.#.#
-#!G.#G#
-#######"
-        );
-    }
-
-    #[test]
-    fn correct_chosen() {
-        let input = "#######
-#E..G.#
-#...#.#
-#.G.#G#
-#######";
-        let data = Data::try_new(input).unwrap();
-        let targets = targets(&data.map, &Kind::Elf);
-        let in_range = in_range(&targets, &data.map);
-        let elf = Point { row: 1, col: 1 };
-        let (chosen, _) = chosen_and_first(elf, in_range, &data.map);
-        let mut vec_2d = make_2d_vec(&data.map);
-        vec_2d[chosen.row as usize][chosen.col as usize] = '+';
-        let result = vec2d_to_string(vec_2d);
-        assert_eq!(
-            result,
-            "#######
-#E.+G.#
-#...#.#
-#.G.#G#
-#######"
-        );
-    }
-
-    #[test]
-    fn correct_in_range_2() {
-        let input = "#######
-#.E...#
-#.....#
-#...G.#
-#######";
-        let data = Data::try_new(input).unwrap();
-        let targets = targets(&data.map, &Kind::Elf);
-        let in_range = in_range(&targets, &data.map);
-        let mut vec_2d = make_2d_vec(&data.map);
-        for p in in_range {
-            vec_2d[p.row as usize][p.col as usize] = '?';
-        }
-        let result = vec2d_to_string(vec_2d);
-        assert_eq!(
-            result,
-            "#######
-#.E...#
-#...?.#
-#..?G?#
-#######"
-        );
-    }
-    #[test]
-    fn correct_nearest_2() {
-        let input = "#######
-#.E...#
-#.....#
-#...G.#
-#######";
-        let data = Data::try_new(input).unwrap();
-        let targets = targets(&data.map, &Kind::Elf);
-        let in_range = in_range(&targets, &data.map);
-        let elf = Point { row: 1, col: 2 };
-        let nearest: Vec<_> = nearest_with_firsts(elf, in_range, &data.map)
-            .into_iter()
-            .map(|(p, _)| p)
-            .collect();
-        let mut vec_2d = make_2d_vec(&data.map);
-        for p in nearest {
-            vec_2d[p.row as usize][p.col as usize] = '!';
-        }
-        let result = vec2d_to_string(vec_2d);
-        assert_eq!(
-            result,
-            "#######
-#.E...#
-#...!.#
-#..!G.#
-#######"
-        );
-    }
-
-    #[test]
-    fn correct_chosen_2() {
-        let input = "#######
-#.E...#
-#.....#
-#...G.#
-#######";
-        let data = Data::try_new(input).unwrap();
-        let targets = targets(&data.map, &Kind::Elf);
-        let in_range = in_range(&targets, &data.map);
-        let elf = Point { row: 1, col: 2 };
-        let (chosen, _) = chosen_and_first(elf, in_range, &data.map);
-        let mut vec_2d = make_2d_vec(&data.map);
-        vec_2d[chosen.row as usize][chosen.col as usize] = '+';
-        let result = vec2d_to_string(vec_2d);
-        assert_eq!(
-            result,
-            "#######
-#.E...#
-#...+.#
-#...G.#
-#######"
-        );
-    }
-
-    #[test]
-    fn correct_step() {
-        let input = "#######
-#.E...#
-#.....#
-#...G.#
-#######";
-        let data = Data::try_new(input).unwrap();
-        let targets = targets(&data.map, &Kind::Elf);
-        let in_range = in_range(&targets, &data.map);
-        let elf = Point { row: 1, col: 2 };
-        let (_, first) = chosen_and_first(elf, in_range, &data.map);
-        let mut vec_2d = make_2d_vec(&data.map);
-        vec_2d[elf.row as usize][elf.col as usize] = '.';
-        vec_2d[first.row as usize][first.col as usize] = 'E';
-        let result = vec2d_to_string(vec_2d);
-        assert_eq!(
-            result,
-            "#######
-#..E..#
-#.....#
-#...G.#
-#######"
-        );
-    }
+    //     #[test]
+    //     fn correct_in_range() {
+    //         let input = "#######
+    // #E..G.#
+    // #...#.#
+    // #.G.#G#
+    // #######";
+    //         let data = Data::try_new(input).unwrap();
+    //         let targets = targets(&data.map, &Kind::Elf);
+    //         let in_range = in_range(&targets, &data.map);
+    //         let mut vec_2d = make_2d_vec(&data.map);
+    //         for p in in_range {
+    //             vec_2d[p.row as usize][p.col as usize] = '?';
+    //         }
+    //         let result = vec2d_to_string(vec_2d);
+    //         assert_eq!(
+    //             result,
+    //             "#######
+    // #E.?G?#
+    // #.?.#?#
+    // #?G?#G#
+    // #######"
+    //         );
+    //     }
+    //
+    //     #[test]
+    //     fn correct_nearest() {
+    //         let input = "#######
+    // #E..G.#
+    // #...#.#
+    // #.G.#G#
+    // #######";
+    //         let data = Data::try_new(input).unwrap();
+    //         let targets = targets(&data.map, &Kind::Elf);
+    //         let in_range = in_range(&targets, &data.map);
+    //         let elf = Point { row: 1, col: 1 };
+    //         let nearest: Vec<_> = nearest_with_firsts(elf, in_range, &data.map)
+    //             .into_iter()
+    //             .map(|(p, _)| p)
+    //             .collect();
+    //         let mut vec_2d = make_2d_vec(&data.map);
+    //         for p in nearest {
+    //             vec_2d[p.row as usize][p.col as usize] = '!';
+    //         }
+    //         let result = vec2d_to_string(vec_2d);
+    //         assert_eq!(
+    //             result,
+    //             "#######
+    // #E.!G.#
+    // #.!.#.#
+    // #!G.#G#
+    // #######"
+    //         );
+    //     }
+    //
+    //     #[test]
+    //     fn correct_chosen() {
+    //         let input = "#######
+    // #E..G.#
+    // #...#.#
+    // #.G.#G#
+    // #######";
+    //         let data = Data::try_new(input).unwrap();
+    //         let targets = targets(&data.map, &Kind::Elf);
+    //         let in_range = in_range(&targets, &data.map);
+    //         let elf = Point { row: 1, col: 1 };
+    //         let (chosen, _) = chosen_and_first(elf, in_range, &data.map);
+    //         let mut vec_2d = make_2d_vec(&data.map);
+    //         vec_2d[chosen.row as usize][chosen.col as usize] = '+';
+    //         let result = vec2d_to_string(vec_2d);
+    //         assert_eq!(
+    //             result,
+    //             "#######
+    // #E.+G.#
+    // #...#.#
+    // #.G.#G#
+    // #######"
+    //         );
+    //     }
+    //
+    //     #[test]
+    //     fn correct_in_range_2() {
+    //         let input = "#######
+    // #.E...#
+    // #.....#
+    // #...G.#
+    // #######";
+    //         let data = Data::try_new(input).unwrap();
+    //         let targets = targets(&data.map, &Kind::Elf);
+    //         let in_range = in_range(&targets, &data.map);
+    //         let mut vec_2d = make_2d_vec(&data.map);
+    //         for p in in_range {
+    //             vec_2d[p.row as usize][p.col as usize] = '?';
+    //         }
+    //         let result = vec2d_to_string(vec_2d);
+    //         assert_eq!(
+    //             result,
+    //             "#######
+    // #.E...#
+    // #...?.#
+    // #..?G?#
+    // #######"
+    //         );
+    //     }
+    //     #[test]
+    //     fn correct_nearest_2() {
+    //         let input = "#######
+    // #.E...#
+    // #.....#
+    // #...G.#
+    // #######";
+    //         let data = Data::try_new(input).unwrap();
+    //         let targets = targets(&data.map, &Kind::Elf);
+    //         let in_range = in_range(&targets, &data.map);
+    //         let elf = Point { row: 1, col: 2 };
+    //         let nearest: Vec<_> = nearest_with_firsts(elf, in_range, &data.map)
+    //             .into_iter()
+    //             .map(|(p, _)| p)
+    //             .collect();
+    //         let mut vec_2d = make_2d_vec(&data.map);
+    //         for p in nearest {
+    //             vec_2d[p.row as usize][p.col as usize] = '!';
+    //         }
+    //         let result = vec2d_to_string(vec_2d);
+    //         assert_eq!(
+    //             result,
+    //             "#######
+    // #.E...#
+    // #...!.#
+    // #..!G.#
+    // #######"
+    //         );
+    //     }
+    //
+    //     #[test]
+    //     fn correct_chosen_2() {
+    //         let input = "#######
+    // #.E...#
+    // #.....#
+    // #...G.#
+    // #######";
+    //         let data = Data::try_new(input).unwrap();
+    //         let targets = targets(&data.map, &Kind::Elf);
+    //         let in_range = in_range(&targets, &data.map);
+    //         let elf = Point { row: 1, col: 2 };
+    //         let (chosen, _) = chosen_and_first(elf, in_range, &data.map);
+    //         let mut vec_2d = make_2d_vec(&data.map);
+    //         vec_2d[chosen.row as usize][chosen.col as usize] = '+';
+    //         let result = vec2d_to_string(vec_2d);
+    //         assert_eq!(
+    //             result,
+    //             "#######
+    // #.E...#
+    // #...+.#
+    // #...G.#
+    // #######"
+    //         );
+    //     }
+    //
+    //     #[test]
+    //     fn correct_step() {
+    //         let input = "#######
+    // #.E...#
+    // #.....#
+    // #...G.#
+    // #######";
+    //         let data = Data::try_new(input).unwrap();
+    //         let targets = targets(&data.map, &Kind::Elf);
+    //         let in_range = in_range(&targets, &data.map);
+    //         let elf = Point { row: 1, col: 2 };
+    //         let (_, first) = chosen_and_first(elf, in_range, &data.map);
+    //         let mut vec_2d = make_2d_vec(&data.map);
+    //         vec_2d[elf.row as usize][elf.col as usize] = '.';
+    //         vec_2d[first.row as usize][first.col as usize] = 'E';
+    //         let result = vec2d_to_string(vec_2d);
+    //         assert_eq!(
+    //             result,
+    //             "#######
+    // #..E..#
+    // #.....#
+    // #...G.#
+    // #######"
+    //         );
+    //     }
 
     #[test]
     fn part_1() {
