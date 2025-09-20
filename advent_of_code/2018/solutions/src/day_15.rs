@@ -48,6 +48,7 @@ impl Point {
         res
     }
 }
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Kind {
     Goblin,
@@ -67,6 +68,7 @@ enum Tile {
     Wall,
     Open,
 }
+
 #[derive(Debug, Clone)]
 pub struct Data {
     map: HashMap<Point, Tile>,
@@ -113,7 +115,14 @@ fn in_range(unit_ids: &[u32], units: &HashMap<u32, Mob>, map: &HashMap<Point, Ti
             let target = &units[id];
             target.pos.neighbours(rows, cols)
         })
+        // ensure open map tile
         .filter(|p| matches!(map[p], Tile::Open))
+        // ensure tile not currently occupied
+        .filter(|p| {
+            units
+                .values()
+                .all(|unit| unit.pos != *p)
+        })
         .collect()
 }
 
@@ -194,23 +203,47 @@ fn chosen_and_first(
 //     true
 // }
 //
-// // returns if the unit moved
-// fn sim_move(pos: Point, targets: Vec<Point>, map: &mut HashMap<Point, Tile>) -> bool {
-//     let in_range = in_range(&targets, map);
-//     if in_range.is_empty() {
-//         return false;
-//     }
-//     let new_pos = pos_after_move(pos, in_range, map);
-//     debug_assert!(
-//         matches!(map.get(&new_pos), Some(Tile::Open)),
-//         "Expected destination {:?} to be open, but found {:?}",
-//         new_pos,
-//         map.get(&new_pos)
-//     );
-//     let unit_tile = std::mem::replace(map.get_mut(&pos).unwrap(), Tile::Open);
-//     *map.get_mut(&new_pos).unwrap() = unit_tile;
-//     true
-// }
+// return new position if unit moved, else returns None
+fn try_move(id: u32, map: &HashMap<Point, Tile>, units: &mut HashMap<u32, Mob>) -> Option<Point> {
+    let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
+    let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
+
+    let unit = units.get(&id).unwrap();
+    println!("Try moving unit {:?}", unit);
+
+    let unit_ids: Vec<_> = units.keys().copied().collect();
+    let alive_ids = alive_units(&unit_ids, units);
+    let target_ids = targets(&unit.kind, &alive_ids, units);
+
+    // If the unit is already in range of a target,
+    // it does not move
+    let already_in_range = unit
+        .pos
+        .neighbours(rows, cols)
+        .iter()
+        .any(|n| {
+            target_ids
+                .iter()
+                .map(|id| units.get(id).unwrap().pos)
+                .contains(n)
+        });
+    if already_in_range {
+        return None;
+    }
+
+    let in_range = in_range(&target_ids, units, map);
+    // nothing in range
+    if in_range.is_empty() {
+        return None;
+    }
+    let pos_after = pos_after_move(unit.pos, in_range, map);
+
+    // do the actual move
+    units
+        .entry(id)
+        .and_modify(|unit| unit.pos = pos_after);
+    Some(pos_after)
+}
 
 // return new position for point after potential move
 fn pos_after_move(pos: Point, in_range: Vec<Point>, map: &HashMap<Point, Tile>) -> Point {
@@ -324,16 +357,6 @@ fn make_2d_vec(map: &HashMap<Point, Tile>, units: &HashMap<u32, Mob>) -> Vec<Vec
     }
     res
 }
-//
-// fn show(map: &HashMap<Point, Tile>) {
-//     let vec_2d = make_2d_vec(map);
-//     for line in vec_2d {
-//         for c in line {
-//             print!("{c}");
-//         }
-//         println!();
-//     }
-// }
 
 impl AoCData<'_> for Data {
     fn try_new(input: &str) -> AoCResult<Self> {
@@ -382,50 +405,6 @@ impl AoCData<'_> for Data {
         //     round_num += 1;
         // }
         // Ok(round_num * sum_hp(&map))
-
-        //         let input = "#########
-        // #G..G..G#
-        // #.......#
-        // #.......#
-        // #G..E..G#
-        // #.......#
-        // #.......#
-        // #G..G..G#
-        // #########";
-        //         let data = Data::try_new(input).unwrap();
-        //         let mut map = data.map.clone();
-        //         let mut count = 0;
-        //         let mut movement = false;
-        //
-        //         let units_ids = alive_units(&data.map);
-        //         let mut order = get_mobs_info(units_ids, &data.map);
-        //
-        //         // sort in reading order of points
-        //         order.sort_unstable_by(|(a, _), (b, _)| {
-        //             a.row
-        //                 .cmp(&b.row)
-        //                 .then_with(|| a.col.cmp(&b.col))
-        //         });
-        //
-        //         loop {
-        //             if count == 1 {
-        //                 break;
-        //             }
-        //
-        //             for (_, mob) in &order {
-        //                 let (point, mob) = get_mob_info(mob.id, &map);
-        //                 print_map(&map);
-        //                 println!("Moving for {:?}: {:?}", point, mob.kind);
-        //                 let targets = targets(&map, &mob.kind);
-        //                 movement = movement || sim_move(point, targets, &mut map);
-        //             }
-        //
-        //             if !movement {
-        //                 break;
-        //             }
-        //             movement = false;
-        //             count += 1;
-        //         }
         Ok(1)
     }
 
@@ -433,25 +412,6 @@ impl AoCData<'_> for Data {
         Ok(2)
     }
 }
-
-// fn print_map(map: &HashMap<Point, Tile>) {
-//     let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
-//     let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
-//     for row in 0..rows as u32 {
-//         for col in 0..cols as u32 {
-//             let c = match &map[&Point { row, col }] {
-//                 Tile::Wall => '#',
-//                 Tile::Open => '.',
-//                 Tile::Unit(mob) => match mob.kind {
-//                     Kind::Goblin => 'G',
-//                     Kind::Elf => 'E',
-//                 },
-//             };
-//             print!("{c}");
-//         }
-//         println!()
-//     }
-// }
 
 fn vec2d_to_string(vec_2d: Vec<Vec<char>>) -> String {
     use itertools::Itertools;
@@ -719,6 +679,99 @@ mod test {
 #...G.#
 #######"
         );
+    }
+
+    #[test]
+    fn longer_movement() {
+        let input = "#########
+#G..G..G#
+#.......#
+#.......#
+#G..E..G#
+#.......#
+#.......#
+#G..G..G#
+#########";
+        let data = Data::try_new(input).unwrap();
+        let mut units = data.units.clone();
+        let mut movement = false;
+        let unit_ids: Vec<_> = data.units.keys().copied().collect();
+        let mut result = String::new();
+
+        result.push_str("Initially:");
+        result.push('\n');
+        result.push_str(&vec2d_to_string(make_2d_vec(&data.map, &units)));
+
+        for round in 1.. {
+            let alive_ids = alive_units(&unit_ids, &units);
+            let order = reading_order(&alive_ids, &units);
+
+            for id in &order {
+                if try_move(*id, &data.map, &mut units).is_none() {
+                    continue;
+                }
+                movement = true;
+            }
+
+            if !movement {
+                break;
+            }
+
+            result.push('\n');
+            result.push('\n');
+            result.push_str(&format!(
+                "After {round} {}:",
+                if round == 1 { "round" } else { "rounds" }
+            ));
+            result.push('\n');
+            result.push_str(&vec2d_to_string(make_2d_vec(&data.map, &units)));
+
+            movement = false;
+        }
+        let expected = "Initially:
+#########
+#G..G..G#
+#.......#
+#.......#
+#G..E..G#
+#.......#
+#.......#
+#G..G..G#
+#########
+
+After 1 round:
+#########
+#.G...G.#
+#...G...#
+#...E..G#
+#.G.....#
+#.......#
+#G..G..G#
+#.......#
+#########
+
+After 2 rounds:
+#########
+#..G.G..#
+#...G...#
+#.G.E.G.#
+#.......#
+#G..G..G#
+#.......#
+#.......#
+#########
+
+After 3 rounds:
+#########
+#.......#
+#..GGG..#
+#..GEG..#
+#G..G...#
+#......G#
+#.......#
+#.......#
+#########";
+        assert_eq!(result, expected);
     }
 
     #[test]
