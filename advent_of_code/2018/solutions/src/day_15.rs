@@ -149,7 +149,7 @@ fn chosen_and_first(
     in_range: Vec<Point>,
     map: &HashMap<Point, Tile>,
     units: &HashMap<u32, Mob>,
-) -> (Point, Point) {
+) -> (Point, Option<Point>) {
     let mut nearest_with_fists = nearest_with_firsts(from, in_range, map, units);
     // sort in reading order of nearest point
     nearest_with_fists.sort_unstable_by(|(a, _), (b, _)| {
@@ -161,45 +161,48 @@ fn chosen_and_first(
         .into_iter()
         .next()
         .unwrap();
+    dbg!(&chosen, &firsts.len());
     // sort in reading order of firsts
     firsts.sort_unstable_by(|a, b| {
         a.row
             .cmp(&b.row)
             .then_with(|| a.col.cmp(&b.col))
     });
-    let first = firsts.into_iter().next().unwrap();
+    let first = firsts.into_iter().next();
     (chosen, first)
 }
 
 fn round(map: &HashMap<Point, Tile>, units: &mut HashMap<u32, Mob>) {
-    let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
-    let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
+    // let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
+    // let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
 
     let unit_ids: Vec<_> = units.keys().copied().collect();
     let alive_ids = alive_units(&unit_ids, units);
     let order = reading_order(&alive_ids, units);
 
     for &id in &order {
-        let unit = units.get(&id).unwrap();
-        let alive_ids = alive_units(&unit_ids, units);
-        let target_ids = targets(&unit.kind, &alive_ids, units);
-        let already_in_range = unit
-            .pos
-            .neighbours(rows, cols)
-            .iter()
-            .any(|n| {
-                target_ids
-                    .iter()
-                    .map(|id| units.get(id).unwrap().pos)
-                    .contains(n)
-            });
-        if already_in_range {
-            attack(id, map, units);
-            continue;
-        }
-        if try_move(id, map, units).is_some() {
-            attack(id, map, units);
-        }
+        // let unit = units.get(&id).unwrap();
+        // let alive_ids = alive_units(&unit_ids, units);
+        // let target_ids = targets(&unit.kind, &alive_ids, units);
+        // let already_in_range = unit
+        //     .pos
+        //     .neighbours(rows, cols)
+        //     .iter()
+        //     .any(|n| {
+        //         target_ids
+        //             .iter()
+        //             .map(|id| units.get(id).unwrap().pos)
+        //             .contains(n)
+        //     });
+        // if already_in_range {
+        //     attack(id, map, units);
+        //     continue;
+        // }
+        // if try_move(id, map, units).is_some() {
+        //     attack(id, map, units);
+        // }
+        try_move(id, map, units);
+        attack(id, map, units);
     }
 }
 
@@ -345,7 +348,11 @@ fn pos_after_move(
     units: &HashMap<u32, Mob>,
 ) -> Point {
     let (_, first) = chosen_and_first(pos, in_range, map, units);
-    first
+    if let Some(new_pos) = first {
+        new_pos
+    } else {
+        pos
+    }
 }
 
 #[derive(PartialEq, Eq)]
@@ -578,15 +585,16 @@ impl AoCData<'_> for Data {
 #######";
         let mut data = Data::try_new(input).unwrap();
         for num in 1.. {
-            if num == 37 {
-                break;
-            }
+            dbg!(num);
             round(&data.map, &mut data.units);
-            if [1, 2, 23, 24, 25].contains(&num) {
+            if [1, 2, 23, 24, 25, 26, 27, 28, 47].contains(&num) {
                 let vec_2d = make_2d_vec(&data.map, &data.units);
                 println!("Round {num}:");
                 println!("{}", vec2d_to_string(vec_2d));
                 println!();
+            }
+            if num == 47 {
+                break;
             }
         }
         Ok(1)
@@ -853,7 +861,7 @@ mod test {
         let (_, first) = chosen_and_first(elf_pos, in_range, &data.map, &data.units);
 
         vec_2d[elf_pos.row as usize][elf_pos.col as usize] = '.';
-        vec_2d[first.row as usize][first.col as usize] = 'E';
+        vec_2d[first.unwrap().row as usize][first.unwrap().col as usize] = 'E';
         let result = vec2d_to_string(vec_2d);
         assert_eq!(
             result,
