@@ -106,7 +106,11 @@ fn targets(attacker_kind: &Kind, unit_ids: &[u32], units: &HashMap<u32, Mob>) ->
         .collect()
 }
 
-fn in_range(unit_ids: &[u32], units: &HashMap<u32, Mob>, map: &HashMap<Point, Tile>) -> Vec<Point> {
+fn open_around(
+    unit_ids: &[u32],
+    units: &HashMap<u32, Mob>,
+    map: &HashMap<Point, Tile>,
+) -> Vec<Point> {
     let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
     let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
     unit_ids
@@ -115,13 +119,12 @@ fn in_range(unit_ids: &[u32], units: &HashMap<u32, Mob>, map: &HashMap<Point, Ti
             let target = &units[id];
             target.pos.neighbours(rows, cols)
         })
-        // ensure open map tile
-        .filter(|p| matches!(map[p], Tile::Open))
-        // ensure tile not currently occupied
         .filter(|p| {
-            units
+            let open = matches!(map[p], Tile::Open);
+            let occupied = units
                 .values()
-                .all(|unit| unit.pos != *p)
+                .any(|unit| unit.hp > 0 && unit.pos == *p);
+            open && !occupied
         })
         .collect()
 }
@@ -130,10 +133,11 @@ fn nearest_with_firsts(
     from: Point,
     in_range: Vec<Point>,
     map: &HashMap<Point, Tile>,
+    units: &HashMap<u32, Mob>,
 ) -> Vec<(Point, Vec<Point>)> {
     in_range
         .into_iter()
-        .map(|to| (to, shortest(from, to, map)))
+        .map(|to| (to, shortest(from, to, map, units)))
         .min_set_by_key(|(_, (cost, _))| *cost)
         .into_iter()
         .map(|(to, (_, firsts))| (to, firsts))
@@ -144,8 +148,9 @@ fn chosen_and_first(
     from: Point,
     in_range: Vec<Point>,
     map: &HashMap<Point, Tile>,
+    units: &HashMap<u32, Mob>,
 ) -> (Point, Point) {
-    let mut nearest_with_fists = nearest_with_firsts(from, in_range, map);
+    let mut nearest_with_fists = nearest_with_firsts(from, in_range, map, units);
     // sort in reading order of nearest point
     nearest_with_fists.sort_unstable_by(|(a, _), (b, _)| {
         a.row
@@ -164,6 +169,38 @@ fn chosen_and_first(
     });
     let first = firsts.into_iter().next().unwrap();
     (chosen, first)
+}
+
+fn round(map: &HashMap<Point, Tile>, units: &mut HashMap<u32, Mob>) {
+    let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
+    let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
+
+    let unit_ids: Vec<_> = units.keys().copied().collect();
+    let alive_ids = alive_units(&unit_ids, units);
+    let order = reading_order(&alive_ids, units);
+
+    for &id in &order {
+        let unit = units.get(&id).unwrap();
+        let alive_ids = alive_units(&unit_ids, units);
+        let target_ids = targets(&unit.kind, &alive_ids, units);
+        let already_in_range = unit
+            .pos
+            .neighbours(rows, cols)
+            .iter()
+            .any(|n| {
+                target_ids
+                    .iter()
+                    .map(|id| units.get(id).unwrap().pos)
+                    .contains(n)
+            });
+        if already_in_range {
+            attack(id, map, units);
+            continue;
+        }
+        if try_move(id, map, units).is_some() {
+            attack(id, map, units);
+        }
+    }
 }
 
 // returns false if combat ended
@@ -209,7 +246,7 @@ fn try_move(id: u32, map: &HashMap<Point, Tile>, units: &mut HashMap<u32, Mob>) 
     let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
 
     let unit = units.get(&id).unwrap();
-    println!("Try moving unit {:?}", unit);
+    // println!("Try moving unit {:?}", unit);
 
     let unit_ids: Vec<_> = units.keys().copied().collect();
     let alive_ids = alive_units(&unit_ids, units);
@@ -231,23 +268,83 @@ fn try_move(id: u32, map: &HashMap<Point, Tile>, units: &mut HashMap<u32, Mob>) 
         return None;
     }
 
-    let in_range = in_range(&target_ids, units, map);
-    // nothing in range
-    if in_range.is_empty() {
+    let open_around = open_around(&target_ids, units, map);
+    if open_around.is_empty() {
         return None;
     }
-    let pos_after = pos_after_move(unit.pos, in_range, map);
+    let pos_after = pos_after_move(unit.pos, open_around, map, units);
 
-    // do the actual move
     units
         .entry(id)
         .and_modify(|unit| unit.pos = pos_after);
     Some(pos_after)
 }
 
+fn adjacent(
+    id: u32,
+    target_ids: &[u32],
+    map: &HashMap<Point, Tile>,
+    units: &HashMap<u32, Mob>,
+) -> Vec<u32> {
+    let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
+    let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
+    let unit = &units[&id];
+
+    target_ids
+        .iter()
+        .filter(|target_id| {
+            let target = &units[*target_id];
+            target
+                .pos
+                .neighbours(rows, cols)
+                .contains(&unit.pos)
+        })
+        .copied()
+        .collect()
+}
+
+fn fewest_hitpoints(ids: &[u32], units: &HashMap<u32, Mob>) -> Vec<u32> {
+    ids.iter()
+        .copied()
+        .min_set_by_key(|id| &units[id].hp)
+}
+
+// returns true if target attacked, false if turn ended
+fn attack(id: u32, map: &HashMap<Point, Tile>, units: &mut HashMap<u32, Mob>) -> bool {
+    let unit = units.get(&id).unwrap();
+    // the unit first determines all of the targets
+    // that are in range of it by being immediately adjacent to it.
+    let unit_ids: Vec<_> = units.keys().copied().collect();
+    let alive_ids = alive_units(&unit_ids, units);
+    let target_ids = targets(&unit.kind, &alive_ids, units);
+    let adjacent = adjacent(id, &target_ids, map, units);
+    // If there are no such targets, the unit ends its turn.
+    if adjacent.is_empty() {
+        return false;
+    }
+    // Otherwise, the adjacent target with the fewest hit points is selected;
+    let fewest_hp = fewest_hitpoints(&adjacent, units);
+    // in a tie, the adjacent target with the fewest hit points which is first in reading order is selected.
+    let selected_id = reading_order(&fewest_hp, units)[0];
+    // The unit deals damage equal to its attack power to the selected target,
+    // reducing its hit points by that amount.
+    // If this reduces its hit points to 0 or fewer,
+    // the selected target dies:
+    // its square becomes . and it takes no further turns.
+    units
+        .entry(selected_id)
+        .and_modify(|unit| unit.hp = unit.hp.saturating_sub(3));
+    true
+}
+
 // return new position for point after potential move
-fn pos_after_move(pos: Point, in_range: Vec<Point>, map: &HashMap<Point, Tile>) -> Point {
-    let (_, first) = chosen_and_first(pos, in_range, map);
+fn pos_after_move(
+    pos: Point,
+    in_range: Vec<Point>,
+    map: &HashMap<Point, Tile>,
+    units: &HashMap<u32, Mob>,
+) -> Point {
+    let (_, first) = chosen_and_first(pos, in_range, map, units);
     first
 }
 
@@ -269,8 +366,14 @@ impl PartialOrd for Node {
         Some(self.cmp(other))
     }
 }
+
 /// returns a tuple of (min cost, Vec<first_step>) to a single point
-fn shortest(from: Point, to: Point, map: &HashMap<Point, Tile>) -> (u32, Vec<Point>) {
+fn shortest(
+    from: Point,
+    to: Point,
+    map: &HashMap<Point, Tile>,
+    units: &HashMap<u32, Mob>,
+) -> (u32, Vec<Point>) {
     let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
     let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
 
@@ -310,7 +413,13 @@ fn shortest(from: Point, to: Point, map: &HashMap<Point, Tile>) -> (u32, Vec<Poi
         for n in pos
             .neighbours(rows, cols)
             .into_iter()
-            .filter(|p| matches!(&map[p], Tile::Open))
+            .filter(|p| {
+                let open = matches!(&map[p], Tile::Open);
+                let occupied = units
+                    .values()
+                    .any(|unit| unit.hp > 0 && unit.pos == *p);
+                open && !occupied
+            })
         {
             let new_cost = cost + 1;
             if new_cost <= *cost_map.get(&n).unwrap_or(&u32::MAX) {
@@ -353,7 +462,9 @@ fn make_2d_vec(map: &HashMap<Point, Tile>, units: &HashMap<u32, Mob>) -> Vec<Vec
     for unit in units.values() {
         let c = if unit.kind == Kind::Goblin { 'G' } else { 'E' };
         let Point { row, col } = unit.pos;
-        res[row as usize][col as usize] = c;
+        if unit.hp > 0 {
+            res[row as usize][col as usize] = c;
+        }
     }
     res
 }
@@ -405,6 +516,79 @@ impl AoCData<'_> for Data {
         //     round_num += 1;
         // }
         // Ok(round_num * sum_hp(&map))
+        //        HP:            HP:
+        // G....  9       G....  9
+        // ..G..  4       ..G..  4
+        // ..EG.  2  -->  ..E..
+        // ..G..  2       ..G..  2
+        // ...G.  1       ...G.  1
+        //         let input = "G....
+        // ..G..
+        // ..EG.
+        // ..G..
+        // ...G.";
+        //         let mut data = Data::try_new(input).unwrap();
+        // // set hp of each goblin
+        // let unit_ids: Vec<_> = data.units.keys().copied().collect();
+        // let goblins = targets(&Kind::Elf, &unit_ids, &data.units);
+        // for (idx, id) in reading_order(&goblins, &data.units)
+        //     .iter()
+        //     .enumerate()
+        // {
+        //     let unit = data.units.get_mut(id).unwrap();
+        //     let hp = match idx {
+        //         0 => 9,
+        //         1 => 4,
+        //         2 => 2,
+        //         3 => 2,
+        //         4 => 1,
+        //         _ => 200,
+        //     };
+        //     unit.hp = hp;
+        // }
+        // let elf_id = data
+        //     .units
+        //     .values()
+        //     .find_map(|unit| match unit.kind {
+        //         Kind::Goblin => None,
+        //         Kind::Elf => Some(unit.id),
+        //     })
+        //     .unwrap();
+        // attack(elf_id, &data.map, &mut data.units);
+        // let mut vec_2d = make_2d_vec(&data.map, &data.units);
+        // println!("{}", vec2d_to_string(vec_2d));
+        // dbg!(data.units);
+        // #######       #######
+        // #G..#E#       #...#E#   E(200)
+        // #E#E.E#       #E#...#   E(197)
+        // #G.##.#  -->  #.E##.#   E(185)
+        // #...#E#       #E..#E#   E(200), E(200)
+        // #...E.#       #.....#
+        // #######       #######
+        //
+        // Combat ends after 37 full rounds
+        // Elves win with 982 total hit points left
+        // Outcome: 37 * 982 = 36334
+        let input = "#######
+#.G...#
+#...EG#
+#.#.#G#
+#..G#E#
+#.....#
+#######";
+        let mut data = Data::try_new(input).unwrap();
+        for num in 1.. {
+            if num == 37 {
+                break;
+            }
+            round(&data.map, &mut data.units);
+            if [1, 2, 23, 24, 25].contains(&num) {
+                let vec_2d = make_2d_vec(&data.map, &data.units);
+                println!("Round {num}:");
+                println!("{}", vec2d_to_string(vec_2d));
+                println!();
+            }
+        }
         Ok(1)
     }
 
@@ -486,7 +670,7 @@ mod test {
 
         let unit_ids: Vec<_> = data.units.keys().copied().collect();
         let targets = targets(&Kind::Elf, &unit_ids, &data.units);
-        let in_range = in_range(&targets, &data.units, &data.map);
+        let in_range = open_around(&targets, &data.units, &data.map);
 
         for point in in_range {
             vec_2d[point.row as usize][point.col as usize] = '?';
@@ -515,8 +699,8 @@ mod test {
         let elf_pos = Point { row: 1, col: 1 };
         let unit_ids: Vec<_> = data.units.keys().copied().collect();
         let targets = targets(&Kind::Elf, &unit_ids, &data.units);
-        let in_range = in_range(&targets, &data.units, &data.map);
-        let nearest: Vec<_> = nearest_with_firsts(elf_pos, in_range, &data.map)
+        let in_range = open_around(&targets, &data.units, &data.map);
+        let nearest: Vec<_> = nearest_with_firsts(elf_pos, in_range, &data.map, &data.units)
             .into_iter()
             .map(|(p, _)| p)
             .collect();
@@ -548,8 +732,8 @@ mod test {
         let elf_pos = Point { row: 1, col: 1 };
         let unit_ids: Vec<_> = data.units.keys().copied().collect();
         let targets = targets(&Kind::Elf, &unit_ids, &data.units);
-        let in_range = in_range(&targets, &data.units, &data.map);
-        let (chosen, _) = chosen_and_first(elf_pos, in_range, &data.map);
+        let in_range = open_around(&targets, &data.units, &data.map);
+        let (chosen, _) = chosen_and_first(elf_pos, in_range, &data.map, &data.units);
 
         vec_2d[chosen.row as usize][chosen.col as usize] = '+';
         let result = vec2d_to_string(vec_2d);
@@ -575,7 +759,7 @@ mod test {
 
         let unit_ids: Vec<_> = data.units.keys().copied().collect();
         let targets = targets(&Kind::Elf, &unit_ids, &data.units);
-        let in_range = in_range(&targets, &data.units, &data.map);
+        let in_range = open_around(&targets, &data.units, &data.map);
 
         for point in in_range {
             vec_2d[point.row as usize][point.col as usize] = '?';
@@ -604,8 +788,8 @@ mod test {
         let elf_pos = Point { row: 1, col: 2 };
         let unit_ids: Vec<_> = data.units.keys().copied().collect();
         let targets = targets(&Kind::Elf, &unit_ids, &data.units);
-        let in_range = in_range(&targets, &data.units, &data.map);
-        let nearest: Vec<_> = nearest_with_firsts(elf_pos, in_range, &data.map)
+        let in_range = open_around(&targets, &data.units, &data.map);
+        let nearest: Vec<_> = nearest_with_firsts(elf_pos, in_range, &data.map, &data.units)
             .into_iter()
             .map(|(p, _)| p)
             .collect();
@@ -637,8 +821,8 @@ mod test {
         let elf_pos = Point { row: 1, col: 2 };
         let unit_ids: Vec<_> = data.units.keys().copied().collect();
         let targets = targets(&Kind::Elf, &unit_ids, &data.units);
-        let in_range = in_range(&targets, &data.units, &data.map);
-        let (chosen, _) = chosen_and_first(elf_pos, in_range, &data.map);
+        let in_range = open_around(&targets, &data.units, &data.map);
+        let (chosen, _) = chosen_and_first(elf_pos, in_range, &data.map, &data.units);
 
         vec_2d[chosen.row as usize][chosen.col as usize] = '+';
         let result = vec2d_to_string(vec_2d);
@@ -665,8 +849,8 @@ mod test {
         let elf_pos = Point { row: 1, col: 2 };
         let unit_ids: Vec<_> = data.units.keys().copied().collect();
         let targets = targets(&Kind::Elf, &unit_ids, &data.units);
-        let in_range = in_range(&targets, &data.units, &data.map);
-        let (_, first) = chosen_and_first(elf_pos, in_range, &data.map);
+        let in_range = open_around(&targets, &data.units, &data.map);
+        let (_, first) = chosen_and_first(elf_pos, in_range, &data.map, &data.units);
 
         vec_2d[elf_pos.row as usize][elf_pos.col as usize] = '.';
         vec_2d[first.row as usize][first.col as usize] = 'E';
