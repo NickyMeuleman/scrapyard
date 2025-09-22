@@ -45,6 +45,12 @@ impl Point {
                 col: self.col - 1,
             })
         }
+        // ensure reading order
+        res.sort_unstable_by(|a, b| {
+            a.row
+                .cmp(&b.row)
+                .then(a.col.cmp(&b.col))
+        });
         res
     }
 }
@@ -161,7 +167,6 @@ fn chosen_and_first(
         .into_iter()
         .next()
         .unwrap();
-    dbg!(&chosen, &firsts.len());
     // sort in reading order of firsts
     firsts.sort_unstable_by(|a, b| {
         a.row
@@ -173,90 +178,30 @@ fn chosen_and_first(
 }
 
 fn round(map: &HashMap<Point, Tile>, units: &mut HashMap<u32, Mob>) {
-    // let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
-    // let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
-
     let unit_ids: Vec<_> = units.keys().copied().collect();
     let alive_ids = alive_units(&unit_ids, units);
     let order = reading_order(&alive_ids, units);
 
     for &id in &order {
-        // let unit = units.get(&id).unwrap();
-        // let alive_ids = alive_units(&unit_ids, units);
-        // let target_ids = targets(&unit.kind, &alive_ids, units);
-        // let already_in_range = unit
-        //     .pos
-        //     .neighbours(rows, cols)
-        //     .iter()
-        //     .any(|n| {
-        //         target_ids
-        //             .iter()
-        //             .map(|id| units.get(id).unwrap().pos)
-        //             .contains(n)
-        //     });
-        // if already_in_range {
-        //     attack(id, map, units);
-        //     continue;
-        // }
-        // if try_move(id, map, units).is_some() {
-        //     attack(id, map, units);
-        // }
+        if units[&id].hp == 0 {
+            continue;
+        }
         try_move(id, map, units);
         attack(id, map, units);
     }
 }
 
-// returns false if combat ended
-// returns true if turn was ended
-// fn take_turn(pos: Point, map: &mut HashMap<Point, Tile>) -> bool {
-//     let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
-//     let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
-//     let attacker_kind = if let Some(Tile::Unit(attacker)) = map.get(&pos) {
-//         attacker.kind.clone()
-//     } else {
-//         panic!("invalid unit tried to take turn");
-//     };
-//     let targets: Vec<Point> = targets(map, &attacker_kind);
-//     if targets.is_empty() {
-//         return false;
-//     }
-//     let already_in_range = pos
-//         .neighbours(rows, cols)
-//         .iter()
-//         .any(|n| targets.contains(n));
-//     if already_in_range {
-//     } else {
-//         let in_range = in_range(&targets, map);
-//         if in_range.is_empty() {
-//             return true;
-//         }
-//         let new_pos = pos_after_move(pos, in_range, map);
-//         debug_assert!(
-//             matches!(map.get(&new_pos), Some(Tile::Open)),
-//             "Expected destination {:?} to be open, but found {:?}",
-//             new_pos,
-//             map.get(&new_pos)
-//         );
-//         let unit_tile = std::mem::replace(map.get_mut(&pos).unwrap(), Tile::Open);
-//         *map.get_mut(&new_pos).unwrap() = unit_tile;
-//     }
-//     true
-// }
-//
 // return new position if unit moved, else returns None
 fn try_move(id: u32, map: &HashMap<Point, Tile>, units: &mut HashMap<u32, Mob>) -> Option<Point> {
     let rows = map.keys().map(|p| p.row).max().unwrap() as usize + 1;
     let cols = map.keys().map(|p| p.col).max().unwrap() as usize + 1;
 
     let unit = units.get(&id).unwrap();
-    // println!("Try moving unit {:?}", unit);
 
     let unit_ids: Vec<_> = units.keys().copied().collect();
     let alive_ids = alive_units(&unit_ids, units);
     let target_ids = targets(&unit.kind, &alive_ids, units);
 
-    // If the unit is already in range of a target,
-    // it does not move
     let already_in_range = unit
         .pos
         .neighbours(rows, cols)
@@ -355,6 +300,22 @@ fn pos_after_move(
     }
 }
 
+// returns Some(hp_sum_of_winner) if combat ended
+fn check_end(units: &HashMap<u32, Mob>) -> Option<u32> {
+    let (elves, goblins): (Vec<_>, Vec<_>) = units
+        .values()
+        .filter(|unit| unit.hp > 0)
+        .partition(|unit| unit.kind == Kind::Elf);
+
+    if elves.is_empty() {
+        Some(sum_hp(&goblins))
+    } else if goblins.is_empty() {
+        Some(sum_hp(&elves))
+    } else {
+        None
+    }
+}
+
 #[derive(PartialEq, Eq)]
 struct Node {
     cost: u32,
@@ -364,7 +325,11 @@ struct Node {
 
 impl Ord for Node {
     fn cmp(&self, other: &Self) -> Ordering {
-        other.cost.cmp(&self.cost)
+        other
+            .cost
+            .cmp(&self.cost)
+            .then_with(|| self.pos.row.cmp(&other.pos.row))
+            .then_with(|| self.pos.col.cmp(&other.pos.col))
     }
 }
 
@@ -397,6 +362,13 @@ fn shortest(
     cost_map.insert(from, 0);
 
     while let Some(Node { cost, pos, first }) = q.pop() {
+        // LLM added block:
+        if let Some(mc) = (min_cost != u32::MAX).then_some(min_cost) {
+            if cost > mc {
+                break; // no need to explore further
+            }
+        }
+
         if pos == to {
             match cost {
                 cost if cost == min_cost => {
@@ -444,7 +416,7 @@ fn shortest(
 }
 
 /// the sum of the hit points of all remaining units
-fn sum_hp(units: &Vec<Mob>) -> u32 {
+fn sum_hp(units: &Vec<&Mob>) -> u32 {
     units.iter().map(|unit| unit.hp).sum()
 }
 
@@ -576,28 +548,122 @@ impl AoCData<'_> for Data {
         // Combat ends after 37 full rounds
         // Elves win with 982 total hit points left
         // Outcome: 37 * 982 = 36334
-        let input = "#######
-#.G...#
-#...EG#
-#.#.#G#
-#..G#E#
-#.....#
-#######";
-        let mut data = Data::try_new(input).unwrap();
+        //         let input = "#######
+        // #.G...#
+        // #...EG#
+        // #.#.#G#
+        // #..G#E#
+        // #.....#
+        // #######";
+        //         let mut data = Data::try_new(input).unwrap();
+        //         for num in 1.. {
+        //             dbg!(num);
+        //             round(&data.map, &mut data.units);
+        //             if [1, 2, 23, 24, 25, 26, 27, 28, 47].contains(&num) {
+        //                 let vec_2d = make_2d_vec(&data.map, &data.units);
+        //                 println!("Round {num}:");
+        //                 println!("{}", vec2d_to_string(vec_2d));
+        //                 println!();
+        //             }
+        //             if num == 47 {
+        //                 break;
+        //             }
+        //         }
+        //
+        // #######       #######
+        // #E.G#.#       #G.G#.#   G(200), G(98)
+        // #.#G..#       #.#G..#   G(200)
+        // #G.#.G#  -->  #..#..#
+        // #G..#.#       #...#G#   G(95)
+        // #...E.#       #...G.#   G(200)
+        // #######       #######
+        //
+        // Combat ends after 35 full rounds
+        // Goblins win with 793 total hit points left
+        // Outcome: 35 * 793 = 27755
+        // let input = "#######
+        // #E.G#.#
+        // #.#G..#
+        // #G.#.G#
+        // #G..#.#
+        // #...E.#
+        // #######";
+        //
+        // #######       #######
+        // #E.G#.#       #G.G#.#   G(200), G(98)
+        // #.#G..#       #.#G..#   G(200)
+        // #G.#.G#  -->  #..#..#
+        // #G..#.#       #...#G#   G(95)
+        // #...E.#       #...G.#   G(200)
+        // #######       #######
+        //
+        // Combat ends after 35 full rounds
+        // Goblins win with 793 total hit points left
+        // Outcome: 35 * 793 = 27755
+        //
+        //         let input = "#######
+        // #E.G#.#
+        // #.#G..#
+        // #G.#.G#
+        // #G..#.#
+        // #...E.#
+        // #######";
+        //
+        // #######       #######
+        // #.E...#       #.....#
+        // #.#..G#       #.#G..#   G(200)
+        // #.###.#  -->  #.###.#
+        // #E#G#G#       #.#.#.#
+        // #...#G#       #G.G#G#   G(98), G(38), G(200)
+        // #######       #######
+        //
+        // Combat ends after 54 full rounds
+        // Goblins win with 536 total hit points left
+        // Outcome: 54 * 536 = 28944
+        //         let input = "#######
+        // #.E...#
+        // #.#..G#
+        // #.###.#
+        // #E#G#G#
+        // #...#G#
+        // #######";
+
+        // #########       #########
+        // #G......#       #.G.....#   G(137)
+        // #.E.#...#       #G.G#...#   G(200), G(200)
+        // #..##..G#       #.G##...#   G(200)
+        // #...##..#  -->  #...##..#
+        // #...#...#       #.G.#...#   G(200)
+        // #.G...G.#       #.......#
+        // #.....G.#       #.......#
+        // #########       #########
+        //
+        // Combat ends after 20 full rounds
+        // Goblins win with 937 total hit points left
+        // Outcome: 20 * 937 = 18740
+        //         let input = "#########
+        // #G......#
+        // #.E.#...#
+        // #..##..G#
+        // #...##..#
+        // #...#...#
+        // #.G...G.#
+        // #.....G.#
+        // #########";
+        //         let data = Data::try_new(input).unwrap();
+        let mut units = self.units.clone();
         for num in 1.. {
-            dbg!(num);
-            round(&data.map, &mut data.units);
-            if [1, 2, 23, 24, 25, 26, 27, 28, 47].contains(&num) {
-                let vec_2d = make_2d_vec(&data.map, &data.units);
+            round(&self.map, &mut units);
+            if let Some(hp) = check_end(&units) {
+                dbg!(num, hp);
+                let vec_2d = make_2d_vec(&self.map, &units);
                 println!("Round {num}:");
                 println!("{}", vec2d_to_string(vec_2d));
                 println!();
-            }
-            if num == 47 {
-                break;
+                return Ok((num - 1) * hp);
             }
         }
-        Ok(1)
+        panic!("no ans");
     }
 
     fn part_2(&self) -> AoCResult<impl Display> {
@@ -964,6 +1030,64 @@ After 3 rounds:
 #.......#
 #########";
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn long_sample() {
+        let input = "#######
+#.G...#
+#...EG#
+#.#.#G#
+#..G#E#
+#.....#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let mut units = data.units.clone();
+        let mut result = 0;
+        for num in 1.. {
+            round(&data.map, &mut units);
+            if let Some(hp) = check_end(&units) {
+                dbg!(num, hp);
+                result = num * hp;
+                break;
+            }
+        }
+        assert_eq!(result, 27730);
+    }
+
+    #[test]
+    fn summary_1() {
+        // #######       #######
+        // #G..#E#       #...#E#   E(200)
+        // #E#E.E#       #E#...#   E(197)
+        // #G.##.#  -->  #.E##.#   E(185)
+        // #...#E#       #E..#E#   E(200), E(200)
+        // #...E.#       #.....#
+        // #######       #######
+        //
+        // Combat ends after 37 full rounds
+        // Elves win with 982 total hit points left
+        // Outcome: 37 * 982 = 36334
+
+        let input = "#######
+#G..#E#
+#E#E.E#
+#G.##.#
+#...#E#
+#...E.#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let mut units = data.units.clone();
+        let mut result = 0;
+        for num in 1.. {
+            round(&data.map, &mut units);
+            if let Some(hp) = check_end(&units) {
+                // why is the -1 needed? it say "after X full rounds"
+                result = (num - 1) * hp;
+                break;
+            }
+        }
+        assert_eq!(result, 27730);
     }
 
     #[test]
