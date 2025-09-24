@@ -6,6 +6,11 @@ struct Point {
     row: usize,
     col: usize,
 }
+impl Point {
+    fn idx(&self, cols: usize) -> usize {
+        self.row * cols + self.col
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Kind {
@@ -17,7 +22,7 @@ enum Kind {
 struct Mob {
     pos: Point,
     kind: Kind,
-    hp: u32,
+    hp: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,23 +31,10 @@ enum Tile {
     Open,
 }
 
-#[derive(Debug, Clone, Copy)]
-struct Neighbours {
-    pts: [Point; 4],
-    len: u8,
-}
-impl Neighbours {
-    fn iter(&self) -> impl Iterator<Item = Point> + '_ {
-        self.pts[..self.len as usize]
-            .iter()
-            .copied()
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Data {
-    map: Vec<Tile>,              // length = rows * cols
-    neighbours: Vec<Neighbours>, // precomputed neighbours for each cell
+    map: Vec<Tile>,
+    neighbours: Vec<Vec<Point>>, // precomputed neighbours for each cell
     rows: usize,
     cols: usize,
     units: Vec<Mob>,
@@ -53,9 +45,8 @@ impl AoCData<'_> for Data {
         let lines: Vec<&str> = input.lines().collect();
         let rows = lines.len();
         let cols = lines
-            .iter()
+            .first()
             .map(|l| l.chars().count())
-            .max()
             .unwrap_or(0);
 
         let mut map = Vec::with_capacity(rows * cols);
@@ -97,25 +88,18 @@ impl AoCData<'_> for Data {
         let mut neighbours = Vec::with_capacity(rows * cols);
         for r in 0..rows {
             for c in 0..cols {
-                let mut n = Neighbours {
-                    pts: [Point { row: 0, col: 0 }; 4],
-                    len: 0,
-                };
+                let mut n = Vec::with_capacity(4);
                 if r > 0 {
-                    n.pts[n.len as usize] = Point { row: r - 1, col: c };
-                    n.len += 1;
+                    n.push(Point { row: r - 1, col: c });
                 }
                 if c > 0 {
-                    n.pts[n.len as usize] = Point { row: r, col: c - 1 };
-                    n.len += 1;
+                    n.push(Point { row: r, col: c - 1 });
                 }
                 if c + 1 < cols {
-                    n.pts[n.len as usize] = Point { row: r, col: c + 1 };
-                    n.len += 1;
+                    n.push(Point { row: r, col: c + 1 });
                 }
                 if r + 1 < rows {
-                    n.pts[n.len as usize] = Point { row: r + 1, col: c };
-                    n.len += 1;
+                    n.push(Point { row: r + 1, col: c });
                 }
                 neighbours.push(n);
             }
@@ -166,238 +150,103 @@ impl AoCData<'_> for Data {
     }
 }
 
-#[inline]
-fn idx(p: Point, cols: usize) -> usize {
-    p.row as usize * cols + p.col as usize
+// BFS to find the best target for a unit
+// returns the first step of the path to that target.
+fn find_best_move(
+    start: Point,
+    map: &[Tile],
+    neighbours: &[Vec<Point>],
+    cols: usize,
+    occupied: &[Option<usize>],
+    in_range: &[bool],
+    visited: &mut [bool],
+    found: &mut Vec<(Point, Point)>,
+) -> Option<Point> {
+    let mut q = VecDeque::new();
+    visited.fill(false);
+    found.clear();
+    let mut min_dist = usize::MAX;
+
+    // (pos, first, cost)
+    q.push_back((start, None, 0));
+    visited[start.idx(cols)] = true;
+
+    while let Some((pos, first, dist)) = q.pop_front() {
+        // stop the loop, do not explore paths that are longer than min_dist
+        if dist > min_dist {
+            break;
+        }
+
+        // Check if the current position is a valid target square.
+        let pi = pos.idx(cols);
+        if in_range[pi] {
+            min_dist = dist;
+            found.push((pos, first.unwrap_or(pos)));
+            continue; // Do not explore from a target square.
+        }
+
+        // Explore neighbours in reading order to handle tie-breaking for paths.
+        for &n in &neighbours[pi] {
+            let ni = n.idx(cols);
+            // Only explore open, unvisited, and unoccupied squares.
+            if !visited[ni] && map[ni] == Tile::Open && occupied[ni].is_none() {
+                visited[ni] = true;
+                q.push_back((n, Some(first.unwrap_or(n)), dist + 1));
+            }
+        }
+    }
+
+    // return the first step (in reading order during the search) that belongs to the first target in reading order
+    found
+        .iter()
+        .min_by_key(|(p, _)| (p.row, p.col))
+        .map(|(_, first)| *first)
 }
 
-// fn sim_combat(
-//     map: &[Tile],
-//     rows: usize,
-//     cols: usize,
-//     units: &mut [Mob],
-//     elf_attack_power: u32,
-//     stop_on_elf_death: bool,
-// ) -> (bool, u32) {
-//     let mut occupied = vec![None; rows * cols];
-//     // reusable vectors for shortest-path algorithm
-//     let mut visited = vec![false; rows * cols];
-//     let mut first_step = vec![None; rows * cols];
-//     let mut round = 0;
-//
-//     loop {
-//         // ties are broken in reading order.
-//         units.sort_by(|a, b| {
-//             a.pos
-//                 .row
-//                 .cmp(&b.pos.row)
-//                 .then(a.pos.col.cmp(&b.pos.col))
-//         });
-//
-//         // rebuild occupancy according to order
-//         occupied.fill(None);
-//         for (i, u) in units
-//             .iter()
-//             .enumerate()
-//             .filter(|(_, unit)| unit.hp > 0)
-//         {
-//             occupied[idx(u.pos, cols)] = Some(i);
-//         }
-//
-//         for i in 0..units.len() {
-//             if units[i].hp == 0 {
-//                 continue;
-//             }
-//             let attacker_kind = units[i].kind;
-//
-//             // Each unit begins its turn by identifying all possible targets
-//             let targets: Vec<usize> = units
-//                 .iter()
-//                 .enumerate()
-//                 .filter_map(|(idx, u)| (u.hp > 0 && u.kind != attacker_kind).then_some(idx))
-//                 .collect();
-//             // If no targets remain, combat ends.
-//             if targets.is_empty() {
-//                 let hp_sum: u32 = units
-//                     .iter()
-//                     .filter(|u| u.hp > 0)
-//                     .map(|u| u.hp)
-//                     .sum();
-//                 let no_elf_died = units
-//                     .iter()
-//                     .all(|u| u.kind != Kind::Elf || u.hp > 0);
-//                 return (no_elf_died, round * hp_sum);
-//             }
-//
-//             // the unit identifies all of the open squares (.) that are in range of each target
-//             let in_range: Vec<_> = targets
-//                 .iter()
-//                 .flat_map(|tid| {
-//                     units[*tid]
-//                         .pos
-//                         .neighbours(rows, cols)
-//                         .filter(|&n| {
-//                             let tidx = idx(n, cols);
-//                             matches!((&map[tidx], occupied[tidx]), (Tile::Open, None))
-//                         })
-//                 })
-//                 .collect();
-//
-//             // the unit might already be in range of a target.
-//             let already_in_range = units[i]
-//                 .pos
-//                 .neighbours(rows, cols)
-//                 .any(|n| {
-//                     targets
-//                         .iter()
-//                         .any(|&tid| units[tid].pos == n)
-//                 });
-//
-//             if !already_in_range && in_range.is_empty() {
-//                 continue;
-//             }
-//
-//             // movement
-//             if !already_in_range {
-//                 visited.fill(false);
-//                 first_step.fill(None);
-//                 let mut q = VecDeque::new();
-//                 let mut found_targets = Vec::new();
-//                 let mut min_dist = None;
-//
-//                 q.push_back((units[i].pos, 0));
-//                 visited[idx(units[i].pos, cols)] = true;
-//
-//                 while let Some((pos, dist)) = q.pop_front() {
-//                     if min_dist.is_some_and(|md| dist > md) {
-//                         break;
-//                     }
-//                     if in_range.contains(&pos) {
-//                         min_dist.get_or_insert(dist);
-//                         found_targets.push(pos);
-//                         continue;
-//                     }
-//                     for n in pos.neighbours(rows, cols) {
-//                         let ni = idx(n, cols);
-//                         if !visited[ni] && map[ni] == Tile::Open && occupied[ni].is_none() {
-//                             visited[ni] = true;
-//                             first_step[ni] = if pos == units[i].pos {
-//                                 Some(n)
-//                             } else {
-//                                 first_step[idx(pos, cols)]
-//                             };
-//                             q.push_back((n, dist + 1));
-//                         }
-//                     }
-//                 }
-//
-//                 if let Some(&target) = found_targets.iter().min_by(|a, b| {
-//                     a.row
-//                         .cmp(&b.row)
-//                         .then(a.col.cmp(&b.col))
-//                 }) {
-//                     if let Some(step) = first_step[idx(target, cols)] {
-//                         // Move the unit one step
-//                         occupied[idx(units[i].pos, cols)] = None;
-//                         units[i].pos = step;
-//                         occupied[idx(step, cols)] = Some(i);
-//                     }
-//                 }
-//             }
-//
-//             // attack
-//             let attacker_pos = units[i].pos;
-//             let mut adjacent_targets: Vec<usize> = targets
-//                 .into_iter()
-//                 .filter(|&tid| {
-//                     attacker_pos
-//                         .neighbours(rows, cols)
-//                         .any(|n| units[tid].pos == n)
-//                 })
-//                 .collect();
-//             if adjacent_targets.is_empty() {
-//                 continue;
-//             }
-//
-//             adjacent_targets.sort_by(|&a, &b| {
-//                 units[a]
-//                     .hp
-//                     .cmp(&units[b].hp)
-//                     .then(units[a].pos.row.cmp(&units[b].pos.row))
-//                     .then(units[a].pos.col.cmp(&units[b].pos.col))
-//             });
-//             let target_id = adjacent_targets[0];
-//             let power = if units[i].kind == Kind::Elf {
-//                 elf_attack_power
-//             } else {
-//                 3
-//             };
-//             if units[target_id].hp <= power {
-//                 units[target_id].hp = 0;
-//                 occupied[idx(units[target_id].pos, cols)] = None;
-//                 if stop_on_elf_death && units[target_id].kind == Kind::Elf {
-//                     return (false, 0);
-//                 }
-//             } else {
-//                 units[target_id].hp -= power;
-//             }
-//         }
-//         round += 1;
-//     }
-// }
 fn sim_combat(
     map: &[Tile],
-    neighbours: &[Neighbours], // precomputed neighbours for each cell
+    neighbours: &[Vec<Point>],
     rows: usize,
     cols: usize,
     units: &mut [Mob],
-    elf_attack_power: u32,
+    elf_attack_power: usize,
     stop_on_elf_death: bool,
-) -> (bool, u32) {
+) -> (bool, usize) {
     let mut occupied = vec![None; rows * cols];
-    let mut visited = vec![false; rows * cols];
-    let mut first_step = vec![None; rows * cols];
-    let mut in_range_mask = vec![false; rows * cols];
+    // the in_range is a bool-mask with the same shape as the map, true means it's a valid destination for a
+    // unit that has an adjacent target
+    let mut in_range = vec![false; rows * cols];
     let mut round = 0;
+    // reusable BFS data structures
+    let mut visited = vec![false; rows * cols];
+    let mut found = Vec::new();
 
     loop {
-        // reading order
-        units.sort_by_key(|u| (u.pos.row, u.pos.col));
+        // fixed turn order for this round based on positions at round start.
+        let mut turn_order: Vec<usize> = (0..units.len())
+            .filter(|&i| units[i].hp > 0)
+            .collect();
+        turn_order.sort_unstable_by_key(|&i| (units[i].pos.row, units[i].pos.col));
 
-        // rebuild occupancy
+        // Rebuild occupancy map for the current round.
         occupied.fill(None);
-        for (i, u) in units
-            .iter()
-            .enumerate()
-            .filter(|(_, u)| u.hp > 0)
-        {
-            occupied[idx(u.pos, cols)] = Some(i);
+        for &i in &turn_order {
+            occupied[units[i].pos.idx(cols)] = Some(i);
         }
 
-        for i in 0..units.len() {
+        for i in turn_order {
+            // unit may have died earlier this round
             if units[i].hp == 0 {
                 continue;
             }
-            let attacker_kind = units[i].kind;
 
-            // mark in-range squares and check if any targets exist
-            in_range_mask.fill(false);
-            let mut has_target = false;
-            let mut any_in_range = false;
-            for target in units.iter() {
-                if target.hp > 0 && target.kind != attacker_kind {
-                    has_target = true;
-                    for n in neighbours[idx(target.pos, cols)].iter() {
-                        let ni = idx(n, cols);
-                        if map[ni] == Tile::Open && occupied[ni].is_none() {
-                            in_range_mask[ni] = true;
-                            any_in_range = true;
-                        }
-                    }
-                }
-            }
+            let attacker_kind = units[i].kind;
+            // Check for combat end.
+            let has_target = units
+                .iter()
+                .any(|u| u.hp > 0 && u.kind != attacker_kind);
             if !has_target {
-                let hp_sum: u32 = units
+                let hp_sum: usize = units
                     .iter()
                     .filter(|u| u.hp > 0)
                     .map(|u| u.hp)
@@ -408,108 +257,76 @@ fn sim_combat(
                 return (no_elf_died, round * hp_sum);
             }
 
-            // already in range?
-            let already_in_range = neighbours[idx(units[i].pos, cols)]
+            // Determine if already in attack range.
+            let already_in_range = neighbours[units[i].pos.idx(cols)]
                 .iter()
                 .any(|n| {
-                    occupied[idx(n, cols)]
+                    occupied[n.idx(cols)]
                         .map(|tid| units[tid].kind != attacker_kind)
                         .unwrap_or(false)
                 });
-            if !already_in_range && !any_in_range {
-                continue;
-            }
 
-            // movement: BFS to nearest in-range square, tie-break by reading order
+            // If not in range, move.
             if !already_in_range {
-                visited.fill(false);
-                first_step.fill(None);
-                let mut q = VecDeque::new();
-                let mut min_dist: Option<u32> = None;
-                let mut best_target: Option<Point> = None;
-
-                q.push_back((units[i].pos, 0));
-                visited[idx(units[i].pos, cols)] = true;
-
-                while let Some((pos, dist)) = q.pop_front() {
-                    if min_dist.is_some_and(|md| dist > md) {
-                        break;
-                    }
-
-                    let pi = idx(pos, cols);
-                    if in_range_mask[pi] {
-                        match best_target {
-                            None => {
-                                best_target = Some(pos);
-                                min_dist.get_or_insert(dist);
-                            }
-                            Some(bt) => {
-                                if pos.row < bt.row || (pos.row == bt.row && pos.col < bt.col) {
-                                    best_target = Some(pos);
-                                }
-                            }
-                        }
-                        continue;
-                    }
-
-                    for n in neighbours[pi].iter() {
-                        let ni = idx(n, cols);
-                        if !visited[ni] && map[ni] == Tile::Open && occupied[ni].is_none() {
-                            visited[ni] = true;
-                            first_step[ni] = if pos == units[i].pos {
-                                Some(n)
-                            } else {
-                                first_step[pi]
-                            };
-                            q.push_back((n, dist + 1));
+                // Find all in-range squares
+                in_range.fill(false);
+                for target in units
+                    .iter()
+                    .filter(|t| t.hp > 0 && t.kind != attacker_kind)
+                {
+                    for n in neighbours[target.pos.idx(cols)].iter() {
+                        let ni = n.idx(cols);
+                        if map[ni] == Tile::Open && occupied[ni].is_none() {
+                            in_range[ni] = true;
                         }
                     }
                 }
 
-                if let Some(target) = best_target {
-                    if let Some(step) = first_step[idx(target, cols)] {
-                        occupied[idx(units[i].pos, cols)] = None;
-                        units[i].pos = step;
-                        occupied[idx(step, cols)] = Some(i);
-                    }
+                // Call the helper function to find the best move.
+                if let Some(step) = find_best_move(
+                    units[i].pos,
+                    map,
+                    neighbours,
+                    cols,
+                    &occupied,
+                    &in_range,
+                    &mut visited,
+                    &mut found,
+                ) {
+                    // Update the unit's position.
+                    occupied[units[i].pos.idx(cols)] = None;
+                    units[i].pos = step;
+                    occupied[step.idx(cols)] = Some(i);
                 }
             }
 
-            // attack: pick adjacent enemy with lowest HP, tie by reading order
-            let mut best: Option<(usize, u32, Point)> = None; // (idx, hp, pos)
-            for n in neighbours[idx(units[i].pos, cols)].iter() {
-                if let Some(tid) = occupied[idx(n, cols)] {
-                    let t = &units[tid];
-                    if t.hp > 0 && t.kind != attacker_kind {
-                        match best {
-                            None => best = Some((tid, t.hp, t.pos)),
-                            Some((bid, bhp, bpos)) => {
-                                if t.hp < bhp
-                                    || (t.hp == bhp
-                                        && (t.pos.row < bpos.row
-                                            || (t.pos.row == bpos.row && t.pos.col < bpos.col)))
-                                {
-                                    best = Some((tid, t.hp, t.pos));
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if let Some((target_id, _, _)) = best {
-                let power = if units[i].kind == Kind::Elf {
+            // Attack: pick adjacent enemy with lowest HP, tie-break by reading order.
+            let attacker_pos = units[i].pos;
+            let best = neighbours[attacker_pos.idx(cols)]
+                .iter()
+                .filter_map(|n| occupied[n.idx(cols)])
+                .filter(|tid| {
+                    let t = &units[*tid];
+                    t.hp > 0 && t.kind != attacker_kind
+                })
+                .min_by_key(|tid| {
+                    let t = &units[*tid];
+                    (t.hp, t.pos.row, t.pos.col)
+                });
+
+            if let Some(tid) = best {
+                let power = if attacker_kind == Kind::Elf {
                     elf_attack_power
                 } else {
                     3
                 };
-                if units[target_id].hp <= power {
-                    units[target_id].hp = 0;
-                    occupied[idx(units[target_id].pos, cols)] = None;
-                    if stop_on_elf_death && units[target_id].kind == Kind::Elf {
+                let target = &mut units[tid];
+                target.hp = target.hp.saturating_sub(power);
+                if target.hp == 0 {
+                    occupied[target.pos.idx(cols)] = None;
+                    if stop_on_elf_death && target.kind == Kind::Elf {
                         return (false, 0);
                     }
-                } else {
-                    units[target_id].hp -= power;
                 }
             }
         }
