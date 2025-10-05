@@ -1,5 +1,4 @@
-use crate::{AoCData, AoCResult};
-use aoc_core::AoCError;
+use crate::{AoCData, AoCError, AoCResult};
 use std::{collections::VecDeque, fmt::Display};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -155,7 +154,7 @@ struct Combat<'a> {
     turn_order: Vec<usize>,
 
     dist_map: Vec<usize>,
-    q: VecDeque<(usize, usize, usize)>,
+    q: VecDeque<(usize, usize)>,
     occupied: Vec<usize>,
     visited_version: Vec<u32>,
     current_version: u32,
@@ -166,10 +165,6 @@ struct Combat<'a> {
     total_hp: usize,
     elf_count: i32,
     goblin_count: i32,
-
-    // for debugging
-    rows: usize,
-    cols: usize,
 }
 
 impl<'a> Combat<'a> {
@@ -207,10 +202,6 @@ impl<'a> Combat<'a> {
             total_hp: 0,
             elf_count: 0,
             goblin_count: 0,
-
-            // for debugging
-            rows,
-            cols,
         };
         res.reset(elf_attack_power, stop_on_elf_death);
         res
@@ -319,8 +310,7 @@ impl<'a> Combat<'a> {
         if best != EMPTY {
             let target = &mut self.units[best];
             let target_is_elf = target.elf;
-            let prev_hp = target.hp;
-            let damage = atkr_power.min(prev_hp);
+            let damage = atkr_power.min(target.hp);
             target.hp -= damage;
             self.total_hp -= damage as usize;
 
@@ -443,27 +433,16 @@ impl<'a> Combat<'a> {
         } else {
             &self.adj_to_elves
         };
-
-        let mut min_dist = EMPTY;
-        self.q.push_back((0, u.pos, EMPTY));
+        self.q.push_back((u.pos, EMPTY));
         self.visited_version[u.pos] = self.current_version;
-        let mut bests = Vec::new();
 
-        while let Some((dist, pos, first)) = self.q.pop_front() {
-            if dist > min_dist {
-                break;
-            }
-
+        while let Some((pos, first)) = self.q.pop_front() {
             if adj_enemies[pos] > 0 {
-                if dist < min_dist {
-                    bests.clear();
-                    min_dist = dist;
-                }
-                bests.push((pos, first));
-                continue; // Do not explore from a target square.
+                // because this BFS explores neighbours in reading order, the first valid target is
+                // both the closest one in reading order and has the best first step in reading order
+                return first;
             }
-
-            // Explore neighbours in reading order to handle tie-breaking for paths.
+            // Explore neighbours in reading order to handle tie-breaking.
             for n in self.neighbours[pos] {
                 if n != EMPTY
                     && self.visited_version[n] != self.current_version
@@ -472,18 +451,11 @@ impl<'a> Combat<'a> {
                 {
                     self.visited_version[n] = self.current_version;
                     let new_first = if first != EMPTY { first } else { n };
-                    self.q
-                        .push_back((dist + 1, n, new_first));
+                    self.q.push_back((n, new_first));
                 }
             }
         }
-        if bests.is_empty() {
-            return EMPTY;
-        }
-
-        // Sort by target position (reading order), then by first step (reading order)
-        bests.sort_by_key(|&(target, first)| (target, first));
-        bests[0].1
+        EMPTY
     }
 }
 
