@@ -1,6 +1,5 @@
-use aoc_core::AoCError;
-
 use crate::{AoCData, AoCResult};
+use aoc_core::AoCError;
 use std::{collections::VecDeque, fmt::Display};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -13,7 +12,7 @@ struct Unit {
 #[derive(Debug, Clone)]
 pub struct Data {
     walls: Vec<bool>,
-    neighbours: Vec<[usize; 4]>, // precomputed reading-ordered neighbours for each cell
+    neighbours: Vec<[usize; 4]>,
     rows: usize,
     cols: usize,
     units: Vec<Unit>,
@@ -25,27 +24,25 @@ impl AoCData<'_> for Data {
     fn try_new(input: &str) -> AoCResult<Self> {
         let lines: Vec<&str> = input.lines().collect();
         let rows = lines.len();
-        let cols = lines
-            .first()
-            .map(|l| l.chars().count())
-            .unwrap_or(0);
+        let cols = lines.first().unwrap_or(&"").len();
 
         let mut walls = Vec::with_capacity(rows * cols);
         let mut units = Vec::new();
 
         for (r, line) in lines.iter().enumerate() {
-            // pad short lines with walls to keep rectangular shape
-            let mut chars: Vec<char> = line.chars().collect();
-            if chars.len() < cols {
-                chars.resize(cols, '#');
-            }
-            for (c, ch) in chars.into_iter().enumerate() {
+            // This padding step isn't needed because the input is rectangular for everyone:
+            // let mut chars: Vec<char> = line.chars().collect();
+            // if chars.len() < cols {
+            //     chars.resize(cols, '#');
+            // }
+            for (c, ch) in line.chars().enumerate() {
+                let pos = r * cols + c;
                 match ch {
                     '#' => walls.push(true),
                     '.' => walls.push(false),
                     'G' => {
                         units.push(Unit {
-                            pos: r * cols + c,
+                            pos,
                             elf: false,
                             hp: 200,
                         });
@@ -53,13 +50,13 @@ impl AoCData<'_> for Data {
                     }
                     'E' => {
                         units.push(Unit {
-                            pos: r * cols + c,
+                            pos,
                             elf: true,
                             hp: 200,
                         });
                         walls.push(false);
                     }
-                    _ => panic!("Invalid char"),
+                    _ => return Err(AoCError::Parsing),
                 }
             }
         }
@@ -95,54 +92,47 @@ impl AoCData<'_> for Data {
     }
 
     fn part_1(&self) -> AoCResult<impl Display> {
-        let mut units = self.units.clone();
-        let (_, outcome) = sim_combat(
-            &self.walls,
-            &self.neighbours,
+        let mut combat = Combat::new(
             self.rows,
             self.cols,
-            &mut units,
+            &self.units,
+            &self.walls,
+            &self.neighbours,
             3,
             false,
         );
+        let (_, outcome) = combat.sim_combat();
         Ok(outcome)
     }
 
     fn part_2(&self) -> AoCResult<impl Display> {
-        let mut buf = Vec::with_capacity(self.units.len());
-        let mut min_ap = u8::MAX;
         let mut low = 4;
         let mut high = 200;
         let mut final_outcome = 0;
+        let mut combat = Combat::new(
+            self.rows,
+            self.cols,
+            &self.units,
+            &self.walls,
+            &self.neighbours,
+            4,
+            true,
+        );
+
         while low <= high {
             let middle = low + (high - low) / 2;
-            buf.clear();
-            buf.extend(self.units.iter().cloned());
-            let (flawless, outcome) = sim_combat(
-                &self.walls,
-                &self.neighbours,
-                self.rows,
-                self.cols,
-                &mut buf,
-                middle,
-                true,
-            );
+            combat.reset(middle, true);
+            let (flawless, outcome) = combat.sim_combat();
             if flawless {
-                // this AP might be the minimum.
-                min_ap = middle;
                 final_outcome = outcome;
-                if low == high {
-                    break;
-                }
                 high = middle - 1;
             } else {
-                if middle == high {
-                    break;
-                }
                 low = middle + 1;
             }
         }
-        if min_ap != u8::MAX {
+
+        if final_outcome != 0 {
+            // combat.debug_state();
             Ok(final_outcome)
         } else {
             Err(AoCError::Solving)
@@ -150,455 +140,350 @@ impl AoCData<'_> for Data {
     }
 }
 
-fn best_move_final(
-    start: usize,
-    walls: &[bool],
-    neighbours: &[[usize; 4]],
-    occupied: &[usize],
-    in_range_counts: &[u8],
-    dist_map: &mut [usize],
-    visited_version: &mut [u32],
-    current_version: u32,
-    q: &mut VecDeque<usize>,
-) -> usize {
-    q.clear();
-
-    let mut min_dist = usize::MAX;
-    let mut best = usize::MAX;
-
-    q.push_back(start);
-    dist_map[start] = 0;
-    visited_version[start] = current_version; // Mark start as visited for this "generation"
-
-    while let Some(pos) = q.pop_front() {
-        let dist = dist_map[pos];
-        if dist > min_dist {
-            break;
-        }
-
-        if in_range_counts[pos] > 0 {
-            if dist < min_dist || (dist == min_dist && pos < best) {
-                min_dist = dist;
-                best = pos;
-            }
-            continue;
-        }
-
-        for &n in &neighbours[pos] {
-            // The check for "unvisited" now uses the version number.
-            if n != EMPTY
-                && visited_version[n] != current_version
-                && !walls[n]
-                && occupied[n] == EMPTY
-            {
-                visited_version[n] = current_version; // "Visit" the node for this generation.
-                dist_map[n] = dist + 1;
-                q.push_back(n);
-            }
-        }
-    }
-
-    if best == EMPTY {
-        EMPTY
-    } else {
-        // Backtracking logic is identical to your original, but we add a version check for correctness.
-        let mut cur = best;
-        while dist_map[cur] > 1 {
-            let mut next = EMPTY;
-            for &n in &neighbours[cur] {
-                // The distance check implicitly works, but checking the version is safer.
-                if n != EMPTY
-                    && visited_version[n] == current_version
-                    && dist_map[n] == dist_map[cur] - 1
-                {
-                    next = n;
-                    break;
-                }
-            }
-            cur = next;
-        }
-        cur
-    }
-}
-// Day 15/Part 1           time:   [1.8645 ms 1.8764 ms 1.8931 ms]
-//                         change: [-0.0853% +0.4247% +1.0356%] (p = 0.17 > 0.05)
-//                         No change in performance detected.
-// Found 17 outliers among 100 measurements (17.00%)
-//   3 (3.00%) low mild
-//   7 (7.00%) high mild
-//   7 (7.00%) high severe
-// Day 15/Part 2           time:   [3.1916 ms 3.1963 ms 3.2017 ms]
-//                         change: [-0.5166% -0.3218% -0.1279%] (p = 0.00 < 0.05)
-//                         Change within noise threshold.
-// Found 3 outliers among 100 measurements (3.00%)
-//   2 (2.00%) high mild
-//   1 (1.00%) high severe
-// Day 15/Both parts       time:   [5.1528 ms 5.1636 ms 5.1820 ms]
-//                         change: [-0.5022% -0.2659% +0.0937%] (p = 0.08 > 0.05)
-//                         No change in performance detected.
-fn best_move(
-    start: usize,
-    walls: &[bool],
-    neighbours: &[[usize; 4]],
-    occupied: &[usize],
-    in_range: &[bool],
-    dist_map: &mut [usize],
-    q: &mut VecDeque<usize>,
-) -> usize {
-    q.clear();
-    dist_map.fill(EMPTY);
-    let mut min_dist = EMPTY;
-    q.push_back(start);
-    dist_map[start] = 0;
-    let mut best = EMPTY;
-
-    while let Some(pos) = q.pop_front() {
-        let dist = dist_map[pos];
-        // stop the loop, do not explore paths that are longer than min_dist
-        if dist > min_dist {
-            break;
-        }
-
-        if in_range[pos] {
-            // update best target if a better one (better dist or better reading order) is found
-            if dist < min_dist || (dist == min_dist) && pos < best {
-                min_dist = dist;
-                best = pos;
-            }
-            continue; // Do not explore from a target square.
-        }
-
-        // Explore neighbours in reading order to handle tie-breaking for paths.
-        for &n in &neighbours[pos] {
-            if n != EMPTY && dist_map[n] == EMPTY && !walls[n] && occupied[n] == EMPTY {
-                dist_map[n] = dist + 1;
-                q.push_back(n);
-            }
-        }
-    }
-
-    if best == EMPTY {
-        EMPTY
-    } else {
-        // return the first step in reading order that belongs to the best target (in reading order during the search)
-        // backtrack from the best target, always picking the reading-order best neighbour
-        let mut cur = best;
-        while dist_map[cur] > 1 {
-            let mut next = EMPTY;
-            for &n in &neighbours[cur] {
-                if n != EMPTY && dist_map[n] == dist_map[cur] - 1 {
-                    next = n;
-                    break;
-                }
-            }
-            cur = next;
-        }
-        cur
-    }
-}
-
-fn sim_combat(
-    walls: &[bool],
-    neighbours: &[[usize; 4]],
-    rows: usize,
-    cols: usize,
-    units: &mut [Unit],
+struct Combat<'a> {
+    // static
+    initial_units: &'a Vec<Unit>,
+    walls: &'a [bool],
+    neighbours: &'a [[usize; 4]],
+    initial_elf_count: i32,
     elf_attack_power: u8,
     stop_on_elf_death: bool,
-) -> (bool, usize) {
-    let mut round = 0;
-    // the in_range is a bool-mask with the same shape as the map, true means it's a valid destination for a
-    // unit that has an adjacent target
-    // let mut in_range = vec![false; rows * cols];
-    // let mut in_range_set = Vec::new();
-    let mut occupied = vec![EMPTY; rows * cols];
-    let mut dist_map = vec![EMPTY; rows * cols];
-    let mut q = VecDeque::new();
-    let mut visited_version = vec![0u32; rows * cols];
-    let mut current_version = 1u32;
-    let mut turn_order = Vec::with_capacity(units.len());
-    let mut in_range_for_elves = vec![0u8; rows * cols]; // squares elves can move to (adjacent to goblins)
-    let mut in_range_for_goblins = vec![0u8; rows * cols]; // squares goblins can move to (adjacent to elves)
 
-    let mut elf_count = 0;
-    let mut goblin_count = 0;
-    for u in units.iter() {
-        if u.hp == 0 {
-            continue;
-        }
-        if u.elf {
-            elf_count += 1;
-        } else {
-            goblin_count += 1;
-        }
+    // simulation state
+    round: usize,
+    units: Vec<Unit>,
+    turn_order: Vec<usize>,
+
+    dist_map: Vec<usize>,
+    q: VecDeque<(usize, usize, usize)>,
+    occupied: Vec<usize>,
+    visited_version: Vec<u32>,
+    current_version: u32,
+    adj_to_elves: Vec<u8>,
+    adj_to_goblins: Vec<u8>,
+
+    // kept up-to-date instead of recalculated every time
+    total_hp: usize,
+    elf_count: i32,
+    goblin_count: i32,
+
+    // for debugging
+    rows: usize,
+    cols: usize,
+}
+
+impl<'a> Combat<'a> {
+    fn new(
+        rows: usize,
+        cols: usize,
+        units: &'a Vec<Unit>,
+        walls: &'a [bool],
+        neighbours: &'a [[usize; 4]],
+        elf_attack_power: u8,
+        stop_on_elf_death: bool,
+    ) -> Self {
+        let unit_len = units.len();
+        let grid_size = rows * cols;
+        let mut res = Self {
+            initial_units: units,
+            walls,
+            neighbours,
+            initial_elf_count: 0,
+            elf_attack_power,
+            stop_on_elf_death,
+
+            round: 0,
+            units: Vec::with_capacity(unit_len),
+            turn_order: Vec::with_capacity(unit_len),
+
+            dist_map: vec![EMPTY; grid_size],
+            q: VecDeque::new(),
+            occupied: vec![EMPTY; grid_size],
+            visited_version: vec![0; grid_size],
+            current_version: 1,
+            adj_to_elves: vec![0; grid_size],
+            adj_to_goblins: vec![0; grid_size],
+
+            total_hp: 0,
+            elf_count: 0,
+            goblin_count: 0,
+
+            // for debugging
+            rows,
+            cols,
+        };
+        res.reset(elf_attack_power, stop_on_elf_death);
+        res
     }
-    let initial_elf_count = elf_count;
 
-    // units are in reading-order when combat starts
-    for (i, u) in units.iter().enumerate() {
-        if u.hp > 0 {
-            occupied[u.pos] = i;
-        }
-    }
+    fn reset(&mut self, elf_attack_power: u8, stop_on_elf_death: bool) {
+        self.elf_attack_power = elf_attack_power;
+        self.stop_on_elf_death = stop_on_elf_death;
 
-    let mut total_hp: usize = units
-        .iter()
-        .map(|u| u.hp as usize)
-        .sum();
+        self.round = 0;
+        self.units = self.initial_units.clone();
+        self.turn_order.clear();
 
-    loop {
-        // fixed turn order for this round based on positions at round start.
-        turn_order.clear();
-        for (i, u) in units.iter().enumerate() {
+        self.dist_map.fill(EMPTY);
+        self.q.clear();
+        self.occupied.fill(EMPTY);
+        self.visited_version.fill(0);
+        self.current_version = 1;
+        self.adj_to_elves.fill(0);
+        self.adj_to_goblins.fill(0);
+
+        self.total_hp = 0;
+        self.elf_count = 0;
+        self.goblin_count = 0;
+        for (i, u) in self.initial_units.iter().enumerate() {
+            self.total_hp += u.hp as usize;
             if u.hp > 0 {
-                turn_order.push(i);
+                self.occupied[u.pos] = i;
+                if u.elf {
+                    self.elf_count += 1;
+                } else {
+                    self.goblin_count += 1;
+                }
             }
         }
-        turn_order.sort_unstable_by_key(|&i| units[i].pos);
-        // Because pos is already row*cols+col, this preserves reading order.
 
-        // // Rebuild occupancy map for the current round.
-        // occupied.fill(EMPTY);
-        // for &i in &turn_order {
-        //     occupied[units[i].pos] = i;
-        // }
+        // static but unset during initialisation
+        self.initial_elf_count = self.elf_count;
 
-        in_range_for_elves.fill(0);
-        in_range_for_goblins.fill(0);
+        self.rebuild_in_range();
+    }
 
-        for (i, u) in units.iter().enumerate() {
-            if u.hp == 0 {
+    fn remove_unit(&mut self, idx: usize) {
+        let old_pos = self.units[idx].pos;
+        self.occupied[old_pos] = EMPTY;
+        self.update_in_range(idx, old_pos, EMPTY);
+        if self.units[idx].elf {
+            self.elf_count -= 1;
+        } else {
+            self.goblin_count -= 1;
+        }
+        self.units[idx].pos = EMPTY;
+        self.units[idx].hp = 0;
+    }
+
+    fn in_range(&self, i: usize) -> bool {
+        let unit = &self.units[i];
+        let adj_enemies = if unit.elf {
+            self.adj_to_goblins[unit.pos]
+        } else {
+            self.adj_to_elves[unit.pos]
+        };
+        adj_enemies > 0
+    }
+
+    fn try_move(&mut self, i: usize) {
+        let step = self.best_move(i);
+        if step != EMPTY {
+            let old_pos = self.units[i].pos;
+            self.update_in_range(i, old_pos, step);
+            self.occupied[old_pos] = EMPTY;
+            self.units[i].pos = step;
+            self.occupied[step] = i;
+        }
+    }
+
+    // return false if combat ended
+    fn attack(&mut self, i: usize) -> bool {
+        let atkr_pos = self.units[i].pos;
+        let atkr_elf = self.units[i].elf;
+        let atkr_power = if atkr_elf { self.elf_attack_power } else { 3 };
+
+        let mut best = EMPTY;
+        let mut best_key = (u8::MAX, usize::MAX);
+
+        for &n_idx in &self.neighbours[atkr_pos] {
+            if n_idx == EMPTY {
                 continue;
             }
-            // This unit contributes to the 'opponent' in-range refcounts.
-            let contrib = if u.elf {
-                &mut in_range_for_goblins
-            } else {
-                &mut in_range_for_elves
-            };
+            let t_idx = self.occupied[n_idx];
+            if t_idx == EMPTY {
+                continue;
+            }
+            let target = &self.units[t_idx];
+            if target.elf == atkr_elf {
+                continue;
+            }
 
-            for &n in &neighbours[u.pos] {
-                if n != EMPTY && !walls[n] && occupied[n] == EMPTY {
-                    // Saturating add avoids overflow; u8 is plenty for typical adjacency.
+            let key = (target.hp, target.pos);
+            if key < best_key {
+                best_key = key;
+                best = t_idx;
+            }
+        }
+
+        if best != EMPTY {
+            let target = &mut self.units[best];
+            let target_is_elf = target.elf;
+            let prev_hp = target.hp;
+            let damage = atkr_power.min(prev_hp);
+            target.hp -= damage;
+            self.total_hp -= damage as usize;
+
+            if target.hp == 0 {
+                self.remove_unit(best);
+                if target_is_elf && self.stop_on_elf_death {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    // returns false if combat ended
+    fn take_turn(&mut self, i: usize) -> bool {
+        if !self.in_range(i) {
+            self.try_move(i);
+        }
+        self.attack(i)
+    }
+
+    fn has_target(&self, i: usize) -> bool {
+        if self.units[i].elf {
+            self.goblin_count > 0
+        } else {
+            self.elf_count > 0
+        }
+    }
+
+    fn calc_turn_order(&mut self) {
+        self.turn_order.clear();
+        for i in 0..self.units.len() {
+            if self.units[i].hp > 0 {
+                self.turn_order.push(i);
+            }
+        }
+        self.turn_order
+            .sort_unstable_by_key(|&i| self.units[i].pos);
+    }
+
+    fn update_in_range(&mut self, i: usize, old_pos: usize, new_pos: usize) {
+        let contrib = if self.units[i].elf {
+            &mut self.adj_to_elves
+        } else {
+            &mut self.adj_to_goblins
+        };
+        let mut adjust = |pos: usize, add: bool| {
+            for &n in &self.neighbours[pos] {
+                if n == EMPTY {
+                    continue;
+                }
+                if add {
                     contrib[n] = contrib[n].saturating_add(1);
+                } else if contrib[n] > 0 {
+                    contrib[n] -= 1;
                 }
             }
+        };
+        if old_pos != EMPTY {
+            adjust(old_pos, false);
         }
+        if new_pos != EMPTY {
+            adjust(new_pos, true);
+        }
+    }
 
-        for &i in &turn_order {
-            // unit may have died earlier this round
-            if units[i].hp == 0 {
+    fn rebuild_in_range(&mut self) {
+        self.adj_to_elves.fill(0);
+        self.adj_to_goblins.fill(0);
+
+        for i in 0..self.units.len() {
+            if self.units[i].hp == 0 {
                 continue;
             }
-
-            let atkr_is_elf = units[i].elf;
-            let power = if atkr_is_elf { elf_attack_power } else { 3 };
-            // Check for combat end.
-            // let mut has_target = false;
-            // for u in units.iter() {
-            //     if u.hp > 0 && u.elf != atkr_is_elf {
-            //         has_target = true;
-            //         break;
-            //     }
-            // }
-            let has_target = if atkr_is_elf {
-                goblin_count > 0
+            let contrib = if self.units[i].elf {
+                &mut self.adj_to_elves
             } else {
-                elf_count > 0
+                &mut self.adj_to_goblins
             };
-            if !has_target {
-                // let mut hp_sum = 0;
-                // for u in units.iter() {
-                //     hp_sum += u.hp as usize;
-                // }
-                // let mut no_elf_died = true;
-                // for u in units.iter() {
-                //     hp_sum += u.hp as usize;
-                //     if u.elf && u.hp == 0 {
-                //         no_elf_died = false;
-                //     }
-                // }
-                return (elf_count == initial_elf_count, round * total_hp);
-            }
 
-            // Determine if already in attack range.
-            let mut already_in_range = false;
-            for &n in &neighbours[units[i].pos] {
+            for &n in &self.neighbours[self.units[i].pos] {
                 if n == EMPTY {
                     continue;
                 }
-                let tid = occupied[n];
-                if tid == EMPTY {
+                contrib[n] = contrib[n].saturating_add(1);
+            }
+        }
+    }
+
+    fn sim_combat(&mut self) -> (bool, usize) {
+        loop {
+            self.calc_turn_order();
+
+            for order_i in 0..self.turn_order.len() {
+                let i = self.turn_order[order_i];
+                if self.units[i].hp == 0 {
                     continue;
                 }
-                // inclusion in occupied implies hp > 0
-                let t = &units[tid];
-                if t.elf != atkr_is_elf {
-                    already_in_range = true;
-                    break;
+
+                if !self.has_target(i) {
+                    return (
+                        self.elf_count == self.initial_elf_count,
+                        self.round * self.total_hp,
+                    );
+                }
+                if !self.take_turn(i) {
+                    return (false, 0);
                 }
             }
+            self.round += 1;
+        }
+    }
 
-            // If not in range, move.
-            if !already_in_range {
-                // Find all in-range squares
-                // in_range_set.clear();
-                // for target in units.iter() {
-                //     if target.hp == 0 || target.elf == atkr_is_elf {
-                //         continue;
-                //     }
-                //     for &n in &neighbours[target.pos] {
-                //         if n != EMPTY && !walls[n] && occupied[n] == EMPTY {
-                //             in_range[n] = true;
-                //             in_range_set.push(n);
-                //         }
-                //     }
-                // }
+    fn best_move(&mut self, u_idx: usize) -> usize {
+        self.q.clear();
+        self.current_version += 1;
+        let u = self.units[u_idx].clone();
+        let adj_enemies = if u.elf {
+            &self.adj_to_goblins
+        } else {
+            &self.adj_to_elves
+        };
 
-                // let step = best_move(
-                //     units[i].pos,
-                //     walls,
-                //     neighbours,
-                //     &occupied,
-                //     &in_range,
-                //     &mut dist_map,
-                //     &mut q,
-                // );
+        let mut min_dist = EMPTY;
+        self.q.push_back((0, u.pos, EMPTY));
+        self.visited_version[u.pos] = self.current_version;
+        let mut bests = Vec::new();
 
-                // let step = best_move_final(
-                //     units[i].pos,
-                //     walls,
-                //     neighbours,
-                //     &occupied,
-                //     &in_range,
-                //     &mut dist_map,
-                //     &mut visited_version,
-                //     current_version,
-                //     &mut q,
-                // );
-                // // Increment the version for the next BFS run.
-                // current_version += 1;
-
-                let step = best_move_final(
-                    units[i].pos,
-                    walls,
-                    neighbours,
-                    &occupied,
-                    if atkr_is_elf {
-                        &in_range_for_elves
-                    } else {
-                        &in_range_for_goblins
-                    },
-                    &mut dist_map,
-                    &mut visited_version,
-                    current_version,
-                    &mut q,
-                );
-                current_version += 1;
-
-                // Update the unit's position.
-                // if step != EMPTY {
-                //     occupied[units[i].pos] = EMPTY;
-                //     units[i].pos = step;
-                //     occupied[step] = i;
-                // }
-
-                if step != EMPTY {
-                    let old_pos = units[i].pos;
-                    let new_pos = step;
-
-                    occupied[old_pos] = EMPTY;
-                    units[i].pos = new_pos;
-                    occupied[new_pos] = i;
-
-                    // This unit contributes to the opponent’s refcount array.
-                    let contrib = if atkr_is_elf {
-                        &mut in_range_for_goblins
-                    } else {
-                        &mut in_range_for_elves
-                    };
-
-                    // Remove contributions from old_pos neighbors
-                    for &n in &neighbours[old_pos] {
-                        if n != EMPTY && !walls[n] && occupied[n] == EMPTY {
-                            // Guard underflow
-                            if contrib[n] > 0 {
-                                contrib[n] -= 1;
-                            }
-                        }
-                    }
-
-                    // Add contributions for new_pos neighbors
-                    for &n in &neighbours[new_pos] {
-                        if n != EMPTY && !walls[n] && occupied[n] == EMPTY {
-                            contrib[n] = contrib[n].saturating_add(1);
-                        }
-                    }
-                }
-                // reset in_range
-                // for &n in &in_range_set {
-                //     in_range[n] = false;
-                // }
+        while let Some((dist, pos, first)) = self.q.pop_front() {
+            if dist > min_dist {
+                break;
             }
 
-            // Attack: pick adjacent enemy with lowest HP, tie-break by reading order.
-            let atkr_pos = units[i].pos;
-            let mut best = EMPTY;
-            let mut best_key = (u8::MAX, usize::MAX);
-
-            for &n in &neighbours[atkr_pos] {
-                if n == EMPTY {
-                    continue;
+            if adj_enemies[pos] > 0 {
+                if dist < min_dist {
+                    bests.clear();
+                    min_dist = dist;
                 }
-                let tid = occupied[n];
-                if tid == EMPTY {
-                    continue;
-                }
-                // inclusion in occupied implies hp > 0
-                let t = &units[tid];
-                if t.elf == atkr_is_elf {
-                    continue;
-                }
-
-                let key = (t.hp, t.pos);
-                if key < best_key {
-                    best_key = key;
-                    best = tid;
-                }
+                bests.push((pos, first));
+                continue; // Do not explore from a target square.
             }
 
-            if best != EMPTY {
-                let target = &mut units[best];
-                let prev = target.hp;
-                target.hp = target.hp.saturating_sub(power);
-                let dealt = (prev - target.hp) as usize;
-                total_hp -= dealt;
-                if target.hp == 0 {
-                    occupied[target.pos] = EMPTY;
-
-                    if target.elf {
-                        if stop_on_elf_death {
-                            return (false, 0);
-                        }
-                        elf_count -= 1;
-                    } else {
-                        goblin_count -= 1;
-                    }
-                    // Remove this unit's contribution to the opponent refcounts
-                    let contrib = if target.elf {
-                        &mut in_range_for_goblins
-                    } else {
-                        &mut in_range_for_elves
-                    };
-                    for &n in &neighbours[target.pos] {
-                        if n != EMPTY && !walls[n] && occupied[n] == EMPTY && contrib[n] > 0 {
-                            contrib[n] -= 1;
-                        }
-                    }
+            // Explore neighbours in reading order to handle tie-breaking for paths.
+            for n in self.neighbours[pos] {
+                if n != EMPTY
+                    && self.visited_version[n] != self.current_version
+                    && !self.walls[n]
+                    && self.occupied[n] == EMPTY
+                {
+                    self.visited_version[n] = self.current_version;
+                    let new_first = if first != EMPTY { first } else { n };
+                    self.q
+                        .push_back((dist + 1, n, new_first));
                 }
             }
         }
-        round += 1;
+        if bests.is_empty() {
+            return EMPTY;
+        }
+
+        // Sort by target position (reading order), then by first step (reading order)
+        bests.sort_by_key(|&(target, first)| (target, first));
+        bests[0].1
     }
 }
 
@@ -607,18 +492,250 @@ mod test {
     use super::*;
 
     #[test]
-    fn part_1() {
-        let input = "";
+    fn part_1_1() {
+        // #######       #######
+        // #G..#E#       #...#E#   E(200)
+        // #E#E.E#       #E#...#   E(197)
+        // #G.##.#  -->  #.E##.#   E(185)
+        // #...#E#       #E..#E#   E(200), E(200)
+        // #...E.#       #.....#
+        // #######       #######
+        // Combat ends after 37 full rounds
+        // Elves win with 982 total hit points left
+        // Outcome: 37 * 982 = 36334
+        let input = "#######
+#G..#E#
+#E#E.E#
+#G.##.#
+#...#E#
+#...E.#
+#######";
         let data = Data::try_new(input).unwrap();
         let result = data.part_1().unwrap().to_string();
-        assert_eq!(result, "1");
+        assert_eq!(result, "36334");
     }
 
     #[test]
-    fn part_2() {
-        let input = "";
+    fn part_1_2() {
+        // #######       #######
+        // #E..EG#       #.E.E.#   E(164), E(197)
+        // #.#G.E#       #.#E..#   E(200)
+        // #E.##E#  -->  #E.##.#   E(98)
+        // #G..#.#       #.E.#.#   E(200)
+        // #..E#.#       #...#.#
+        // #######       #######
+        // Combat ends after 46 full rounds
+        // Elves win with 859 total hit points left
+        // Outcome: 46 * 859 = 39514
+        let input = "#######
+#E..EG#
+#.#G.E#
+#E.##E#
+#G..#.#
+#..E#.#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let result = data.part_1().unwrap().to_string();
+        assert_eq!(result, "39514");
+    }
+    #[test]
+    fn part_1_3() {
+        // #######       #######
+        // #E.G#.#       #G.G#.#   G(200), G(98)
+        // #.#G..#       #.#G..#   G(200)
+        // #G.#.G#  -->  #..#..#
+        // #G..#.#       #...#G#   G(95)
+        // #...E.#       #...G.#   G(200)
+        // #######       #######
+        // Combat ends after 35 full rounds
+        // Goblins win with 793 total hit points left
+        // Outcome: 35 * 793 = 27755
+        let input = "#######
+#E.G#.#
+#.#G..#
+#G.#.G#
+#G..#.#
+#...E.#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let result = data.part_1().unwrap().to_string();
+        assert_eq!(result, "27755");
+    }
+
+    #[test]
+    fn part_1_4() {
+        // #######       #######
+        // #.E...#       #.....#
+        // #.#..G#       #.#G..#   G(200)
+        // #.###.#  -->  #.###.#
+        // #E#G#G#       #.#.#.#
+        // #...#G#       #G.G#G#   G(98), G(38), G(200)
+        // #######       #######
+        // Combat ends after 54 full rounds
+        // Goblins win with 536 total hit points left
+        // Outcome: 54 * 536 = 28944
+        let input = "#######
+#.E...#
+#.#..G#
+#.###.#
+#E#G#G#
+#...#G#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let result = data.part_1().unwrap().to_string();
+        assert_eq!(result, "28944");
+    }
+
+    #[test]
+    fn part_1_5() {
+        // #########       #########
+        // #G......#       #.G.....#   G(137)
+        // #.E.#...#       #G.G#...#   G(200), G(200)
+        // #..##..G#       #.G##...#   G(200)
+        // #...##..#  -->  #...##..#
+        // #...#...#       #.G.#...#   G(200)
+        // #.G...G.#       #.......#
+        // #.....G.#       #.......#
+        // #########       #########
+        // Combat ends after 20 full rounds
+        // Goblins win with 937 total hit points left
+        // Outcome: 20 * 937 = 18740
+        let input = "#########
+#G......#
+#.E.#...#
+#..##..G#
+#...##..#
+#...#...#
+#.G...G.#
+#.....G.#
+#########";
+        let data = Data::try_new(input).unwrap();
+        let result = data.part_1().unwrap().to_string();
+        assert_eq!(result, "18740");
+    }
+
+    #[test]
+    fn part_2_1() {
+        // #######       #######
+        // #.G...#       #..E..#   E(158)
+        // #...EG#       #...E.#   E(14)
+        // #.#.#G#  -->  #.#.#.#
+        // #..G#E#       #...#.#
+        // #.....#       #.....#
+        // #######       #######
+        //
+        // Combat ends after 29 full rounds
+        // Elves win with 172 total hit points left
+        // Outcome: 29 * 172 = 4988
+        let input = "#######
+#.G...#
+#...EG#
+#.#.#G#
+#..G#E#
+#.....#
+#######";
         let data = Data::try_new(input).unwrap();
         let result = data.part_2().unwrap().to_string();
-        assert_eq!(result, "2");
+        assert_eq!(result, "4988");
+    }
+
+    #[test]
+    fn part_2_2() {
+        // #######       #######
+        // #E..EG#       #.E.E.#   E(200), E(23)
+        // #.#G.E#       #.#E..#   E(200)
+        // #E.##E#  -->  #E.##E#   E(125), E(200)
+        // #G..#.#       #.E.#.#   E(200)
+        // #..E#.#       #...#.#
+        // #######       #######
+        // Combat ends after 33 full rounds
+        // Elves win with 948 total hit points left
+        // Outcome: 33 * 948 = 31284
+        let input = "#######
+#E..EG#
+#.#G.E#
+#E.##E#
+#G..#.#
+#..E#.#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let result = data.part_2().unwrap().to_string();
+        assert_eq!(result, "31284");
+    }
+
+    #[test]
+    fn part_2_3() {
+        // #######       #######
+        // #E.G#.#       #.E.#.#   E(8)
+        // #.#G..#       #.#E..#   E(86)
+        // #G.#.G#  -->  #..#..#
+        // #G..#.#       #...#.#
+        // #...E.#       #.....#
+        // #######       #######
+        // Combat ends after 37 full rounds
+        // Elves win with 94 total hit points left
+        // Outcome: 37 * 94 = 3478
+        let input = "#######
+#E.G#.#
+#.#G..#
+#G.#.G#
+#G..#.#
+#...E.#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let result = data.part_2().unwrap().to_string();
+        assert_eq!(result, "3478");
+    }
+    #[test]
+    fn part_2_4() {
+        // #######       #######
+        // #.E...#       #...E.#   E(14)
+        // #.#..G#       #.#..E#   E(152)
+        // #.###.#  -->  #.###.#
+        // #E#G#G#       #.#.#.#
+        // #...#G#       #...#.#
+        // #######       #######
+        //
+        // Combat ends after 39 full rounds
+        // Elves win with 166 total hit points left
+        // Outcome: 39 * 166 = 6474
+        let input = "#######
+#.E...#
+#.#..G#
+#.###.#
+#E#G#G#
+#...#G#
+#######";
+        let data = Data::try_new(input).unwrap();
+        let result = data.part_2().unwrap().to_string();
+        assert_eq!(result, "6474");
+    }
+
+    #[test]
+    fn part_2_5() {
+        // #########       #########
+        // #G......#       #.......#
+        // #.E.#...#       #.E.#...#   E(38)
+        // #..##..G#       #..##...#
+        // #...##..#  -->  #...##..#
+        // #...#...#       #...#...#
+        // #.G...G.#       #.......#
+        // #.....G.#       #.......#
+        // #########       #########
+        // Combat ends after 30 full rounds
+        // Elves win with 38 total hit points left
+        // Outcome: 30 * 38 = 1140
+        let input = "#########
+#G......#
+#.E.#...#
+#..##..G#
+#...##..#
+#...#...#
+#.G...G.#
+#.....G.#
+#########";
+        let data = Data::try_new(input).unwrap();
+        let result = data.part_2().unwrap().to_string();
+        assert_eq!(result, "1140");
     }
 }
