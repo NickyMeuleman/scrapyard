@@ -1,3 +1,6 @@
+// Blog writeup with simpler Rust code (I should handle errors here):
+// https://nickymeuleman.netlify.app/blog/aoc2025-day01/
+
 use crate::{AoCData, AoCResult};
 use std::fmt::Display;
 
@@ -14,7 +17,7 @@ impl<'a> AoCData<'a> for Data<'a> {
         let mut sum = 0;
         for line in self.0.lines() {
             let dir = if line.starts_with('R') { 1 } else { -1 };
-            let num: i32 = line[1..].parse().unwrap();
+            let num: i32 = line[1..].parse()?;
             pos = (pos + dir * num).rem_euclid(100);
             if pos == 0 {
                 sum += 1
@@ -28,7 +31,7 @@ impl<'a> AoCData<'a> for Data<'a> {
         let mut sum = 0;
         for line in self.0.lines() {
             let dir = if line.starts_with('R') { 1 } else { -1 };
-            let num: i32 = line[1..].parse().unwrap();
+            let num: i32 = line[1..].parse()?;
             for _ in 0..num {
                 pos = (pos + dir).rem_euclid(100);
                 if pos == 0 {
