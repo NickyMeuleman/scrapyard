@@ -1,5 +1,5 @@
 // Blog writeup with simpler Rust code (I should handle errors here):
-// https://nickymeuleman.netlify.app/blog/aoc2025-day05/
+// https://nickymeuleman.netlify.app/blog/aoc2025-day06/
 
 use aoc_core::AoCError;
 
