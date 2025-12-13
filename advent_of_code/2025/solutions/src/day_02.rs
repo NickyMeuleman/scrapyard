@@ -1,7 +1,7 @@
 // Blog writeup with simpler Rust code (I should handle errors here):
 // https://nickymeuleman.netlify.app/blog/aoc2025-day02/
 
-use aoc_core::Solution;
+use aoc_core::{AoCError, Solution};
 
 use crate::{AoCData, AoCResult};
 use std::fmt::Display;
@@ -10,15 +10,22 @@ use std::fmt::Display;
 pub struct Data<'a>(&'a str);
 
 fn has_repetition(s: &str, pattern_len: usize) -> bool {
-    // check if number is perfectly dividible
+    // check if number is perfectly divisible
     if !s.len().is_multiple_of(pattern_len) {
         return false;
     }
-    let pattern = &s[0..pattern_len];
+    let pattern = &s[..pattern_len];
     // check if any block matches the pattern
     (pattern_len..s.len())
         .step_by(pattern_len)
         .all(|i| &s[i..i + pattern_len] == pattern)
+}
+
+fn parse_range(s: &str) -> AoCResult<(i64, i64)> {
+    let (a, b) = s
+        .split_once('-')
+        .ok_or(AoCError::Parsing)?;
+    Ok((a.parse()?, b.parse()?))
 }
 
 impl<'a> AoCData<'a> for Data<'a> {
@@ -29,9 +36,7 @@ impl<'a> AoCData<'a> for Data<'a> {
     fn part_1(&self) -> AoCResult<impl Display> {
         let mut sum = 0;
         for range in self.0.split(',') {
-            let (a, b) = range.split_once('-').unwrap();
-            let start: i64 = a.parse().unwrap();
-            let end: i64 = b.parse().unwrap();
+            let (start, end) = parse_range(range)?;
             for num in start..=end {
                 let s = num.to_string();
                 if s.len() % 2 != 0 {
@@ -48,21 +53,15 @@ impl<'a> AoCData<'a> for Data<'a> {
 
     fn part_2(&self) -> AoCResult<impl Display> {
         let mut sum = 0;
+
         for range in self.0.split(',') {
-            let (a, b) = range.split_once('-').unwrap();
-            let start: i64 = a.parse().unwrap();
-            let end: i64 = b.parse().unwrap();
+            let (start, end) = parse_range(range)?;
+
             for num in start..=end {
                 let s = num.to_string();
+
                 for pattern_len in 1..=s.len() / 2 {
-                    if !s.len().is_multiple_of(pattern_len) {
-                        continue;
-                    }
-                    let pattern = &s[0..pattern_len];
-                    if (pattern_len..s.len())
-                        .step_by(pattern_len)
-                        .all(|start_idx| &s[start_idx..start_idx + pattern_len] == pattern)
-                    {
+                    if has_repetition(&s, pattern_len) {
                         sum += num;
                         // avoid double counting a number, break once a pattern repeats
                         break;
@@ -70,6 +69,7 @@ impl<'a> AoCData<'a> for Data<'a> {
                 }
             }
         }
+
         Ok(sum)
     }
 
@@ -80,29 +80,29 @@ impl<'a> AoCData<'a> for Data<'a> {
         let (p1, p2) = self
             .0
             .split(',')
-            .map(|range| {
-                let (a, b) = range.split_once('-').unwrap();
-                let start: i64 = a.parse().unwrap();
-                let end: i64 = b.parse().unwrap();
-                (start..=end).fold((0, 0), |(p1, p2), num| {
+            .map(|range| -> AoCResult<(i64, i64)> {
+                let (start, end) = parse_range(range)?;
+                let mut sum1 = 0;
+                let mut sum2 = 0;
+
+                for num in start..=end {
                     let s = num.to_string();
                     let len = s.len();
-                    let p1_add = if len.is_multiple_of(2) && has_repetition(&s, len / 2) {
-                        num
-                    } else {
-                        0
-                    };
-                    let p2_add = if (1..=len / 2).any(|pat_len| has_repetition(&s, pat_len)) {
-                        num
-                    } else {
-                        0
-                    };
-                    (p1 + p1_add, p2 + p2_add)
-                })
+
+                    if len.is_multiple_of(2) && has_repetition(&s, len / 2) {
+                        sum1 += num;
+                    }
+                    if (1..=len / 2).any(|pat_len| has_repetition(&s, pat_len)) {
+                        sum2 += num;
+                    }
+                }
+
+                Ok((sum1, sum2))
             })
-            .fold((0, 0), |(acc1, acc2), (sum1, sum2)| {
-                (acc1 + sum1, acc2 + sum2)
-            });
+            .try_fold((0, 0), |(acc1, acc2), item| -> AoCResult<(i64, i64)> {
+                let (sum1, sum2) = item?;
+                Ok((acc1 + sum1, acc2 + sum2))
+            })?;
 
         Ok(Solution {
             part1: Box::new(p1),
