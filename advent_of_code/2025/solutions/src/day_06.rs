@@ -1,9 +1,8 @@
 // Blog writeup with simpler Rust code (I should handle errors here):
 // https://nickymeuleman.netlify.app/blog/aoc2025-day06/
 
-use aoc_core::AoCError;
-
 use crate::{AoCData, AoCResult};
+use aoc_core::AoCError;
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
@@ -35,14 +34,19 @@ impl<'a> AoCData<'a> for Data<'a> {
         let num_problems = top
             .lines()
             .next()
-            .unwrap()
+            .ok_or(AoCError::Parsing)?
             .split_whitespace()
             .count();
+        if num_problems == 0 {
+            return Err(AoCError::Parsing);
+        }
         let mut nums = vec![Vec::new(); num_problems];
 
         for line in top.lines() {
             for (idx, s) in line.split_whitespace().enumerate() {
-                nums[idx].push(s.parse().unwrap());
+                nums.get_mut(idx)
+                    .ok_or(AoCError::Solving)?
+                    .push(s.parse()?);
             }
         }
 
@@ -62,14 +66,18 @@ impl<'a> AoCData<'a> for Data<'a> {
             .ok_or(AoCError::Parsing)?;
 
         let lines: Vec<&str> = top.lines().collect();
-        let cols = lines[0].len();
+        let cols = lines
+            .first()
+            .ok_or(AoCError::Parsing)?
+            .len();
 
         let mut problems = Vec::new();
         let mut curr = Vec::new();
+
         for col in 0..cols {
             let num = lines
                 .iter()
-                .filter_map(|line| (line.as_bytes()[col] as char).to_digit(10))
+                .filter_map(|line| line.chars().nth(col)?.to_digit(10))
                 .reduce(|acc, d| acc * 10 + d);
 
             match num {
