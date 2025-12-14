@@ -1,6 +1,8 @@
 // Blog writeup with simpler Rust code (I should handle errors here):
 // https://nickymeuleman.netlify.app/blog/aoc2025-day03/
 
+use aoc_core::AoCError;
+
 use crate::{AoCData, AoCResult};
 use std::fmt::Display;
 
@@ -13,49 +15,82 @@ impl<'a> AoCData<'a> for Data<'a> {
     }
 
     fn part_1(&self) -> AoCResult<impl Display> {
-        Ok(self
-            .0
+        self.0
             .lines()
-            .filter_map(|line| {
-                let digits: Vec<u8> = line.bytes().map(|b| b - b'0').collect();
+            .map(|line| {
+                let digits = line
+                    .chars()
+                    .map(|c| c.to_digit(10).ok_or(AoCError::Parsing))
+                    .collect::<AoCResult<Vec<u32>>>()?;
+                if digits.len() < 2 {
+                    return Err(AoCError::Solving);
+                }
 
                 let possibilities_first = &digits[0..(digits.len() - 1)];
-                let first = possibilities_first.iter().max()?;
+                let first = possibilities_first
+                    .iter()
+                    .max()
+                    .ok_or(AoCError::Solving)?;
                 let idx = possibilities_first
                     .iter()
-                    .position(|d| d == first)?;
+                    .position(|d| d == first)
+                    .ok_or(AoCError::Solving)?;
 
                 let possibilities_second = &digits[idx + 1..digits.len()];
-                let second = possibilities_second.iter().max()?;
+                let second = possibilities_second
+                    .iter()
+                    .max()
+                    .ok_or(AoCError::Solving)?;
 
-                Some(u32::from(first * 10 + second))
+                Ok(first * 10 + second)
             })
-            .sum::<u32>())
+            .sum::<AoCResult<u32>>()
     }
 
     fn part_2(&self) -> AoCResult<impl Display> {
-        Ok(self
-            .0
+        self.0
             .lines()
-            .filter_map(|line| {
-                let digits: Vec<u8> = line.bytes().map(|b| b - b'0').collect();
+            .map(|line| {
+                let digits = line
+                    .chars()
+                    .map(|c| c.to_digit(10).ok_or(AoCError::Parsing))
+                    .collect::<AoCResult<Vec<u32>>>()?;
+                if digits.len() < 12 {
+                    return Err(AoCError::Solving);
+                }
+
                 let mut result = 0;
                 let mut start = 0;
+
                 for reserved in (0..12).rev() {
                     // first index we cannot pick
-                    let end = digits.len() - reserved;
+                    let end = digits
+                        .len()
+                        .checked_sub(reserved)
+                        .ok_or(AoCError::Solving)?;
+                    if start >= end {
+                        return Err(AoCError::Solving);
+                    }
+
                     let possibilities = &digits[start..end];
-                    let max = possibilities.iter().copied().max()?;
+                    let max = possibilities
+                        .iter()
+                        .copied()
+                        .max()
+                        .ok_or(AoCError::Solving)?;
                     // Max digit can appear more than once, pick the leftmost one to keep more options for next digit.
                     let idx = possibilities
                         .iter()
-                        .position(|&d| d == max)?;
+                        .position(|&d| d == max)
+                        .ok_or(AoCError::Solving)?;
+
                     result = result * 10 + max as u64;
                     start += idx + 1;
                 }
-                Some(result)
+
+                Ok(result)
             })
-            .sum::<u64>())
+            .sum::<AoCResult<u64>>()
     }
 }
 
