@@ -1,9 +1,8 @@
 // Blog writeup with simpler Rust code (I should handle errors here):
 // https://nickymeuleman.netlify.app/blog/aoc2025-day05/
 
-use aoc_core::AoCError;
-
 use crate::{AoCData, AoCResult};
+use aoc_core::AoCError;
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
@@ -20,16 +19,18 @@ impl AoCData<'_> for Data {
 
         let ranges = top
             .lines()
-            .filter_map(|line| {
-                let (low, high) = line.split_once('-')?;
-                Some((low.parse().ok()?, high.parse().ok()?))
+            .map(|line| {
+                let (low, high) = line
+                    .split_once('-')
+                    .ok_or(AoCError::Parsing)?;
+                Ok((low.parse()?, high.parse()?))
             })
-            .collect();
+            .collect::<AoCResult<Vec<_>>>()?;
 
         let foods = bottom
             .lines()
-            .filter_map(|line| line.parse().ok())
-            .collect();
+            .map(|line| line.parse().map_err(Into::into))
+            .collect::<AoCResult<Vec<u64>>>()?;
 
         Ok(Self { ranges, foods })
     }
