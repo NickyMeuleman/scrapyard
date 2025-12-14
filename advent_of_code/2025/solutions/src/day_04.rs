@@ -1,6 +1,8 @@
 // Blog writeup with simpler Rust code (I should handle errors here):
 // https://nickymeuleman.netlify.app/blog/aoc2025-day04/
 
+use aoc_core::AoCError;
+
 use crate::{AoCData, AoCResult};
 use std::fmt::Display;
 
@@ -62,6 +64,7 @@ impl AoCData<'_> for Data {
 
     fn part_1(&self) -> AoCResult<impl Display> {
         let mut sum = 0;
+
         for (row, line) in self.0.iter().enumerate() {
             for (col, c) in line.iter().enumerate() {
                 if *c != '@' {
@@ -79,8 +82,8 @@ impl AoCData<'_> for Data {
 
     fn part_2(&self) -> AoCResult<impl Display> {
         let mut map = self.0.clone();
-
         let mut sum = 0;
+
         loop {
             let mut to_remove = Vec::new();
             for (row, line) in map.iter().enumerate() {
@@ -99,8 +102,15 @@ impl AoCData<'_> for Data {
                 break;
             }
             sum += to_remove.len();
+
             for point in to_remove {
-                map[point.row][point.col] = '.';
+                let row = map
+                    .get_mut(point.row)
+                    .ok_or(AoCError::Solving)?;
+                let cell = row
+                    .get_mut(point.col)
+                    .ok_or(AoCError::Solving)?;
+                *cell = '.';
             }
         }
 
