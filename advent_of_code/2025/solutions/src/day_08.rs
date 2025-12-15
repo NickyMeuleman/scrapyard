@@ -72,19 +72,31 @@ fn part_1_helper(points: &[Point], wire_count: usize) -> AoCResult<u64> {
 
 impl AoCData<'_> for Data {
     fn try_new(input: &str) -> AoCResult<Self> {
-        Ok(Self(
-            input
-                .lines()
-                .map(|line| {
-                    let mut parts = line.split(',');
-                    Point {
-                        x: parts.next().unwrap().parse().unwrap(),
-                        y: parts.next().unwrap().parse().unwrap(),
-                        z: parts.next().unwrap().parse().unwrap(),
-                    }
-                })
-                .collect(),
-        ))
+        let res = input
+            .lines()
+            .map(|line| {
+                let mut parts = line.split(',');
+                let x = parts
+                    .next()
+                    .ok_or(AoCError::Parsing)?
+                    .parse()?;
+                let y = parts
+                    .next()
+                    .ok_or(AoCError::Parsing)?
+                    .parse()?;
+                let z = parts
+                    .next()
+                    .ok_or(AoCError::Parsing)?
+                    .parse()?;
+
+                if parts.next().is_some() {
+                    return Err(AoCError::Parsing);
+                }
+
+                Ok(Point { x, y, z })
+            })
+            .collect::<AoCResult<Vec<Point>>>()?;
+        Ok(Self(res))
     }
 
     fn part_1(&self) -> AoCResult<impl Display> {
