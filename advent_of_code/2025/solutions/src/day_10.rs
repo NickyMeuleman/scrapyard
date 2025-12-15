@@ -2,6 +2,7 @@
 // https://nickymeuleman.netlify.app/blog/aoc2025-day10/
 
 use crate::{AoCData, AoCResult};
+use aoc_core::AoCError;
 use std::{
     collections::{HashSet, VecDeque},
     fmt::Display,
@@ -55,6 +56,7 @@ impl Machine {
             .map(|v| solution.value(*v).round() as u32)
             .sum()
     }
+
     fn min_presses_lights(&self) -> usize {
         let goal: u32 = self
             .lights
@@ -133,8 +135,12 @@ impl AoCData<'_> for Data {
             input
                 .lines()
                 .map(|line| {
-                    let (lights_str, rest) = line.split_once(' ').unwrap();
-                    let (buttons_str, jolts_str) = rest.rsplit_once(' ').unwrap();
+                    let (lights_str, rest) = line
+                        .split_once(' ')
+                        .ok_or(AoCError::Parsing)?;
+                    let (buttons_str, jolts_str) = rest
+                        .rsplit_once(' ')
+                        .ok_or(AoCError::Parsing)?;
 
                     let lights = lights_str
                         .trim_matches(['[', ']'])
@@ -147,24 +153,24 @@ impl AoCData<'_> for Data {
                         .map(|s| {
                             s.trim_matches(['(', ')'])
                                 .split(',')
-                                .map(|s| s.parse().unwrap())
-                                .collect()
+                                .map(|s| s.parse().map_err(|_| AoCError::Parsing))
+                                .collect::<AoCResult<Vec<_>>>()
                         })
-                        .collect();
+                        .collect::<AoCResult<Vec<_>>>()?;
 
                     let jolts = jolts_str
                         .trim_matches(['{', '}'])
                         .split(',')
-                        .map(|s| s.parse().unwrap())
-                        .collect();
+                        .map(|s| s.parse().map_err(|_| AoCError::Parsing))
+                        .collect::<AoCResult<Vec<_>>>()?;
 
-                    Machine {
+                    Ok(Machine {
                         lights,
                         buttons,
                         jolts,
-                    }
+                    })
                 })
-                .collect(),
+                .collect::<AoCResult<_>>()?,
         ))
     }
 
