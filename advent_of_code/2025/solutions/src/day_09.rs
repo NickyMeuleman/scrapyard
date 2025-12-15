@@ -58,23 +58,25 @@ impl Line {
 }
 impl AoCData<'_> for Data {
     fn try_new(input: &str) -> AoCResult<Self> {
-        Ok(Self(
-            input
-                .lines()
-                .map(|line| {
-                    let mut parts = line.split(',');
-                    let row = parts
-                        .next()
-                        .ok_or(AoCError::Parsing)?
-                        .parse()?;
-                    let col = parts
-                        .next()
-                        .ok_or(AoCError::Parsing)?
-                        .parse()?;
-                    Ok(Point { row, col })
-                })
-                .collect::<AoCResult<_>>()?,
-        ))
+        let points = input
+            .lines()
+            .map(|line| {
+                let mut parts = line.split(',');
+                let row = parts
+                    .next()
+                    .ok_or(AoCError::Parsing)?
+                    .parse()?;
+                let col = parts
+                    .next()
+                    .ok_or(AoCError::Parsing)?
+                    .parse()?;
+                if parts.next().is_some() {
+                    return Err(AoCError::Parsing);
+                }
+                Ok(Point { row, col })
+            })
+            .collect::<AoCResult<_>>()?;
+        Ok(Self(points))
     }
 
     fn part_1(&self) -> AoCResult<impl Display> {
