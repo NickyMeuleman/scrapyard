@@ -1,9 +1,8 @@
 // Blog writeup with simpler Rust code (I should handle errors here):
 // https://nickymeuleman.netlify.app/blog/aoc2025-day07/
 
-use aoc_core::AoCError;
-
 use crate::{AoCData, AoCResult};
+use aoc_core::AoCError;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 
@@ -18,18 +17,27 @@ pub struct Data(Vec<Vec<char>>);
 
 impl AoCData<'_> for Data {
     fn try_new(input: &str) -> AoCResult<Self> {
-        Ok(Self(
-            input
-                .lines()
-                .map(|line| line.chars().collect())
-                .collect(),
-        ))
+        let grid: Vec<Vec<char>> = input
+            .lines()
+            .map(|line| line.chars().collect())
+            .collect();
+        if grid.is_empty() || grid[0].is_empty() {
+            return Err(AoCError::Parsing);
+        }
+        Ok(Self(grid))
     }
 
     fn part_1(&self) -> AoCResult<impl Display> {
         let rows = self.0.len();
-        let cols = self.0[0].len();
-        let start = self.0[0]
+        let cols = self
+            .0
+            .first()
+            .ok_or(AoCError::Parsing)?
+            .len();
+        let start = self
+            .0
+            .first()
+            .ok_or(AoCError::Parsing)?
             .iter()
             .position(|&c| c == 'S')
             .ok_or(AoCError::Parsing)?;
@@ -45,7 +53,13 @@ impl AoCData<'_> for Data {
                 if row + 1 >= rows {
                     continue;
                 }
-                match self.0[row + 1][col] {
+                let cell = self
+                    .0
+                    .get(row + 1)
+                    .and_then(|r| r.get(col))
+                    .ok_or(AoCError::Solving)?;
+
+                match cell {
                     '.' => {
                         let down = Point { row: row + 1, col };
                         next.insert(down);
@@ -78,8 +92,15 @@ impl AoCData<'_> for Data {
 
     fn part_2(&self) -> AoCResult<impl Display> {
         let rows = self.0.len();
-        let cols = self.0[0].len();
-        let start = self.0[0]
+        let cols = self
+            .0
+            .first()
+            .ok_or(AoCError::Parsing)?
+            .len();
+        let start = self
+            .0
+            .first()
+            .ok_or(AoCError::Parsing)?
             .iter()
             .position(|&c| c == 'S')
             .ok_or(AoCError::Parsing)?;
@@ -96,7 +117,13 @@ impl AoCData<'_> for Data {
                     sum += count;
                     continue;
                 }
-                match self.0[row + 1][col] {
+                let cell = self
+                    .0
+                    .get(row + 1)
+                    .and_then(|r| r.get(col))
+                    .ok_or(AoCError::Solving)?;
+
+                match cell {
                     '.' => {
                         let down = Point { row: row + 1, col };
                         *next.entry(down).or_default() += count;
