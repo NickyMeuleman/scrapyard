@@ -1,9 +1,7 @@
 // Blog writeup with simpler Rust code (I should handle errors here):
 // https://nickymeuleman.netlify.app/blog/aoc2025-day02/
 
-use aoc_core::{AoCError, Solution};
-
-use crate::{AoCData, AoCResult};
+use crate::{AoCData, AoCError, AoCResult, Solution};
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]

@@ -1,8 +1,7 @@
 // Blog writeup with simpler Rust code (I should handle errors here):
 // https://nickymeuleman.netlify.app/blog/aoc2025-day10/
 
-use crate::{AoCData, AoCResult};
-use aoc_core::AoCError;
+use crate::{AoCData, AoCError, AoCResult};
 use std::{
     collections::{HashSet, VecDeque},
     fmt::Display,
