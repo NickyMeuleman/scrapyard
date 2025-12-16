@@ -2,6 +2,7 @@
 // https://nickymeuleman.netlify.app/blog/aoc2025-day12/
 
 use crate::{AoCData, AoCResult};
+use aoc_core::AoCError;
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
@@ -30,7 +31,9 @@ impl Region {
 
 impl AoCData<'_> for Data {
     fn try_new(input: &str) -> AoCResult<Self> {
-        let (shapes_str, regions_str) = input.rsplit_once("\n\n").unwrap();
+        let (shapes_str, regions_str) = input
+            .rsplit_once("\n\n")
+            .ok_or(AoCError::Parsing)?;
 
         let shapes = shapes_str
             .split("\n\n")
@@ -46,18 +49,22 @@ impl AoCData<'_> for Data {
         let regions = regions_str
             .lines()
             .map(|line| {
-                let (tree, counts) = line.split_once(": ").unwrap();
-                let (width, length) = tree.split_once("x").unwrap();
-                Region {
-                    width: width.parse().unwrap(),
-                    length: length.parse().unwrap(),
+                let (tree, counts) = line
+                    .split_once(": ")
+                    .ok_or(AoCError::Parsing)?;
+                let (width, length) = tree
+                    .split_once("x")
+                    .ok_or(AoCError::Parsing)?;
+                Ok(Region {
+                    width: width.parse()?,
+                    length: length.parse()?,
                     counts: counts
                         .split(" ")
                         .map(|s| s.parse().unwrap())
                         .collect(),
-                }
+                })
             })
-            .collect();
+            .collect::<AoCResult<_>>()?;
 
         Ok(Self { shapes, regions })
     }
