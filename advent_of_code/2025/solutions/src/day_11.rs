@@ -2,6 +2,7 @@
 // https://nickymeuleman.netlify.app/blog/aoc2025-day11/
 
 use crate::{AoCData, AoCResult};
+use aoc_core::AoCError;
 use std::{collections::HashMap, fmt::Display};
 
 #[derive(Debug, Clone)]
@@ -61,11 +62,13 @@ impl<'a> AoCData<'a> for Data<'a> {
             input
                 .lines()
                 .map(|line| {
-                    let (from, to_str) = line.split_once(": ").unwrap();
+                    let (from, to_str) = line
+                        .split_once(": ")
+                        .ok_or(AoCError::Parsing)?;
                     let to_list = to_str.split(" ").collect();
-                    (from, to_list)
+                    Ok((from, to_list))
                 })
-                .collect(),
+                .collect::<AoCResult<_>>()?,
         ))
     }
 
