@@ -10,13 +10,13 @@ pub struct Data(Vec<Point>);
 
 #[derive(Debug, Clone)]
 struct Point {
-    x: u32,
-    y: u32,
-    z: u32,
+    x: u64,
+    y: u64,
+    z: u64,
 }
 
 impl Point {
-    fn dist_squared(&self, other: &Point) -> u32 {
+    fn dist_squared(&self, other: &Point) -> u64 {
         self.x.abs_diff(other.x).pow(2)
             + self.y.abs_diff(other.y).pow(2)
             + self.z.abs_diff(other.z).pow(2)
