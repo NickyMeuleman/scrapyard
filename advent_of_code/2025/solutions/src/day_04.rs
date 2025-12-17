@@ -9,11 +9,11 @@ pub struct Data(Vec<Vec<char>>);
 
 #[derive(Debug, Clone, Copy, Hash, Eq, Ord, PartialEq, PartialOrd)]
 struct Point {
-    row: usize,
-    col: usize,
+    row: u32,
+    col: u32,
 }
 
-const DELTAS: [(isize, isize); 8] = [
+const DELTAS: [(i32, i32); 8] = [
     (-1, 0),  // up
     (-1, 1),  // up right
     (0, 1),   // right
@@ -37,17 +37,20 @@ impl Point {
             .collect()
     }
 
-    fn count_neighbours(&self, map: &[Vec<char>]) -> usize {
-        self.neighbours()
-            .iter()
-            .filter(|point| {
-                matches!(
-                    map.get(point.row)
-                        .and_then(|row| row.get(point.col)),
-                    Some('@')
-                )
-            })
-            .count()
+    fn count_neighbours(&self, map: &[Vec<char>]) -> AoCResult<u32> {
+        u32::try_from(
+            self.neighbours()
+                .iter()
+                .filter(|point| {
+                    matches!(
+                        map.get(point.row as usize)
+                            .and_then(|row| row.get(point.col as usize)),
+                        Some('@')
+                    )
+                })
+                .count(),
+        )
+        .map_err(|_| AoCError::Solving)
     }
 }
 

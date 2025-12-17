@@ -7,7 +7,7 @@ use std::{collections::HashMap, fmt::Display};
 #[derive(Debug, Clone)]
 pub struct Data<'a>(HashMap<&'a str, Vec<&'a str>>);
 
-fn count_1(graph: &HashMap<&str, Vec<&str>>, from: &str, to: &str) -> usize {
+fn count_1(graph: &HashMap<&str, Vec<&str>>, from: &str, to: &str) -> u32 {
     if from == to {
         return 1;
     }

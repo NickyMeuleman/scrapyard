@@ -13,7 +13,7 @@ pub struct Data(Vec<Machine>);
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Machine {
     lights: Vec<bool>,
-    buttons: Vec<Vec<usize>>,
+    buttons: Vec<Vec<u8>>,
     jolts: Vec<u32>,
 }
 
@@ -39,7 +39,7 @@ impl Machine {
 
             for (btn_idx, relevant_idxs) in self.buttons.iter().enumerate() {
                 // if button is relevant, add its press variable to the constraint
-                if relevant_idxs.contains(&jolt_idx) {
+                if relevant_idxs.contains(&(jolt_idx as u8)) {
                     expr += presses[btn_idx];
                 }
             }
@@ -56,7 +56,7 @@ impl Machine {
             .sum()
     }
 
-    fn min_presses_lights(&self) -> usize {
+    fn min_presses_lights(&self) -> u32 {
         let goal: u32 = self
             .lights
             .iter()
@@ -178,7 +178,7 @@ impl AoCData<'_> for Data {
             .0
             .iter()
             .map(|m| m.min_presses_lights())
-            .sum::<usize>())
+            .sum::<u32>())
     }
 
     fn part_2(&self) -> AoCResult<impl Display> {

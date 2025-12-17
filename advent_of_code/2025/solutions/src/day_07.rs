@@ -7,8 +7,8 @@ use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, Hash, Eq, Ord, PartialEq, PartialOrd)]
 struct Point {
-    row: usize,
-    col: usize,
+    row: u32,
+    col: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -42,20 +42,23 @@ impl AoCData<'_> for Data {
             .ok_or(AoCError::Parsing)?;
 
         let mut beams = HashSet::new();
-        beams.insert(Point { row: 0, col: start });
+        beams.insert(Point {
+            row: 0,
+            col: u32::try_from(start)?,
+        });
         let mut sum = 0;
 
         while !beams.is_empty() {
             let mut next = HashSet::new();
 
             for Point { row, col } in beams {
-                if row + 1 >= rows {
+                if row + 1 >= rows as u32 {
                     continue;
                 }
                 let cell = self
                     .0
-                    .get(row + 1)
-                    .and_then(|r| r.get(col))
+                    .get(row as usize + 1)
+                    .and_then(|r| r.get(col as usize))
                     .ok_or(AoCError::Solving)?;
 
                 match cell {
@@ -72,7 +75,7 @@ impl AoCData<'_> for Data {
                             };
                             next.insert(down_left);
                         }
-                        if col + 1 < cols {
+                        if col + 1 < cols as u32 {
                             let down_right = Point {
                                 row: row + 1,
                                 col: col + 1,
@@ -105,21 +108,27 @@ impl AoCData<'_> for Data {
             .ok_or(AoCError::Parsing)?;
 
         let mut beams: HashMap<Point, u64> = HashMap::new();
-        beams.insert(Point { row: 0, col: start }, 1);
+        beams.insert(
+            Point {
+                row: 0,
+                col: u32::try_from(start)?,
+            },
+            1,
+        );
         let mut sum = 0;
 
         while !beams.is_empty() {
             let mut next = HashMap::new();
 
             for (Point { row, col }, count) in beams {
-                if row + 1 >= rows {
+                if row + 1 >= rows as u32 {
                     sum += count;
                     continue;
                 }
                 let cell = self
                     .0
-                    .get(row + 1)
-                    .and_then(|r| r.get(col))
+                    .get(row as usize + 1)
+                    .and_then(|r| r.get(col as usize))
                     .ok_or(AoCError::Solving)?;
 
                 match cell {
@@ -135,7 +144,7 @@ impl AoCData<'_> for Data {
                             };
                             *next.entry(down_left).or_default() += count;
                         }
-                        if col + 1 < cols {
+                        if col + 1 < cols as u32 {
                             let down_right = Point {
                                 row: row + 1,
                                 col: col + 1,
