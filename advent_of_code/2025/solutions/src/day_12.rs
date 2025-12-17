@@ -6,7 +6,7 @@ use std::fmt::Display;
 
 #[derive(Debug, Clone)]
 pub struct Data {
-    shapes: Vec<Vec<Vec<bool>>>,
+    _shapes: Vec<Vec<Vec<bool>>>,
     regions: Vec<Region>,
 }
 
