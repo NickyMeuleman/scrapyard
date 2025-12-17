@@ -71,8 +71,11 @@ impl AoCData<'_> for Data {
                 if *c != '@' {
                     continue;
                 }
-                let point = Point { row, col };
-                if point.count_neighbours(&self.0) < 4 {
+                let point = Point {
+                    row: row as u32,
+                    col: col as u32,
+                };
+                if point.count_neighbours(&self.0)? < 4 {
                     sum += 1;
                 }
             }
@@ -92,8 +95,11 @@ impl AoCData<'_> for Data {
                     if *c != '@' {
                         continue;
                     }
-                    let point = Point { row, col };
-                    if point.count_neighbours(&map) < 4 {
+                    let point = Point {
+                        row: row as u32,
+                        col: col as u32,
+                    };
+                    if point.count_neighbours(&map)? < 4 {
                         to_remove.push(point);
                     }
                 }
@@ -106,10 +112,10 @@ impl AoCData<'_> for Data {
 
             for point in to_remove {
                 let row = map
-                    .get_mut(point.row)
+                    .get_mut(point.row as usize)
                     .ok_or(AoCError::Solving)?;
                 let cell = row
-                    .get_mut(point.col)
+                    .get_mut(point.col as usize)
                     .ok_or(AoCError::Solving)?;
                 *cell = '.';
             }
