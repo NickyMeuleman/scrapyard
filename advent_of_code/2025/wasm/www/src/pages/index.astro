@@ -1,0 +1,86 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+import astroLogo from '../assets/astro.svg';
+import background from '../assets/background.svg';
+---
+
+<Layout>
+	<img id="background" src={background.src} alt="" fetchpriority="high" />
+  <main>
+    <h1>Advent of Code 2025 solver</h1>
+    <div>
+      <h2 class="text-gradient">Day:</h2>
+      <input id="day" type="number" min="1" max="12" />
+      <h2 class="text-gradient">Part:</h2>
+      <select id="part">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option selected value="3">Both</option>
+      </select>
+      <h2 class="text-gradient">Input:</h2>
+      <input id="file" type="file" />
+      <h2 class="text-gradient">Result:</h2>
+      <output id="result">No result yet!</output>
+    </div>
+  </main>
+</Layout>
+
+<style>
+	#background {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		z-index: -1;
+		filter: blur(100px);
+	}
+
+	main {
+    padding: 2.25rem;
+	}
+</style>
+
+
+<script is:inline type="module">
+  import init, { solve } from "../pkg/aoc2025_wasm.js";
+  await init();
+
+  const fileInputEl = document.querySelector("#file");
+  const dayInputEl = document.querySelector("#day");
+  const partInputEl = document.querySelector("#part");
+  const resultEl = document.querySelector("#result");
+
+  fileInputEl.addEventListener("change", async function (event) {
+    const day = Number(dayInputEl.value);
+    const part = Number(partInputEl.value);
+    const file = event.target.files[0];
+    const input = await file.text();
+
+    let resultHTML;
+    try {
+      const solution = await solve(day, part, input);
+      console.log(solution);
+      // JS match statements when?
+      if (part == 1) {
+        resultHTML = `<p>${solution.part1}</p>`;
+      } else if (part == 2) {
+        resultHTML = `<p>${solution.part2}</p>`;
+      } else {
+        resultHTML = `
+        <h3>Part 1:</h3>
+        <p>${solution.part1}</p>
+        <h3>Part 2:</h3>
+        <p>${solution.part2}</p>
+        `;
+      }
+    } catch (error) {
+      resultHTML = `
+      <h3>Ya done goofed!<h3>
+      <p>${error.message}</p>
+      `;
+    }
+    resultEl.innerHTML = resultHTML;
+  });
+</script>

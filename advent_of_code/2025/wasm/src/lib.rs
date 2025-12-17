@@ -1,4 +1,4 @@
-use aoc2024::{solve_part, Answer, Day, Part};
+use aoc2025::{solve_part, Answer, Day, Part};
 use aoc_core_wasm::WasmSolution;
 use wasm_bindgen::prelude::*;
 

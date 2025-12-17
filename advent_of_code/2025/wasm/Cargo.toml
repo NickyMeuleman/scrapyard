@@ -12,7 +12,7 @@ repository.workspace = true
 
 [dependencies]
 aoc2025 = { path = "../solutions" }
-aoc-core-wasm ={ path = "../../core/wasm"}
+aoc-core-wasm = { path = "../../core/wasm" }
 wasm-bindgen = "0.2.106"
 wasm-bindgen-futures = "0.4.56"
 
@@ -31,4 +31,6 @@ crate-type = ["cdylib", "rlib"]
 # -O4   aggressive speed
 # after running both, speed output a .wasm with the exact same size as size, so I chose speed
 # so, if I set the LLVM opt-level to speed, it fails to build and tells me to disable wasm-opt, if I set it to size, it works
-wasm-opt = ['-Os']
+# disabling wasm-opt to be able to pass --enable-bulk-storage during build by using a dedicated version of wasm-opt
+# wasm-opt = ['-Os']
+wasm-opt = false
