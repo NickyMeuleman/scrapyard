@@ -10,12 +10,12 @@ pub struct Data(Vec<Point>);
 
 #[derive(Debug, Clone, Copy, Hash, Eq, Ord, PartialEq, PartialOrd)]
 struct Point {
-    row: usize,
-    col: usize,
+    row: u64,
+    col: u64,
 }
 
 impl Point {
-    fn area(&self, other: &Self) -> usize {
+    fn area(&self, other: &Self) -> u64 {
         (self.row.abs_diff(other.row) + 1) * (self.col.abs_diff(other.col) + 1)
     }
 
