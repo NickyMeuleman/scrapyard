@@ -11,8 +11,10 @@ readme = "README.md"
 repository.workspace = true
 
 [dependencies]
-aoc-core = { path = "../../core/solutions"}
+aoc-core = { path = "../../core/solutions" }
 itertools = "0.14.0"
+# good_lp = { version = "1.14.2", features = ["highs"], default-features = false }
+good_lp = { version = "1.14.2", features = ["minilp"], default-features = false }
 
 [dev-dependencies]
 criterion = "0.8.0"
